@@ -1,0 +1,54 @@
+# ===============================
+# Backend (Java + Spring Boot)
+# ===============================
+
+target/
+HELP.md
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+# ===============================
+# Frontend (Vaadin / npm)
+# ===============================
+
+node_modules/
+frontend/generated/
+vite.generated.ts
+vite.config.ts
+package-lock.json
+
+# ===============================
+# Sistema (macOS, Linux)
+# ===============================
+
+.DS_Store
+Thumbs.db
