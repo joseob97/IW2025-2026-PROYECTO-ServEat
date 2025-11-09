@@ -1,0 +1,11 @@
+{
+  "lumoImports": [
+    "color",
+    "typography",
+    "spacing",
+    "badge"
+  ],
+  "globalCss": [
+    "styles.css"
+  ]
+}
