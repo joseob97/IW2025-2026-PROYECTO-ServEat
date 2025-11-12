@@ -2,19 +2,23 @@ package com.serveat.view.cliente;
 
 import com.serveat.domain.menu.Plato;
 import com.serveat.domain.menu.Categoria;
+import com.serveat.domain.pedido.Pedido;
+import com.serveat.service.PedidoService;
 import com.serveat.service.PlatoService;
 import com.serveat.util.MapperUtils;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.accordion.Accordion;
-import com.vaadin.flow.component.accordion.AccordionPanel;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 import java.util.List;
@@ -25,7 +29,7 @@ import java.util.stream.Collectors;
 @AnonymousAllowed
 public class PlatoView extends VerticalLayout {
 
-    public PlatoView(PlatoService platoService) {
+    public PlatoView(PlatoService platoService, PedidoService pedidoService) {
         addClassName("carta-view");
 
         H1 titulo = new H1("Nuestra Carta");
@@ -79,6 +83,21 @@ public class PlatoView extends VerticalLayout {
                 badge.addClassName("plato-categoria");
                 card.addToFooter(badge);
 
+                Button addToPedido = new Button("🛒 Añadir al pedido", event -> {
+                    Pedido pedido = VaadinSession.getCurrent().getAttribute(Pedido.class);
+
+                    if (pedido == null) {
+                        pedido = pedidoService.crearPedido(null);
+                        VaadinSession.getCurrent().setAttribute(Pedido.class, pedido);
+                    }
+
+                    pedido = pedidoService.agregarPlato(pedido, p, 1);
+                    VaadinSession.getCurrent().setAttribute(Pedido.class, pedido);
+                    Notification.show(p.getNombre() + " añadido al pedido 🛍️");
+                });
+
+                addToPedido.addClassName("boton-anadir-pedido");
+                card.add(addToPedido);
                 contenedor.add(card);
             }
 

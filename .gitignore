@@ -42,6 +42,8 @@ build/
 
 node_modules/
 frontend/generated/
+src/main/frontend/generated/
+src/main/bundles/
 vite.generated.ts
 vite.config.ts
 package-lock.json
