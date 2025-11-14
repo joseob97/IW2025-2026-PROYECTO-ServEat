@@ -20,6 +20,8 @@ public class Producto {
     private String nombre;
     private String descripcion;
     private BigDecimal precio;
+    @Column(unique = true, nullable = false)
+    private String codigo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categoria_id")
@@ -33,4 +35,6 @@ public class Producto {
     public void setPrecio(BigDecimal precio) { this.precio = precio; }
     public Categoria getCategoria() { return categorias; }
     public void setCategoria(Categoria categoria) { this.categorias = categorias; }
+    public String getCodigo() { return codigo; }
+    public void setCodigo(String codigo) { this.codigo = codigo; }
 }

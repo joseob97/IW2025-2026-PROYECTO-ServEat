@@ -16,4 +16,5 @@ public interface ProductoRepository extends JpaRepository<Producto, UUID> {
     List<Producto> findByNombreLike(String nombre);
     List<Producto> findByDescripcionLike(String descripcion);
     List<Producto> findByPrecio(BigDecimal precio);
+    Optional<Producto> findByCodigo(String codigo);
 }

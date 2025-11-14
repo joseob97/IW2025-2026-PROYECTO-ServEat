@@ -3,11 +3,9 @@ package com.serveat.domain.pedido;
 import com.serveat.domain.menu.Producto;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
-import java.sql.SQLType;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +20,8 @@ public class Pedido {
     @JdbcTypeCode(SqlTypes.BINARY)
     private UUID id;
 
+    @Column(unique = true, nullable = false)
+    private String codigo;
     private String estado;
     private LocalDateTime fechaCreacion = LocalDateTime.now();
 
@@ -55,4 +55,7 @@ public class Pedido {
    public List<LineaPedido> getLineaPedidos() {
         return lineaPedidos;
    }
+
+    public String getCodigo() { return codigo; }
+    public void setCodigo(String codigo) { this.codigo = codigo; }
 }
