@@ -49,4 +49,8 @@ public class LineaPedido {
     public BigDecimal calcularPrecio() {
         return precioUnitario.multiply(new BigDecimal(cantidad));
     }
+
+    public Producto getProducto() {
+        return productos;
+    }
 }

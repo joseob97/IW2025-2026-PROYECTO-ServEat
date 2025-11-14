@@ -73,4 +73,9 @@ public class PedidoServiceImpl implements PedidoService {
         Pedido pedido = obtenerPorCodigo(codigoPedido);
         pedidoRepo.delete(pedido);
     }
+
+    @Override
+    public List<Pedido> listarPedidos() {
+        return pedidoRepo.findAll();
+    }
 }

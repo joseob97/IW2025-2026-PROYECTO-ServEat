@@ -18,4 +18,6 @@ public interface PedidoService {
     Pedido cambiarEstado(String codigoPedido, String nuevoEstado);
 
     void eliminarPedido(String codigoPedido);
+
+    List<Pedido> listarPedidos();
 }
