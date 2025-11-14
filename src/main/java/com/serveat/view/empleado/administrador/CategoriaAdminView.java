@@ -1,4 +1,4 @@
-package com.serveat.view.empleado.administrador
+package com.serveat.view.empleado.administrador;
 
 import com.serveat.domain.menu.Categoria;
 import com.serveat.service.menu.CategoriaService;
