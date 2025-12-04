@@ -1,23 +1,75 @@
 package com.serveat.core.config.security;
 
+import com.serveat.core.security.CustomAuthenticationSuccessHandler;
+import com.serveat.core.security.EmpleadoUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfig {
+
+    private final EmpleadoUserDetailsService userDetailsService;
+    private final CustomAuthenticationSuccessHandler successHandler;
+
+    public SecurityConfig(EmpleadoUserDetailsService userDetailsService,
+                          CustomAuthenticationSuccessHandler successHandler) {
+        this.userDetailsService = userDetailsService;
+        this.successHandler = successHandler;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
+
+                //RUTAS PÚBLICAS
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
+                        .requestMatchers("/", "/carta", "/productos/**", "/detalle/**",
+                                "/login", "/VAADIN/**", "/css/**", "/js/**")
+                        .permitAll()
+
+                        //PANEL EMPLEADOS POR ROL
+                        .requestMatchers("/empleado/camarero/**").hasRole("CAMARERO")
+                        .requestMatchers("/empleado/cocinero/**").hasRole("COCINERO")
+                        .requestMatchers("/empleado/repartidor/**").hasRole("REPARTIDOR")
+                        .requestMatchers("/empleado/admin/**").hasRole("ADMIN")
+
+                        //CLIENTES
+                        .requestMatchers("/cliente/**").hasRole("CLIENTE")
+
+                        // CUALQUIER OTRA COSA → necesita login
+                        .anyRequest().authenticated()
                 )
-                .logout(logout -> logout.logoutSuccessUrl("/"));
+
+                //LOGIN PERSONALIZADO
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .successHandler(successHandler)
+                        .failureUrl("/login?error")
+                        .permitAll()
+                )
+
+                //LOGOUT
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/")
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .permitAll()
+                );
+
+
+        http.userDetailsService(userDetailsService);
 
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return userDetailsService.passwordEncoder();
     }
 }
