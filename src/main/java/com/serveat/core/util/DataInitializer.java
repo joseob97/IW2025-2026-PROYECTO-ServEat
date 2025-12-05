@@ -28,28 +28,44 @@ public class DataInitializer {
                         "Camarero Demo",
                         "camarero1",
                         pass,
-                        "CAMARERO"
+                        "612345678",
+                        "camarero@gmail.com",
+                        "Calle del camarero nº1",
+                        "CAMARERO",
+                        true
                 ));
 
                 empleadoRepository.save(new Empleado(
                         "Cocinero Demo",
                         "cocinero1",
                         pass,
-                        "COCINERO"
+                        "712345678",
+                        "cocinero@gmail.com",
+                        "Calle del cocinero nº25",
+                        "COCINERO",
+                        true
                 ));
 
                 empleadoRepository.save(new Empleado(
                         "Repartidor Demo",
                         "repartidor1",
                         pass,
-                        "REPARTIDOR"
+                        "798765432",
+                        "repartidor@gmail.com",
+                        "Calle del repartidor nº99",
+                        "REPARTIDOR",
+                        true
                 ));
 
                 empleadoRepository.save(new Empleado(
                         "Administrador",
                         "admin1",
                         pass,
-                        "ADMIN"
+                        "698765432",
+                        "admin@gmail.com",
+                        "Calle del administrador nº10",
+                        "ADMIN",
+                        true
                 ));
 
                 System.out.println("Empleados iniciales creados.");
