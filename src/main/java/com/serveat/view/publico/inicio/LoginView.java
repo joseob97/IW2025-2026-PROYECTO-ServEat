@@ -5,15 +5,14 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.login.LoginForm;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.router.*;
 
 @Route("login")
 @PageTitle("Iniciar Sesión | ServEat")
-public class LoginView extends VerticalLayout {
+public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginForm loginForm = new LoginForm();
+    private final Span errorMessage = new Span();
 
     public LoginView() {
 
@@ -27,7 +26,13 @@ public class LoginView extends VerticalLayout {
         loginForm.setAction("login");
         loginForm.setForgotPasswordButtonVisible(false);
 
-        add(title, loginForm);
+        // Mensaje de error personalizado (texto arriba del formulario)
+        errorMessage.getStyle().set("color", "red");
+        errorMessage.getStyle().set("font-weight", "bold");
+        errorMessage.getStyle().set("margin-bottom", "10px");
+        errorMessage.setVisible(false);
+
+        add(title, errorMessage, loginForm);
 
         // ENLACE DE REGISTRO
         Span noCuenta = new Span("¿No tienes cuenta aún?");
@@ -40,13 +45,27 @@ public class LoginView extends VerticalLayout {
         registroLayout.setPadding(false);
 
         add(registroLayout);
+    }
 
-        // Manejar error de login
-        loginForm.addAttachListener(event -> {
-            if (event.getUI().getInternals().getActiveViewLocation()
-                    .getQueryParameters().getParameters().containsKey("error")) {
-                loginForm.setError(true);
-            }
-        });
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+
+        // Reset de estado
+        errorMessage.setVisible(false);
+        loginForm.setError(false);
+
+        QueryParameters params = event.getLocation().getQueryParameters();
+
+        if (params.getParameters().containsKey("disabled")) {
+            // Usuario desactivado: solo nuestro mensaje, sin cuadro rojo de Vaadin
+            errorMessage.setText("Tu usuario está desactivado. Contacta con un administrador.");
+            errorMessage.setVisible(true);
+            loginForm.setError(false);
+
+        } else if (params.getParameters().containsKey("error")) {
+            // Error genérico : cuadro rojo del LoginForm
+            errorMessage.setVisible(false);
+            loginForm.setError(true);
+        }
     }
 }

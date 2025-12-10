@@ -1,5 +1,6 @@
 package com.serveat.core.config.security;
 
+import com.serveat.core.security.CustomAuthenticationFailureHandler;
 import com.serveat.core.security.CustomAuthenticationSuccessHandler;
 import com.serveat.core.security.EmpleadoUserDetailsService;
 import org.springframework.context.annotation.Bean;
@@ -7,17 +8,22 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Configuration
 public class SecurityConfig {
 
     private final EmpleadoUserDetailsService userDetailsService;
     private final CustomAuthenticationSuccessHandler successHandler;
+    private final CustomAuthenticationFailureHandler failureHandler;
 
+    @Autowired
     public SecurityConfig(EmpleadoUserDetailsService userDetailsService,
-                          CustomAuthenticationSuccessHandler successHandler) {
+                          CustomAuthenticationSuccessHandler successHandler,
+                          CustomAuthenticationFailureHandler failureHandler) {
         this.userDetailsService = userDetailsService;
         this.successHandler = successHandler;
+        this.failureHandler = failureHandler;
     }
 
     @Bean
@@ -26,34 +32,34 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
 
-                //RUTAS PÚBLICAS
+                // RUTAS PÚBLICAS
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/carta", "/productos/**", "/detalle/**",
                                 "/login", "/VAADIN/**", "/css/**", "/js/**")
                         .permitAll()
 
-                        //PANEL EMPLEADOS POR ROL
+                        // PANEL EMPLEADOS POR ROL
                         .requestMatchers("/empleado/camarero/**").hasRole("CAMARERO")
                         .requestMatchers("/empleado/cocinero/**").hasRole("COCINERO")
                         .requestMatchers("/empleado/repartidor/**").hasRole("REPARTIDOR")
                         .requestMatchers("/empleado/admin/**").hasRole("ADMIN")
 
-                        //CLIENTES
+                        // CLIENTES
                         .requestMatchers("/cliente/**").hasRole("CLIENTE")
 
                         // CUALQUIER OTRA COSA → necesita login
                         .anyRequest().authenticated()
                 )
 
-                //LOGIN PERSONALIZADO
+                // LOGIN PERSONALIZADO
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .successHandler(successHandler)
-                        .failureUrl("/login?error")
+                        .successHandler(successHandler)     // redirección por rol
+                        .failureHandler(failureHandler)     // mensajes personalizados
                         .permitAll()
                 )
 
-                //LOGOUT
+                // LOGOUT
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/")
@@ -61,7 +67,6 @@ public class SecurityConfig {
                         .clearAuthentication(true)
                         .permitAll()
                 );
-
 
         http.userDetailsService(userDetailsService);
 

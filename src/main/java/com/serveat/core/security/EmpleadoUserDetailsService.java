@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,6 +36,11 @@ public class EmpleadoUserDetailsService implements UserDetailsService {
         //Buscar primero EMPLEADO
         Empleado empleado = empleadoRepository.findByUsername(username).orElse(null);
         if (empleado != null) {
+            if (!empleado.isEnabled()) {
+                // 👇 Esta excepción es la que ahora detecta el FailureHandler
+                throw new DisabledException("El usuario está desactivado");
+            }
+
             return User.withUsername(empleado.getUsername())
                     .password(empleado.getPassword())
                     .roles(empleado.getRol().toUpperCase())
