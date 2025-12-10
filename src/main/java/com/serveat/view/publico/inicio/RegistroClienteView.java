@@ -18,12 +18,10 @@ public class RegistroClienteView extends VerticalLayout {
 
     public RegistroClienteView(ClienteRepository clienteRepository) {
 
-        //CENTRAR FORMULARIO
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
 
-        // DISEÑO DEL FORMULARIO
         H1 title = new H1("Crear cuenta de cliente");
 
         TextField nombre = new TextField("Nombre completo");
@@ -38,10 +36,18 @@ public class RegistroClienteView extends VerticalLayout {
         PasswordField password = new PasswordField("Contraseña");
         password.setRequired(true);
 
+        TextField telefono = new TextField("Teléfono");
+        telefono.setRequired(true);
+
+        TextField direccion = new TextField("Dirección");
+        direccion.setRequired(true);
+
+
         Button btnRegistrar = new Button("Registrarse", event -> {
 
             // Validación básica
-            if (nombre.isEmpty() || username.isEmpty() || password.isEmpty()) {
+            if (nombre.isEmpty() || username.isEmpty() || password.isEmpty()
+                    || telefono.isEmpty() || direccion.isEmpty()) {
                 Notification.show("Rellena todos los campos", 3000, Notification.Position.MIDDLE);
                 return;
             }
@@ -62,6 +68,8 @@ public class RegistroClienteView extends VerticalLayout {
             nuevo.setEmail(email.getValue());
             nuevo.setUsername(username.getValue());
             nuevo.setPassword(new BCryptPasswordEncoder().encode(password.getValue()));
+            nuevo.setTelefono(telefono.getValue());
+            nuevo.setDireccion(direccion.getValue());
 
             clienteRepository.save(nuevo);
 
@@ -71,6 +79,6 @@ public class RegistroClienteView extends VerticalLayout {
             getUI().ifPresent(ui -> ui.navigate("login"));
         });
 
-        add(title, nombre, email, username, password, btnRegistrar);
+        add(title, nombre, email, username, password, telefono, direccion, btnRegistrar);
     }
 }

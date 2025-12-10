@@ -21,6 +21,12 @@ public class Cliente {
 
     private String password;
 
+    @Column(nullable = true)
+    private String telefono;
+
+    @Column(nullable = true)
+    private String direccion;
+
     private String rol = "CLIENTE";
 
     public Cliente() {}
@@ -57,6 +63,20 @@ public class Cliente {
     }
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
+    public String getDireccion() {
+        return direccion;
+    }
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
     }
 
     public String getRol() {

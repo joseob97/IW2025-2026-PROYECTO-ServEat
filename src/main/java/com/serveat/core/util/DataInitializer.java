@@ -78,6 +78,8 @@ public class DataInitializer {
                 Cliente cliente = new Cliente();
                 cliente.setNombre("Cliente Demo");
                 cliente.setEmail("cliente@demo.com");
+                cliente.setDireccion("Casa del cliente");
+                cliente.setTelefono("696369963");
                 cliente.setUsername("cliente1");
                 cliente.setPassword(pass);
                 cliente.setRol("CLIENTE");
