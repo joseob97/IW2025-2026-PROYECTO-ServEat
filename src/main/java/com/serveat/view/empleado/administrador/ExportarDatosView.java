@@ -1,6 +1,7 @@
 package com.serveat.view.empleado.administrador;
 
-import com.serveat.service.seguridad.PlanPremiumService;
+import com.serveat.domain.seguridad.Feature;
+import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
@@ -16,13 +17,13 @@ import org.springframework.security.access.annotation.Secured;
 @Secured("ROLE_ADMIN")
 public class ExportarDatosView extends VerticalLayout {
 
-    public ExportarDatosView(PlanPremiumService planPremiumService) {
+    public ExportarDatosView(FeatureService featureService) {
         setPadding(true);
         setSpacing(true);
 
         H2 titulo = new H2("Exportar datos");
 
-        if (!planPremiumService.tieneFeature("ESTADISTICAS")) {
+        if (!featureService.tieneFeature(Feature.EXPORTAR_DATOS)) {
             add(titulo,
                     new Paragraph("La exportación avanzada requiere el plan PRO."),
                     new Paragraph("Ve a “Suscripción / Plan” para activarla."));
