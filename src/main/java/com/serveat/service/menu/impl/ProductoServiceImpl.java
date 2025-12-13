@@ -56,7 +56,7 @@ public class ProductoServiceImpl implements ProductoService {
         Categoria categoria = categoriaRepo.findByNombre(categoriaNombre)
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
 
-        return productoRepo.findByCategorias(categoria);
+        return productoRepo.findByCategoria(categoria);
     }
 
     @Override

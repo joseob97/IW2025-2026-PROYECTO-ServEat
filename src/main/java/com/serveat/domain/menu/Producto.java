@@ -25,7 +25,7 @@ public class Producto {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categoria_id")
-    private Categoria categorias;
+    private Categoria categoria;
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
@@ -33,8 +33,8 @@ public class Producto {
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     public BigDecimal getPrecio() { return precio; }
     public void setPrecio(BigDecimal precio) { this.precio = precio; }
-    public Categoria getCategoria() { return categorias; }
-    public void setCategoria(Categoria categoria) { this.categorias = categorias; }
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
+    public Categoria getCategoria() { return categoria; }
+    public void setCategoria(Categoria categoria) { this.categoria = categoria; }
 }
