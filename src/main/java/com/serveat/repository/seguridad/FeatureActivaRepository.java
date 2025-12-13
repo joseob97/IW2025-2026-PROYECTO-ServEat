@@ -4,5 +4,9 @@ import com.serveat.domain.seguridad.Feature;
 import com.serveat.domain.seguridad.FeatureActiva;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface FeatureActivaRepository extends JpaRepository<FeatureActiva, Feature> {
+import java.util.Optional;
+import java.util.UUID;
+
+public interface FeatureActivaRepository extends JpaRepository<FeatureActiva, UUID> {
+    Optional<FeatureActiva> findByFeature(Feature feature);
 }

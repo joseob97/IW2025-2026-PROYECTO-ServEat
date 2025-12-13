@@ -172,11 +172,12 @@ public class DataInitializer {
             }
 
             // FEATURES (todas desactivadas por defecto)
-            for (Feature f : Feature.values()) {
-                featureActivaRepository.findByFeature(f)
-                        .orElseGet(() -> featureActivaRepository.save(new FeatureActiva(f)));
+            if (featureActivaRepository.count() == 0) {
+                for (Feature f : Feature.values()) {
+                    featureActivaRepository.save(new FeatureActiva(f));
+                }
+                System.out.println("Features inicializadas a false.");
             }
-            System.out.println("Features inicializadas (faltantes creadas) a false.");
 
         };
     }
