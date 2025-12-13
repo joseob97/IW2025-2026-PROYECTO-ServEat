@@ -1,5 +1,13 @@
 /* frontend/themes/serveat/styles.css */
 
+:root {
+    --lumo-primary-color: #28d967;
+    --lumo-primary-text-color: #1f8f4a;
+    --lumo-primary-contrast-color: #ffffff;
+
+    --lumo-success-color: #28d967;
+}
+
 .carta-view {
     background: #fafafa;
     padding: 20px;
@@ -90,7 +98,7 @@
 
 .index-view h1 {
     font-size: 2.5rem;
-    color: #1a237e;
+    color: #1f8f4a;
     margin-bottom: 1rem;
 }
 
@@ -109,12 +117,21 @@
 }
 
 .index-view vaadin-button[theme~="primary"] {
-    background-color: #1976d2;
+    background-color: #28d967;
     color: white;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.index-view vaadin-button[theme~="primary"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(40, 217, 103, 0.35);
 }
 
 .index-view vaadin-button[theme~="contrast"] {
     background-color: white;
-    color: #1976d2;
-    border: 2px solid #1976d2;
+    color: #28d967;
+    border: 2px solid #28d967;
+    font-weight: 600;
 }
