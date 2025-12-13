@@ -2,10 +2,13 @@ package com.serveat.core.util;
 
 import com.serveat.domain.menu.Categoria;
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.seguridad.Feature;
+import com.serveat.domain.seguridad.FeatureActiva;
 import com.serveat.domain.usuario.Cliente;
 import com.serveat.domain.usuario.Empleado;
 import com.serveat.repository.menu.CategoriaRepository;
 import com.serveat.repository.menu.ProductoRepository;
+import com.serveat.repository.seguridad.FeatureActivaRepository;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.repository.usuario.EmpleadoRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -22,7 +25,8 @@ public class DataInitializer {
     CommandLineRunner initDatabase(EmpleadoRepository empleadoRepository,
                                    ClienteRepository clienteRepository,
                                    CategoriaRepository categoriaRepository,
-                                   ProductoRepository productoRepository) {
+                                   ProductoRepository productoRepository,
+                                   FeatureActivaRepository featureActivaRepository) {
         return args -> {
 
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -165,6 +169,14 @@ public class DataInitializer {
                 productoRepository.save(p4);
 
                 System.out.println("Productos iniciales creados.");
+            }
+
+            // FEATURES (todas desactivadas por defecto)
+            if (featureActivaRepository.count() == 0) {
+                for (Feature f : Feature.values()) {
+                    featureActivaRepository.save(new FeatureActiva(f, false));
+                }
+                System.out.println("Features inicializadas a false.");
             }
 
         };
