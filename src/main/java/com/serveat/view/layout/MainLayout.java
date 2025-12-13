@@ -7,10 +7,13 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.component.html.Image;
 
 import com.serveat.view.publico.inicio.InicioView;
 import com.serveat.view.publico.inicio.LoginView;
 import com.serveat.view.publico.carta.CartaView;
+import com.serveat.view.publico.contacto.ContactoView;
+import com.serveat.view.publico.informacion.InformacionSitioView;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,12 +27,18 @@ public class MainLayout extends AppLayout {
 
     private void createHeader() {
 
-        H1 logo = new H1("ServEat");
-        logo.getStyle().set("font-size", "24px");
+        Image logoImg = new Image("/images/logo.jpg", "ServEat");
+        logoImg.setHeight("64px");
+        H1 logoText = new H1("ServEat");
+        logoText.getStyle().set("font-size", "24px");
+        HorizontalLayout logo = new HorizontalLayout(logoImg, logoText);
+        logo.setAlignItems(FlexComponent.Alignment.CENTER);
 
         RouterLink linkInicio = new RouterLink("Inicio", InicioView.class);
-        RouterLink linkLogin = new RouterLink("Login", LoginView.class);
         RouterLink linkCarta = new RouterLink("Carta", CartaView.class);
+        RouterLink linkContacto = new RouterLink("Contacto", ContactoView.class);
+        RouterLink linkInfo = new RouterLink("Información", InformacionSitioView.class);
+        RouterLink linkLogin = new RouterLink("Login", LoginView.class);
 
         Anchor logout = new Anchor("/logout", "Salir");
         logout.getElement().setAttribute("router-ignore", true);
@@ -87,31 +96,42 @@ public class MainLayout extends AppLayout {
         }
 
         // MONTAR EL HEADER
+        Span spacer = new Span();
+        spacer.getStyle().set("flex-grow", "0.9");
         HorizontalLayout header;
 
         if (isLogged && linkPanel != null) {
             header = new HorizontalLayout(
                     logo,
+                    spacer,
                     usuarioConectado,
                     linkInicio,
                     linkPanel,
                     linkCarta,
+                    linkContacto,
+                    linkInfo,
                     logout
             );
         } else {
             header = new HorizontalLayout(
                     logo,
+                    spacer,
                     usuarioConectado,
                     linkInicio,
-                    linkLogin,
                     linkCarta,
+                    linkContacto,
+                    linkInfo,
+                    linkLogin,
                     logout
             );
         }
 
         header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
         header.setWidthFull();
-        header.expand(logo);
+        header.setSpacing(true);
+        header.getStyle().set("flex-wrap", "nowrap");
+        header.getStyle().set("white-space", "nowrap");
+        header.getStyle().set("gap", "10px");
 
         addToNavbar(header);
     }

@@ -35,7 +35,7 @@ public class SecurityConfig {
                 // RUTAS PÚBLICAS
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/carta", "/productos/**", "/detalle/**",
-                                "/login", "/VAADIN/**", "/css/**", "/js/**")
+                                "/login", "/VAADIN/**", "/css/**", "/js/**" , "/images/**", "/favicon.ico")
                         .permitAll()
 
                         // PANEL EMPLEADOS POR ROL

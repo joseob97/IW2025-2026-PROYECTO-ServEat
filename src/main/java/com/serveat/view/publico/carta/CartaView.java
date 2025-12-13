@@ -33,6 +33,7 @@ public class CartaView extends VerticalLayout {
 
         setSizeFull();
         setPadding(true);
+        setAlignItems(Alignment.CENTER);
 
         H2 titulo = new H2("Carta del restaurante");
 
