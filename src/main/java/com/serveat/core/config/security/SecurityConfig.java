@@ -30,7 +30,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
+                // CSRF activado por defecto (no lo desactivamos)
 
                 // RUTAS PÚBLICAS
                 .authorizeHttpRequests(auth -> auth
