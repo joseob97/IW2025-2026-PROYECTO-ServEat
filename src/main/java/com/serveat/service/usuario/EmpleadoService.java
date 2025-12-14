@@ -1,42 +1,19 @@
 package com.serveat.service.usuario;
 
 import com.serveat.domain.usuario.Empleado;
-import com.serveat.repository.usuario.EmpleadoRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import java.util.Optional;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
-@Service
-public class EmpleadoService {
+public interface EmpleadoService {
 
-    private final EmpleadoRepository empleadoRepository;
+    List<Empleado> findAll();
 
-    public EmpleadoService(EmpleadoRepository empleadoRepository) {
-        this.empleadoRepository = empleadoRepository;
-    }
+    Optional<Empleado> findById(Long id);
 
-    public List<Empleado> findAll() {
-        return empleadoRepository.findAll();
-    }
+    Empleado save(Empleado empleado);
 
-    public Empleado save(Empleado empleado) {
-        return empleadoRepository.save(empleado);
-    }
+    void delete(Empleado empleado);
 
-    public void delete(Empleado empleado) {
-        empleadoRepository.delete(empleado);
-    }
-
-    public Optional<Empleado> findById(Long id) {
-        return empleadoRepository.findById(id);
-    }
-
-    public void updatePassword(Empleado empleado, String rawPassword) {
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        empleado.setPassword(encoder.encode(rawPassword));
-        empleadoRepository.save(empleado);
-    }
-
+    void updatePassword(Empleado empleado, String rawPassword);
 }
