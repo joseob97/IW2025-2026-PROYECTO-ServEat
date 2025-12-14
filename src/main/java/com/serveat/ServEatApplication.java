@@ -6,7 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@Theme("serveat") // 👈 usa el tema ubicado en frontend/themes/serveat
+@Theme("serveat")
 public class ServEatApplication implements AppShellConfigurator {
     public static void main(String[] args) {
         SpringApplication.run(ServEatApplication.class, args);

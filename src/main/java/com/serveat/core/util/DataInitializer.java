@@ -14,10 +14,12 @@ import com.serveat.repository.usuario.EmpleadoRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
 
+@Profile("dev")
 @Configuration
 public class DataInitializer {
 
@@ -30,7 +32,9 @@ public class DataInitializer {
         return args -> {
 
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-            String pass = encoder.encode("123456");
+            String rawPassword = System.getenv("DEMO_PASSWORD");
+            if (rawPassword == null || rawPassword.isBlank()) rawPassword = "demo1234"; // fallback solo DEV
+            String pass = encoder.encode(rawPassword);
 
             //   EMPLEADOS INICIALES
             if (empleadoRepository.count() == 0) {
