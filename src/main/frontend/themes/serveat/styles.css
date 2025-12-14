@@ -117,11 +117,10 @@
 }
 
 .index-view vaadin-button[theme~="primary"] {
-    background-color: #28d967;
-    color: white;
+    background-color: var(--lumo-primary-color);
+    color: var(--lumo-primary-contrast-color);
     font-weight: 600;
     border-radius: 12px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .index-view vaadin-button[theme~="primary"]:hover {
@@ -131,7 +130,7 @@
 
 .index-view vaadin-button[theme~="contrast"] {
     background-color: white;
-    color: #28d967;
-    border: 2px solid #28d967;
+    color: var(--lumo-primary-text-color);
+    border: 2px solid var(--lumo-primary-color);
     font-weight: 600;
 }
