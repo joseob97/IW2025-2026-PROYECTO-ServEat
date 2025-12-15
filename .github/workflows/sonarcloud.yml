@@ -30,5 +30,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn -B -DskipTests verify sonar:sonar \
+            -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.projectKey=joseob97_IW2025-2026-PROYECTO-ServEat \
-            -Dsonar.organization=iw2025-2026-proyecto-serveat
+            -Dsonar.organization=iw2025-2026-proyecto-serveat \
+            -Dsonar.token=$SONAR_TOKEN
