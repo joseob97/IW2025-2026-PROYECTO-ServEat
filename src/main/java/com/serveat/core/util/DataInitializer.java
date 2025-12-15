@@ -33,7 +33,13 @@ public class DataInitializer {
 
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
             String rawPassword = System.getenv("DEMO_PASSWORD");
-            if (rawPassword == null || rawPassword.isBlank()) rawPassword = "demo1234"; // fallback solo DEV
+
+            if (rawPassword == null || rawPassword.isBlank()) {
+                throw new IllegalStateException(
+                        "La variable de entorno DEMO_PASSWORD no está definida"
+                );
+            }
+
             String pass = encoder.encode(rawPassword);
 
             //   EMPLEADOS INICIALES
