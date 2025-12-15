@@ -43,55 +43,7 @@ public class DataInitializer {
             String pass = encoder.encode(rawPassword);
 
             //   EMPLEADOS INICIALES
-            if (empleadoRepository.count() == 0) {
-                System.out.println("Insertando empleados iniciales...");
-
-                empleadoRepository.save(new Empleado(
-                        "Camarero Demo",
-                        "camarero1",
-                        pass,
-                        "612345678",
-                        "camarero@gmail.com",
-                        "Calle del camarero nº1",
-                        "CAMARERO",
-                        true
-                ));
-
-                empleadoRepository.save(new Empleado(
-                        "Cocinero Demo",
-                        "cocinero1",
-                        pass,
-                        "712345678",
-                        "cocinero@gmail.com",
-                        "Calle del cocinero nº25",
-                        "COCINERO",
-                        true
-                ));
-
-                empleadoRepository.save(new Empleado(
-                        "Repartidor Demo",
-                        "repartidor1",
-                        pass,
-                        "798765432",
-                        "repartidor@gmail.com",
-                        "Calle del repartidor nº99",
-                        "REPARTIDOR",
-                        true
-                ));
-
-                empleadoRepository.save(new Empleado(
-                        "Administrador",
-                        "admin1",
-                        pass,
-                        "698765432",
-                        "admin@gmail.com",
-                        "Calle del administrador nº10",
-                        "ADMIN",
-                        true
-                ));
-
-                System.out.println("Empleados iniciales creados.");
-            }
+            insertarEmpleados(empleadoRepository, pass);
 
             //   CLIENTE INICIAL
             if (clienteRepository.count() == 0) {
@@ -190,5 +142,57 @@ public class DataInitializer {
             }
 
         };
+    }
+
+    private static void insertarEmpleados(EmpleadoRepository empleadoRepository, String pass) {
+        if (empleadoRepository.count() == 0) {
+            System.out.println("Insertando empleados iniciales...");
+
+            empleadoRepository.save(new Empleado(
+                    "Camarero Demo",
+                    "camarero1",
+                    pass,
+                    "612345678",
+                    "camarero@gmail.com",
+                    "Calle del camarero nº1",
+                    "CAMARERO",
+                    true
+            ));
+
+            empleadoRepository.save(new Empleado(
+                    "Cocinero Demo",
+                    "cocinero1",
+                    pass,
+                    "712345678",
+                    "cocinero@gmail.com",
+                    "Calle del cocinero nº25",
+                    "COCINERO",
+                    true
+            ));
+
+            empleadoRepository.save(new Empleado(
+                    "Repartidor Demo",
+                    "repartidor1",
+                    pass,
+                    "798765432",
+                    "repartidor@gmail.com",
+                    "Calle del repartidor nº99",
+                    "REPARTIDOR",
+                    true
+            ));
+
+            empleadoRepository.save(new Empleado(
+                    "Administrador",
+                    "admin1",
+                    pass,
+                    "698765432",
+                    "admin@gmail.com",
+                    "Calle del administrador nº10",
+                    "ADMIN",
+                    true
+            ));
+
+            System.out.println("Empleados iniciales creados.");
+        }
     }
 }

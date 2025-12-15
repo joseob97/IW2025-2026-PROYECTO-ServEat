@@ -11,7 +11,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RegexRequestMatcher;
-
 @Configuration
 public class SecurityConfig {
 
@@ -32,12 +31,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/VAADIN/**"),
-                                new AntPathRequestMatcher("/") // POST a /
-                        )
-                )
+                // Vaadin usa llamadas internas (UIDL/push) que no incluyen CSRF de Spring Security.
+                // Se ignoran SOLO esos endpoints para evitar 403 y mantener CSRF en el resto.
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        new RegexRequestMatcher(".*\\?v-r=uidl.*", null),
+                        new AntPathRequestMatcher("/VAADIN/push/**")
+                ))
 
                 // RUTAS PÚBLICAS
                 .authorizeHttpRequests(auth -> auth
