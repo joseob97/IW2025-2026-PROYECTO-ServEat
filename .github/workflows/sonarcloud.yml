@@ -2,7 +2,7 @@ name: SonarCloud analysis
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/**" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -12,18 +12,23 @@ permissions:
   pull-requests: read
 
 jobs:
-  Analysis:
+  sonar:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Analyze with SonarCloud
-        uses: SonarSource/sonarcloud-github-action@v3
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build + SonarCloud (Maven)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=joseob97_IW2025-2026-PROYECTO-ServEat
+        run: |
+          mvn -B -DskipTests verify sonar:sonar \
+            -Dsonar.projectKey=joseob97_IW2025-2026-PROYECTO-ServEat \
             -Dsonar.organization=iw2025-2026-proyecto-serveat
