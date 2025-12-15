@@ -16,12 +16,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 
 @Profile("dev")
 @Configuration
 public class DataInitializer {
+
+    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
     @Bean
     CommandLineRunner initDatabase(EmpleadoRepository empleadoRepository,
@@ -47,7 +51,7 @@ public class DataInitializer {
 
             //   CLIENTE INICIAL
             if (clienteRepository.count() == 0) {
-                System.out.println("Insertando cliente inicial...");
+                log.info("Insertando cliente inicial...");
 
                 Cliente cliente = new Cliente();
                 cliente.setNombre("Cliente Demo");
@@ -60,13 +64,13 @@ public class DataInitializer {
 
                 clienteRepository.save(cliente);
 
-                System.out.println("Cliente de prueba creado.");
+                log.info("Cliente de prueba creado.");
             }
 
 
             // CATEGORIAS
             if (categoriaRepository.count() == 0) {
-                System.out.println("Insertando categorías iniciales...");
+                log.info("Insertando categorías iniciales...");
 
                 Categoria burgers = new Categoria();
                 burgers.setNombre("Hamburguesas");
@@ -81,13 +85,13 @@ public class DataInitializer {
                 categoriaRepository.save(pizzas);
                 categoriaRepository.save(bebidas);
 
-                System.out.println("Categorías iniciales creadas.");
+                log.info("Categorías iniciales creadas.");
             }
 
             // PRODUCTOS
 
             if (productoRepository.count() == 0) {
-                System.out.println("Insertando productos iniciales...");
+                log.info("Insertando productos iniciales...");
 
                 // Recuperar categorías ya guardadas (por nombre)
                 Categoria burgers = categoriaRepository.findByNombre("Hamburguesas")
@@ -138,7 +142,7 @@ public class DataInitializer {
                 for (Feature f : Feature.values()) {
                     featureActivaRepository.save(new FeatureActiva(f));
                 }
-                System.out.println("Features inicializadas a false.");
+                log.info("Features inicializadas a false.");
             }
 
         };
@@ -146,7 +150,7 @@ public class DataInitializer {
 
     private static void insertarEmpleados(EmpleadoRepository empleadoRepository, String pass) {
         if (empleadoRepository.count() == 0) {
-            System.out.println("Insertando empleados iniciales...");
+            log.info("Insertando empleados iniciales...");
 
             empleadoRepository.save(new Empleado(
                     "Camarero Demo",
@@ -192,7 +196,7 @@ public class DataInitializer {
                     true
             ));
 
-            System.out.println("Empleados iniciales creados.");
+            log.info("Empleados iniciales creados.");
         }
     }
 }
