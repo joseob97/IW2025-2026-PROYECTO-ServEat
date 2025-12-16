@@ -90,8 +90,6 @@ public class PedidoServiceImpl implements PedidoService {
                 .orElse(null);
 
         if (existente != null) {
-            // necesitas setter en LineaPedido:
-            // public void setCantidad(int c) { this.cantidad=c; }
             existente.setCantidad(existente.getCantidad() + cantidad);
         } else {
             pedido.getLineaPedidos().add(new LineaPedido(pedido, producto, cantidad));
