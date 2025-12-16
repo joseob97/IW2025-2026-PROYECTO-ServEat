@@ -28,7 +28,6 @@ public class IniciarPedidoView extends VerticalLayout {
 
     //  SERVICIOS (transient para Sonar/Vaadin)
     private final transient PedidoService pedidoService;
-    private final ProductoRepository productoRepository;
 
     private Pedido pedidoActual;
 
@@ -51,7 +50,6 @@ public class IniciarPedidoView extends VerticalLayout {
                              ProductoRepository productoRepository) {
 
         this.pedidoService = pedidoService;
-        this.productoRepository = productoRepository;
 
         setSpacing(true);
         setPadding(true);
