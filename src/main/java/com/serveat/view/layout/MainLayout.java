@@ -86,7 +86,7 @@ public class MainLayout extends AppLayout {
                     linkPanel = new RouterLink("Panel", com.serveat.view.empleado.cocinero.PanelCocineroView.class);
                     break;
                 case "ROLE_REPARTIDOR":
-                    // linkPanel = new RouterLink("Panel", com.serveat.view.empleado.repartidor.PanelRepartidorView.class);
+                    linkPanel = new RouterLink("Panel", com.serveat.view.empleado.repartidor.PanelRepartidorView.class);
                     break;
             }
 

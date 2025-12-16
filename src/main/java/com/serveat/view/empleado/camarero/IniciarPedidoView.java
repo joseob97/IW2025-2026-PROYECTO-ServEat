@@ -26,10 +26,10 @@ import org.springframework.security.access.annotation.Secured;
 @Secured("ROLE_CAMARERO")
 public class IniciarPedidoView extends VerticalLayout {
 
-    private final PedidoService pedidoService;
-    private final ProductoRepository productoRepository;
-
-    private Pedido pedidoActual;
+    //  SERVICIOS (transient para Sonar/Vaadin)
+    private final transient PedidoService pedidoService;
+    // ESTADO DE LA VISTA
+    private transient Pedido pedidoActual;
 
     private final Grid<LineaPedido> grid = new Grid<>(LineaPedido.class, false);
     private final Span total = new Span("Total: 0 €");
@@ -50,7 +50,6 @@ public class IniciarPedidoView extends VerticalLayout {
                              ProductoRepository productoRepository) {
 
         this.pedidoService = pedidoService;
-        this.productoRepository = productoRepository;
 
         setSpacing(true);
         setPadding(true);
