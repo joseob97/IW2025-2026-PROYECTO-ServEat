@@ -28,8 +28,8 @@ public class IniciarPedidoView extends VerticalLayout {
 
     //  SERVICIOS (transient para Sonar/Vaadin)
     private final transient PedidoService pedidoService;
-
-    private Pedido pedidoActual;
+    // ESTADO DE LA VISTA
+    private transient Pedido pedidoActual;
 
     private final Grid<LineaPedido> grid = new Grid<>(LineaPedido.class, false);
     private final Span total = new Span("Total: 0 €");
