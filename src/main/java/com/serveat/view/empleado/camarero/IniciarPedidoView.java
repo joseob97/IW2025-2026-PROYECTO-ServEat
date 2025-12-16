@@ -26,7 +26,8 @@ import org.springframework.security.access.annotation.Secured;
 @Secured("ROLE_CAMARERO")
 public class IniciarPedidoView extends VerticalLayout {
 
-    private final PedidoService pedidoService;
+    //  SERVICIOS (transient para Sonar/Vaadin)
+    private final transient PedidoService pedidoService;
     private final ProductoRepository productoRepository;
 
     private Pedido pedidoActual;
