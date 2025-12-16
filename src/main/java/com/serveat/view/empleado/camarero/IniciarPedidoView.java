@@ -43,6 +43,9 @@ public class IniciarPedidoView extends VerticalLayout {
     private final IntegerField cantidad = new IntegerField("Cantidad");
     private final Button anadir = new Button("Añadir");
 
+    // Confirmación
+    private final Button confirmar = new Button("✅ Confirmar pedido (Enviar a cocina)");
+
     public IniciarPedidoView(PedidoService pedidoService,
                              ProductoRepository productoRepository) {
 
@@ -93,7 +96,12 @@ public class IniciarPedidoView extends VerticalLayout {
         grid.setWidthFull();
         add(grid, total);
 
-        // Estado inicial: hasta que no haya pedido, deshabilita añadir / grid
+        // CONFIRMAR PEDIDO
+
+        confirmar.addClickListener(e -> confirmarPedido());
+        add(confirmar);
+
+        // Estado inicial: hasta que no haya pedido, deshabilita añadir / grid / confirmar
         setUiPedidoCreado(false);
     }
 
@@ -149,6 +157,27 @@ public class IniciarPedidoView extends VerticalLayout {
         }
     }
 
+    private void confirmarPedido() {
+        if (!hayPedidoCreado()) return;
+
+        if (pedidoActual.getLineaPedidos() == null || pedidoActual.getLineaPedidos().isEmpty()) {
+            Notification.show("No puedes confirmar un pedido vacío", 3000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        try {
+            pedidoActual = pedidoService.confirmarPedido(pedidoActual.getCodigo());
+            Notification.show("Pedido confirmado y enviado a cocina", 3000, Notification.Position.MIDDLE);
+
+            // Bloquea edición tras confirmar
+            setUiPedidoConfirmado();
+            refrescarGrid();
+
+        } catch (Exception ex) {
+            Notification.show("Error confirmando: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
+        }
+    }
+
     private boolean hayPedidoCreado() {
         if (pedidoActual == null) {
             Notification.show("Primero crea un pedido", 3000, Notification.Position.MIDDLE);
@@ -162,6 +191,20 @@ public class IniciarPedidoView extends VerticalLayout {
         cantidad.setEnabled(creado);
         anadir.setEnabled(creado);
         grid.setEnabled(creado);
+        confirmar.setEnabled(creado);
+    }
+
+    private void setUiPedidoConfirmado() {
+        // Tras confirmar, ya no se puede editar
+        comboProducto.setEnabled(false);
+        cantidad.setEnabled(false);
+        anadir.setEnabled(false);
+        grid.setEnabled(false);
+        confirmar.setEnabled(false);
+
+        // Si quieres permitir “crear otro pedido” sin salir de la pantalla:
+        mesa.setEnabled(true);
+        crearPedido.setEnabled(true);
     }
 
     // GRID

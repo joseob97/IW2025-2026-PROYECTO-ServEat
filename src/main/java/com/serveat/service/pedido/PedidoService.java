@@ -25,6 +25,8 @@ public interface PedidoService {
     // Elimina directamente el producto del pedido
     Pedido eliminarProducto(String codigoPedido, String codigoProducto);
 
+    Pedido confirmarPedido(String codigoPedido);
+
     List<Pedido> buscarPorEstado(EstadoPedido estado);
 
     Pedido cambiarEstado(String codigoPedido, EstadoPedido nuevoEstado);

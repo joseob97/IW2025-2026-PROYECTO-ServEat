@@ -135,6 +135,20 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     @Override
+    public Pedido confirmarPedido(String codigoPedido) {
+        Pedido pedido = cargarDetalle(codigoPedido);
+
+        if (pedido.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("No se puede confirmar un pedido vacío");
+        }
+
+        pedido.setEstado(EstadoPedido.EN_COCINA);
+
+        pedidoRepo.save(pedido);
+        return cargarDetalle(codigoPedido);
+    }
+
+    @Override
     public List<Pedido> buscarPorEstado(EstadoPedido estado) {
         return pedidoRepo.findByEstado(estado);
     }

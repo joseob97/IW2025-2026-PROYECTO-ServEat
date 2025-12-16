@@ -2,9 +2,10 @@ package com.serveat.domain.pedido;
 
 public enum EstadoPedido {
 
-    EN_CURSO,        // Pedido creado, editable
-    EN_PREPARACION,  // Cocina trabajando
-    LISTO,           // Listo para servir
-    SERVIDO,         // Entregado en mesa
-    CANCELADO        // Cancelado por camarero
+    EN_CURSO,      // Camarero creando / editando
+    EN_COCINA,     // Confirmado → cocina lo ve
+    EN_PREPARACION,// Cocinero empieza a cocinar
+    LISTO,         // Cocina termina
+    SERVIDO,       // Camarero entrega
+    CANCELADO
 }
