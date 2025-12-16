@@ -210,18 +210,7 @@ public class IniciarPedidoView extends VerticalLayout {
 
     private void configurarGrid() {
 
-        grid.addColumn(lp -> lp.getProducto().getNombre())
-                .setHeader("Producto")
-                .setAutoWidth(true)
-                .setFlexGrow(1);
-
-        grid.addColumn(LineaPedido::getCantidad)
-                .setHeader("Cantidad")
-                .setAutoWidth(true);
-
-        grid.addColumn(lp -> lp.calcularPrecio() + " €")
-                .setHeader("Subtotal")
-                .setAutoWidth(true);
+        configurarGridColumnasBasicas();
 
         // MODIFICAR: llama al SERVICE (NO tocar la entidad desde la vista)
         grid.addComponentColumn(lp -> {
@@ -262,6 +251,25 @@ public class IniciarPedidoView extends VerticalLayout {
             return qty;
         }).setHeader("Modificar");
 
+        configurarGridEliminar();
+    }
+
+    private void configurarGridColumnasBasicas() {
+        grid.addColumn(lp -> lp.getProducto().getNombre())
+                .setHeader("Producto")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
+
+        grid.addColumn(LineaPedido::getCantidad)
+                .setHeader("Cantidad")
+                .setAutoWidth(true);
+
+        grid.addColumn(lp -> lp.calcularPrecio() + " €")
+                .setHeader("Subtotal")
+                .setAutoWidth(true);
+    }
+
+    private void configurarGridEliminar() {
         // ELIMINAR
         grid.addComponentColumn(lp -> {
             Button borrar = new Button("❌");
