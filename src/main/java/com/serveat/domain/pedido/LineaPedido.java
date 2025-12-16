@@ -36,7 +36,9 @@ public class LineaPedido {
     public int getCantidad() {
         return cantidad;
     }
-
+    public void setCantidad(int cantidad) {
+        this.cantidad = cantidad;
+    }
     public LineaPedido(Pedido pedido, Producto producto, int cantidad) {
         this.pedidos = pedido;
         this.productos = producto;

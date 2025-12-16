@@ -1,9 +1,8 @@
 package com.serveat.view.empleado.camarero;
 
 import com.serveat.view.layout.MainLayout;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import org.springframework.security.access.annotation.Secured;
@@ -18,8 +17,8 @@ public class PanelCamareroView extends VerticalLayout {
 
         H2 titulo = new H2("Panel Camarero");
 
-        // Menú de opciones para el camarero
+        RouterLink iniciar = new RouterLink("➕ Iniciar pedido (mesa)", IniciarPedidoView.class);
 
-        add(titulo);
+        add(titulo, iniciar);
     }
 }

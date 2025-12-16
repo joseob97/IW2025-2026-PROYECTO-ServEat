@@ -1,6 +1,7 @@
 package com.serveat.domain.pedido;
 
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.reserva.ReservaMesa;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -22,8 +23,16 @@ public class Pedido {
 
     @Column(unique = true, nullable = false)
     private String codigo;
-    private String estado;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EstadoPedido estado;
+
     private LocalDateTime fechaCreacion = LocalDateTime.now();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reserva_mesa_id")
+    private ReservaMesa reservaMesa;
 
     @OneToMany(mappedBy = "pedidos",
             cascade = CascadeType.ALL,
@@ -31,12 +40,7 @@ public class Pedido {
             orphanRemoval = true)
     private List<LineaPedido> lineaPedidos = new ArrayList<>();
 
-    public String getEstado() {
-        return estado;
-    }
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
+
     public LocalDateTime getFechaCreacion() {
         return fechaCreacion;
     }
@@ -56,7 +60,17 @@ public class Pedido {
         return lineaPedidos;
    }
 
+    public EstadoPedido getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoPedido estado) {
+        this.estado = estado;
+    }
+
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
 
+    public ReservaMesa getReservaMesa() { return reservaMesa; }
+    public void setReservaMesa(ReservaMesa reservaMesa) { this.reservaMesa = reservaMesa; }
 }

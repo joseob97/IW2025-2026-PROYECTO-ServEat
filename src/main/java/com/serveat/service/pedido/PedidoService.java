@@ -1,21 +1,33 @@
 package com.serveat.service.pedido;
 
+import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.Pedido;
-import com.serveat.domain.menu.Producto;
 
 import java.util.List;
 
 public interface PedidoService {
 
+    // Pedido genérico (online / sin mesa)
     Pedido crearPedido();
 
+    // Pedido asociado a mesa (camarero)
+    Pedido crearPedidoMesa(Integer numeroMesa);
+
+    // Devuelve el pedido con lineas+producto cargadas
     Pedido obtenerPorCodigo(String codigo);
 
+    // Suma cantidades si el producto ya existe
     Pedido agregarProducto(String codigoPedido, String codigoProducto, int cantidad);
 
-    List<Pedido> buscarPorEstado(String estado);
+    // Cambia la cantidad de un producto ya añadido (si nuevaCantidad <= 0 => elimina)
+    Pedido actualizarCantidadProducto(String codigoPedido, String codigoProducto, int nuevaCantidad);
 
-    Pedido cambiarEstado(String codigoPedido, String nuevoEstado);
+    // Elimina directamente el producto del pedido
+    Pedido eliminarProducto(String codigoPedido, String codigoProducto);
+
+    List<Pedido> buscarPorEstado(EstadoPedido estado);
+
+    Pedido cambiarEstado(String codigoPedido, EstadoPedido nuevoEstado);
 
     void eliminarPedido(String codigoPedido);
 
