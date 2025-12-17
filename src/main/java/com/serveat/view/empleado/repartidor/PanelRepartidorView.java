@@ -8,7 +8,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import org.springframework.security.access.annotation.Secured;
 
-@Route(value = "empleado/cocinero", layout = MainLayout.class)
+@Route(value = "empleado/repartidor", layout = MainLayout.class)
 @Secured("ROLE_REPARTIDOR")
 public class PanelRepartidorView extends VerticalLayout {
 
