@@ -35,8 +35,12 @@ public interface PedidoService {
 
     List<Pedido> listarPedidos();
 
-    List<Pedido> listarPedidosCancelables();
-    List<Pedido> listarPedidosCancelablesPorMesa(Integer numeroMesa);
+    List<Pedido> listarPedidosModificables();
+
+    List<Pedido> listarPedidosModificablesPorMesa(Integer numeroMesa);
 
     Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername);
+
+    public Pedido confirmarCambiosPedido(String codigoPedido, String usuario);
+
 }
