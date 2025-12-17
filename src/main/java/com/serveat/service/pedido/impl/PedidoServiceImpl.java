@@ -48,15 +48,6 @@ public class PedidoServiceImpl implements PedidoService {
     // CREACIÓN
 
     @Override
-    public Pedido crearPedido() {
-        Pedido p = new Pedido();
-        p.setCodigo(generarCodigo());
-        p.setEstado(EstadoPedido.EN_CURSO);
-        pedidoRepo.save(p);
-        return cargarDetalle(p.getCodigo());
-    }
-
-    @Override
     public Pedido crearPedidoMesa(Integer numeroMesa) {
         if (numeroMesa == null || numeroMesa <= 0) {
             throw new IllegalArgumentException("Número de mesa inválido");
