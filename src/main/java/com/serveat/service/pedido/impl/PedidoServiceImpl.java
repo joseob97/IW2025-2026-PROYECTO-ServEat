@@ -230,31 +230,57 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     @Override
-    public Pedido confirmarCambiosPedido(String codigoPedido, String usuario) {
+    public Pedido reemplazarPedido(String codigoPedidoOriginal,
+                                   Pedido pedidoModificado,
+                                   String usuario) {
 
         if (usuario == null || usuario.isBlank()) {
             throw new IllegalArgumentException("No se pudo identificar al usuario");
         }
 
-        Pedido pedido = cargarDetalle(codigoPedido);
+        Pedido original = cargarDetalle(codigoPedidoOriginal);
 
-        // Validar que el pedido es modificable
+        // Validar que se puede modificar
         boolean modificable =
-                pedido.getEstado() == EstadoPedido.EN_CURSO
-                        || (pedido.getEstado() == EstadoPedido.EN_COCINA
-                        && pedido.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION);
+                original.getEstado() == EstadoPedido.EN_CURSO
+                        || (original.getEstado() == EstadoPedido.EN_COCINA
+                        && original.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION);
 
         if (!modificable) {
-            throw new IllegalArgumentException(
-                    "No se pueden confirmar cambios: la cocina ya ha aceptado el pedido"
+            throw new IllegalArgumentException("La cocina ya ha aceptado el pedido");
+        }
+
+        // Anular pedido original
+        original.setEstado(EstadoPedido.ANULADO);
+        original.setCanceladoPor(usuario);
+        original.setMotivoCancelacion("Pedido modificado");
+        original.setFechaCancelacion(java.time.LocalDateTime.now());
+        pedidoRepo.save(original);
+
+        // Crear pedido nuevo
+        Pedido nuevo = new Pedido();
+        nuevo.setCodigo(generarCodigo());
+        nuevo.setEstado(EstadoPedido.EN_CURSO);
+        nuevo.setReservaMesa(original.getReservaMesa());
+
+        for (LineaPedido lp : pedidoModificado.getLineaPedidos()) {
+            nuevo.getLineaPedidos().add(
+                    new LineaPedido(
+                            nuevo,
+                            lp.getProducto(),
+                            lp.getCantidad()
+                    )
             );
         }
 
-        // Registrar auditoría de modificación
-        pedido.marcarModificado(usuario);
+        if (nuevo.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("El pedido no puede quedar vacío");
+        }
 
-        pedidoRepo.save(pedido);
-        return cargarDetalle(codigoPedido);
+        nuevo.marcarModificado(usuario);
+
+        pedidoRepo.save(nuevo);
+        return cargarDetalle(nuevo.getCodigo());
     }
 
 
