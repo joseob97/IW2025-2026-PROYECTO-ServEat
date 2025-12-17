@@ -18,7 +18,8 @@ public class PanelCamareroView extends VerticalLayout {
         H2 titulo = new H2("Panel Camarero");
 
         RouterLink iniciar = new RouterLink("➕ Iniciar pedido (mesa)", IniciarPedidoView.class);
+        RouterLink cancelar = new RouterLink("❌ Cancelar pedido", CancelarPedidoView.class);
 
-        add(titulo, iniciar);
+        add(titulo, iniciar, cancelar);
     }
 }
