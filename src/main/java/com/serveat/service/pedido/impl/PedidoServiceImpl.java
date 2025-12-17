@@ -1,6 +1,7 @@
 package com.serveat.service.pedido.impl;
 
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
@@ -169,5 +170,62 @@ public class PedidoServiceImpl implements PedidoService {
     @Override
     public List<Pedido> listarPedidos() {
         return pedidoRepo.findAll();
+    }
+
+    @Override
+    public Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("Debes indicar un motivo de cancelación");
+        }
+        if (camareroUsername == null || camareroUsername.isBlank()) {
+            throw new IllegalArgumentException("No se pudo identificar al camarero");
+        }
+
+        Pedido pedido = cargarDetalle(codigoPedido);
+
+        if (pedido.getEstado() == EstadoPedido.ANULADO) {
+            throw new IllegalArgumentException("El pedido ya está anulado");
+        }
+
+        boolean cancelable =
+                pedido.getEstado() == EstadoPedido.EN_CURSO
+                        || (pedido.getEstado() == EstadoPedido.EN_COCINA
+                        && pedido.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION);
+
+        if (!cancelable) {
+            throw new IllegalArgumentException("No se puede cancelar: cocina ya ha aceptado o el pedido ya está en preparación");
+        }
+
+        pedido.setEstado(EstadoPedido.ANULADO);
+        pedido.setCanceladoPor(camareroUsername);
+        pedido.setMotivoCancelacion(motivo);
+        pedido.setFechaCancelacion(java.time.LocalDateTime.now());
+
+        pedidoRepo.save(pedido);
+        return cargarDetalle(codigoPedido);
+    }
+
+    @Override
+    public List<Pedido> listarPedidosCancelables() {
+        return pedidoRepo.findByEstadoOrEstadoAndEstadoCocina(
+                EstadoPedido.EN_CURSO,
+                EstadoPedido.EN_COCINA,
+                EstadoCocina.PENDIENTE_ACEPTACION
+        );
+    }
+
+    @Override
+    public List<Pedido> listarPedidosCancelablesPorMesa(Integer numeroMesa) {
+        if (numeroMesa == null || numeroMesa <= 0) {
+            throw new IllegalArgumentException("Número de mesa inválido");
+        }
+
+        return pedidoRepo.findByReservaMesa_NumeroMesaAndEstadoOrReservaMesa_NumeroMesaAndEstadoAndEstadoCocina(
+                numeroMesa,
+                EstadoPedido.EN_CURSO,
+                numeroMesa,
+                EstadoPedido.EN_COCINA,
+                EstadoCocina.PENDIENTE_ACEPTACION
+        );
     }
 }

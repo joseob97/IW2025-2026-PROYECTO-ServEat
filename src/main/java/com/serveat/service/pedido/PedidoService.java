@@ -34,4 +34,9 @@ public interface PedidoService {
     void eliminarPedido(String codigoPedido);
 
     List<Pedido> listarPedidos();
+
+    List<Pedido> listarPedidosCancelables();
+    List<Pedido> listarPedidosCancelablesPorMesa(Integer numeroMesa);
+
+    Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername);
 }
