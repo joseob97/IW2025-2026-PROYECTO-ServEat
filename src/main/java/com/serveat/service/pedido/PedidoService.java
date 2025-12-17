@@ -10,8 +10,6 @@ public interface PedidoService {
 
     // CREACIÓN
 
-    Pedido crearPedido();
-
     Pedido crearPedidoMesa(Integer numeroMesa);
 
     // CONSULTA
