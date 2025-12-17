@@ -206,7 +206,7 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     @Override
-    public List<Pedido> listarPedidosCancelables() {
+    public List<Pedido> listarPedidosModificables() {
         return pedidoRepo.findByEstadoOrEstadoAndEstadoCocina(
                 EstadoPedido.EN_CURSO,
                 EstadoPedido.EN_COCINA,
@@ -215,7 +215,7 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     @Override
-    public List<Pedido> listarPedidosCancelablesPorMesa(Integer numeroMesa) {
+    public List<Pedido> listarPedidosModificablesPorMesa(Integer numeroMesa) {
         if (numeroMesa == null || numeroMesa <= 0) {
             throw new IllegalArgumentException("Número de mesa inválido");
         }
@@ -228,4 +228,34 @@ public class PedidoServiceImpl implements PedidoService {
                 EstadoCocina.PENDIENTE_ACEPTACION
         );
     }
+
+    @Override
+    public Pedido confirmarCambiosPedido(String codigoPedido, String usuario) {
+
+        if (usuario == null || usuario.isBlank()) {
+            throw new IllegalArgumentException("No se pudo identificar al usuario");
+        }
+
+        Pedido pedido = cargarDetalle(codigoPedido);
+
+        // Validar que el pedido es modificable
+        boolean modificable =
+                pedido.getEstado() == EstadoPedido.EN_CURSO
+                        || (pedido.getEstado() == EstadoPedido.EN_COCINA
+                        && pedido.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION);
+
+        if (!modificable) {
+            throw new IllegalArgumentException(
+                    "No se pueden confirmar cambios: la cocina ya ha aceptado el pedido"
+            );
+        }
+
+        // Registrar auditoría de modificación
+        pedido.marcarModificado(usuario);
+
+        pedidoRepo.save(pedido);
+        return cargarDetalle(codigoPedido);
+    }
+
+
 }
