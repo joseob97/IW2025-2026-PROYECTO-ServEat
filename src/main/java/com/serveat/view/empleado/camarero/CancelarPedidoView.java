@@ -128,9 +128,9 @@ public class CancelarPedidoView extends VerticalLayout {
         Integer mesa = filtroMesa.getValue();
 
         if (mesa == null) {
-            grid.setItems(pedidoService.listarPedidosCancelables());
+            grid.setItems(pedidoService.listarPedidosModificables());
         } else {
-            grid.setItems(pedidoService.listarPedidosCancelablesPorMesa(mesa));
+            grid.setItems(pedidoService.listarPedidosModificablesPorMesa(mesa));
         }
 
         cancelar.setEnabled(false);
