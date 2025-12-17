@@ -1,11 +1,11 @@
 package com.serveat.view.empleado.camarero;
 
-import com.serveat.domain.menu.Producto;
 import com.serveat.domain.menu.Categoria;
+import com.serveat.domain.menu.Producto;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
-import com.serveat.service.menu.ProductoService;
 import com.serveat.service.menu.CategoriaService;
+import com.serveat.service.menu.ProductoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -14,6 +14,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -63,63 +64,162 @@ public class IniciarPedidoView extends VerticalLayout {
         this.productoService = productoService;
         this.categoriaService = categoriaService;
 
-        setSpacing(true);
+        setSpacing(false);
         setPadding(true);
+        setWidthFull();
 
-        add(new H3("Iniciar pedido de mesa"));
+        // Un poco de “aire” general y ancho cómodo tipo “card”
+        getStyle().set("gap", "18px");
+        getStyle().set("max-width", "1100px");
+        getStyle().set("margin", "0 auto");
+
+        H3 titulo = new H3("Iniciar pedido de mesa");
+        titulo.getStyle().set("margin", "0");
+        add(titulo);
 
         // CREAR PEDIDO
 
+        VerticalLayout cardPedido = crearCard();
+        cardPedido.getStyle().set("gap", "14px");
+
         mesa.setMin(1);
         mesa.setStepButtonsVisible(true);
-
-        codigo.setReadOnly(true);
+        mesa.setWidth("260px");
 
         crearPedido.addClickListener(e -> crearPedidoMesa());
+        crearPedido.setWidth("260px");
 
-        add(new HorizontalLayout(mesa, crearPedido), codigo);
+        codigo.setReadOnly(true);
+        codigo.setWidth("320px");
+
+        // Centrado y con separación (botón debajo)
+        VerticalLayout bloqueMesa = new VerticalLayout(mesa, crearPedido);
+        bloqueMesa.setPadding(false);
+        bloqueMesa.setSpacing(false);
+        bloqueMesa.getStyle().set("gap", "10px");
+        bloqueMesa.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        HorizontalLayout filaPedido = new HorizontalLayout(bloqueMesa, codigo);
+        filaPedido.setWidthFull();
+        filaPedido.setSpacing(true);
+        filaPedido.getStyle().set("gap", "18px");
+        filaPedido.setAlignItems(FlexComponent.Alignment.END);
+        filaPedido.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+
+        cardPedido.add(filaPedido);
+        add(cardPedido);
 
         // AÑADIR PRODUCTOS
 
-        add(new H3("Añadir productos"));
+        H3 tituloAdd = new H3("Añadir productos");
+        tituloAdd.getStyle().set("margin", "6px 0 0 0");
+        add(tituloAdd);
+
+        VerticalLayout cardProductos = crearCard();
+        cardProductos.getStyle().set("gap", "14px");
 
         configurarFiltrosProducto();
         configurarComboProducto();
 
+        buscarProducto.setWidth("360px");
+        filtroCategoria.setWidth("260px");
+
+        HorizontalLayout filtros = new HorizontalLayout(buscarProducto, filtroCategoria);
+        filtros.setWidthFull();
+        filtros.setSpacing(false);
+        filtros.getStyle().set("gap", "14px");
+        filtros.setAlignItems(FlexComponent.Alignment.END);
+        filtros.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+
         cantidad.setMin(1);
         cantidad.setStepButtonsVisible(true);
         cantidad.setValue(1);
-        cantidad.setWidth("140px");
+        cantidad.setWidth("160px");
 
         anadir.addClickListener(e -> anadirProducto());
+        anadir.setWidth("420px");
 
-        HorizontalLayout filtros = new HorizontalLayout(buscarProducto, filtroCategoria);
-        HorizontalLayout addRow = new HorizontalLayout(comboProducto, cantidad, anadir);
-        filtros.setAlignItems(Alignment.END);
-        addRow.setAlignItems(Alignment.END);
+        // “Producto + botón debajo” con aire
+        VerticalLayout bloqueProducto = new VerticalLayout(comboProducto, anadir);
+        bloqueProducto.setPadding(false);
+        bloqueProducto.setSpacing(false);
+        bloqueProducto.getStyle().set("gap", "10px");
+        bloqueProducto.setAlignItems(FlexComponent.Alignment.STRETCH);
+        bloqueProducto.setWidth("420px");
 
-        add(filtros, addRow);
+        HorizontalLayout filaAdd = new HorizontalLayout(bloqueProducto, cantidad);
+        filaAdd.setWidthFull();
+        filaAdd.setSpacing(false);
+        filaAdd.getStyle().set("gap", "14px");
+        filaAdd.setAlignItems(FlexComponent.Alignment.END);
+        filaAdd.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+
+        cardProductos.add(filtros, filaAdd);
+        add(cardProductos);
 
         // GRID DE PRODUCTOS
 
-        add(new H3("Productos añadidos"));
+        H3 tituloGrid = new H3("Productos añadidos");
+        tituloGrid.getStyle().set("margin", "6px 0 0 0");
+        add(tituloGrid);
+
+        VerticalLayout cardGrid = crearCard();
+        cardGrid.getStyle().set("gap", "12px");
 
         configurarGrid();
 
         grid.setWidthFull();
-        add(grid, total);
+        grid.getStyle().set("border-radius", "10px");
+        grid.getStyle().set("overflow", "hidden");
+
+        total.getStyle().set("font-weight", "600");
+        total.getStyle().set("font-size", "1.05rem");
+
+        HorizontalLayout pie = new HorizontalLayout(total);
+        pie.setWidthFull();
+        pie.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+
+        cardGrid.add(grid, pie);
+        add(cardGrid);
 
         // CONFIRMAR PEDIDO
 
+        VerticalLayout cardConfirmar = crearCard();
+        cardConfirmar.setPadding(true);
+        cardConfirmar.getStyle().set("gap", "10px");
+
         confirmar.addClickListener(e -> confirmarPedido());
-        add(confirmar);
+        confirmar.getStyle().set("font-weight", "600");
+        confirmar.setWidth("360px");
+
+        HorizontalLayout filaConfirmar = new HorizontalLayout(confirmar);
+        filaConfirmar.setWidthFull();
+        filaConfirmar.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+
+        cardConfirmar.add(filaConfirmar);
+        add(cardConfirmar);
 
         // Estado inicial
         setUiPedidoCreado(false);
         recargarProductos();
     }
 
-    // ===================== FILTROS =====================
+    private VerticalLayout crearCard() {
+        VerticalLayout card = new VerticalLayout();
+        card.setPadding(true);
+        card.setSpacing(false);
+        card.setWidthFull();
+
+        // “card” simple sin dependencias externas
+        card.getStyle().set("background", "var(--lumo-base-color)");
+        card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
+        card.getStyle().set("border-radius", "14px");
+        card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
+
+        return card;
+    }
+
+    // FILTROS
 
     private void configurarFiltrosProducto() {
 
@@ -177,7 +277,7 @@ public class IniciarPedidoView extends VerticalLayout {
         comboProducto.setItems(productoService.buscarPorNombreParcial(""));
     }
 
-    // ===================== ACCIONES =====================
+    // ACCIONES
 
     private void crearPedidoMesa() {
         Integer nMesa = mesa.getValue();
@@ -230,6 +330,7 @@ public class IniciarPedidoView extends VerticalLayout {
             pedidoActual = pedidoService.confirmarPedido(pedidoActual.getCodigo());
             Notification.show("Pedido enviado a cocina", 3000, Notification.Position.MIDDLE);
             setUiPedidoConfirmado();
+            refrescarGrid();
         } catch (Exception ex) {
             Notification.show("Error confirmando: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
         }
@@ -244,22 +345,30 @@ public class IniciarPedidoView extends VerticalLayout {
     }
 
     private void setUiPedidoCreado(boolean creado) {
+        buscarProducto.setEnabled(creado);
+        filtroCategoria.setEnabled(creado);
+
         comboProducto.setEnabled(creado);
         cantidad.setEnabled(creado);
         anadir.setEnabled(creado);
+
         grid.setEnabled(creado);
         confirmar.setEnabled(creado);
     }
 
     private void setUiPedidoConfirmado() {
+        buscarProducto.setEnabled(false);
+        filtroCategoria.setEnabled(false);
+
         comboProducto.setEnabled(false);
         cantidad.setEnabled(false);
         anadir.setEnabled(false);
+
         grid.setEnabled(false);
         confirmar.setEnabled(false);
     }
 
-    // ===================== GRID =====================
+    // GRID
 
     private void configurarGrid() {
 
@@ -270,14 +379,23 @@ public class IniciarPedidoView extends VerticalLayout {
             qty.setMin(1);
             qty.setValue(lp.getCantidad());
             qty.setValueChangeMode(ValueChangeMode.ON_CHANGE);
+            qty.setWidth("140px");
 
             qty.addValueChangeListener(ev -> {
                 if (!ev.isFromClient()) return;
+                if (!hayPedidoCreado()) return;
+
+                Integer nueva = ev.getValue();
+                if (nueva == null || nueva <= 0) {
+                    Notification.show("Cantidad inválida", 2500, Notification.Position.MIDDLE);
+                    qty.setValue(lp.getCantidad());
+                    return;
+                }
 
                 pedidoActual = pedidoService.actualizarCantidadProducto(
                         pedidoActual.getCodigo(),
                         lp.getProducto().getCodigo(),
-                        ev.getValue()
+                        nueva
                 );
                 refrescarGrid();
             });
@@ -289,15 +407,26 @@ public class IniciarPedidoView extends VerticalLayout {
     }
 
     private void configurarGridColumnasBasicas() {
-        grid.addColumn(lp -> lp.getProducto().getNombre()).setHeader("Producto");
-        grid.addColumn(LineaPedido::getCantidad).setHeader("Cantidad");
-        grid.addColumn(lp -> lp.calcularPrecio() + " €").setHeader("Subtotal");
+        grid.addColumn(lp -> lp.getProducto().getNombre())
+                .setHeader("Producto")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
+
+        grid.addColumn(LineaPedido::getCantidad)
+                .setHeader("Cantidad")
+                .setAutoWidth(true);
+
+        grid.addColumn(lp -> lp.calcularPrecio() + " €")
+                .setHeader("Subtotal")
+                .setAutoWidth(true);
     }
 
     private void configurarGridEliminar() {
         grid.addComponentColumn(lp -> {
             Button borrar = new Button("❌");
             borrar.addClickListener(e -> {
+                if (!hayPedidoCreado()) return;
+
                 pedidoActual = pedidoService.eliminarProducto(
                         pedidoActual.getCodigo(),
                         lp.getProducto().getCodigo()
@@ -308,7 +437,7 @@ public class IniciarPedidoView extends VerticalLayout {
         }).setHeader("Eliminar");
     }
 
-    // ===================== REFRESCO =====================
+    // REFRESCO
 
     private void refrescarGrid() {
         if (pedidoActual == null) return;
