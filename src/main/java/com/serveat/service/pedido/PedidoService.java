@@ -41,6 +41,8 @@ public interface PedidoService {
 
     Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername);
 
-    public Pedido confirmarCambiosPedido(String codigoPedido, String usuario);
+    public Pedido reemplazarPedido(String codigoPedidoOriginal,
+                                   Pedido pedidoModificado,
+                                   String usuario);
 
 }
