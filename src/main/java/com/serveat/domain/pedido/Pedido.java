@@ -40,25 +40,44 @@ public class Pedido {
             orphanRemoval = true)
     private List<LineaPedido> lineaPedidos = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EstadoCocina estadoCocina = EstadoCocina.PENDIENTE_ACEPTACION;
+
+    private String canceladoPor;
+    private String motivoCancelacion;
+    private LocalDateTime fechaCancelacion;
+
+    public EstadoCocina getEstadoCocina() { return estadoCocina; }
+    public void setEstadoCocina(EstadoCocina estadoCocina) { this.estadoCocina = estadoCocina; }
+
+    public String getCanceladoPor() { return canceladoPor; }
+    public void setCanceladoPor(String canceladoPor) { this.canceladoPor = canceladoPor; }
+
+    public String getMotivoCancelacion() { return motivoCancelacion; }
+    public void setMotivoCancelacion(String motivoCancelacion) { this.motivoCancelacion = motivoCancelacion; }
+
+    public LocalDateTime getFechaCancelacion() { return fechaCancelacion; }
+    public void setFechaCancelacion(LocalDateTime fechaCancelacion) { this.fechaCancelacion = fechaCancelacion; }
 
     public LocalDateTime getFechaCreacion() {
         return fechaCreacion;
     }
 
-   public void crearLineaPedido(Producto producto, int cantidad) {
+    public void crearLineaPedido(Producto producto, int cantidad) {
         LineaPedido lineaPedido = new LineaPedido(this, producto, cantidad);
         lineaPedidos.add(lineaPedido);
-   }
+    }
 
-   public BigDecimal calcularPrecioTotal() {
+    public BigDecimal calcularPrecioTotal() {
         return lineaPedidos.stream()
                 .map(LineaPedido::calcularPrecio)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-   }
+    }
 
-   public List<LineaPedido> getLineaPedidos() {
+    public List<LineaPedido> getLineaPedidos() {
         return lineaPedidos;
-   }
+    }
 
     public EstadoPedido getEstado() {
         return estado;
