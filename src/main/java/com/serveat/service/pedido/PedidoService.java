@@ -51,4 +51,8 @@ public interface PedidoService {
     List<Pedido> listarPedidosModificables();
 
     List<Pedido> listarPedidosModificablesPorMesa(Integer numeroMesa);
+
+    // PEDIDOS CLIENTES
+
+    Pedido crearPedidoDesdeCliente(Pedido pedidoEnMemoria);
 }
