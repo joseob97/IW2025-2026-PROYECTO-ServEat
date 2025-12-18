@@ -247,4 +247,29 @@ public class PedidoServiceImpl implements PedidoService {
                 EstadoCocina.PENDIENTE_ACEPTACION
         );
     }
+
+    @Override
+    public Pedido crearPedidoDesdeCliente(Pedido pedidoEnMemoria) {
+
+        if (pedidoEnMemoria.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("El pedido no puede estar vacío");
+        }
+
+        Pedido nuevo = new Pedido();
+        nuevo.setCodigo(generarCodigo());
+        nuevo.setEstado(EstadoPedido.EN_COCINA);
+
+        for (LineaPedido lp : pedidoEnMemoria.getLineaPedidos()) {
+            nuevo.getLineaPedidos().add(
+                    new LineaPedido(
+                            nuevo,
+                            lp.getProducto(),
+                            lp.getCantidad()
+                    )
+            );
+        }
+
+        pedidoRepo.save(nuevo);
+        return cargarDetalle(nuevo.getCodigo());
+    }
 }
