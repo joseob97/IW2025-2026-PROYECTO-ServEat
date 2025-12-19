@@ -340,8 +340,11 @@ public class CrearPedidoOnlineView extends VerticalLayout {
     private void ejecutarPago() {
 
         try {
-            // 1) Persistir pedido desde el carrito
-            Pedido pedidoCreado = pedidoService.crearPedidoDesdeCliente(pedidoEnMemoria);
+            String username = org.springframework.security.core.context.SecurityContextHolder
+                    .getContext().getAuthentication().getName();
+
+            // 1) Persistir pedido desde el carrito + asignar cliente
+            Pedido pedidoCreado = pedidoService.crearPedidoDesdeCliente(pedidoEnMemoria, username);
 
             // 2) Crear pago y confirmarlo (referencia simulada)
             Pago pago = pagoService.iniciarPago(pedidoCreado, metodoPago.getValue());
