@@ -67,7 +67,6 @@ public class Pedido {
     )
     private List<LineaPedido> lineaPedidos = new ArrayList<>();
 
-    // en Pedido
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
