@@ -21,10 +21,4 @@ public class ClienteServiceImpl implements ClienteService {
         return clienteRepo.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
     }
-
-    @Override
-    public Cliente obtenerConPedidosPorUsername(String username) {
-        return clienteRepo.findWithPedidosByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-    }
 }

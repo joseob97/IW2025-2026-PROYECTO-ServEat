@@ -134,7 +134,7 @@ public class ConsultaPedidosView extends VerticalLayout {
     private void cargarPedidos() {
         try {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            gridPedidos.setItems(pedidoService.listarPedidosDeCliente(username));
+            gridPedidos.setItems(pedidoService.listarPedidosCliente(username));
 
             pedidoSeleccionado = null;
         } catch (Exception ex) {

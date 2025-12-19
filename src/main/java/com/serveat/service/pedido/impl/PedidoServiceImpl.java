@@ -274,7 +274,7 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     @Override
-    public List<Pedido> listarPedidosDeCliente(String username) {
+    public List<Pedido> listarPedidosCliente(String username) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Usuario inválido");
         }

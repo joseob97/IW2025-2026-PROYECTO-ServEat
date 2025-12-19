@@ -6,5 +6,4 @@ public interface ClienteService {
 
     Cliente obtenerPorUsername(String username);
 
-    Cliente obtenerConPedidosPorUsername(String username);
 }
