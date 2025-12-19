@@ -7,9 +7,11 @@ import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.domain.reserva.EstadoReservaMesa;
 import com.serveat.domain.reserva.ReservaMesa;
+import com.serveat.domain.usuario.Cliente;
 import com.serveat.repository.menu.ProductoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.reserva.ReservaMesaRepository;
+import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.service.pedido.PedidoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +27,17 @@ public class PedidoServiceImpl implements PedidoService {
     private final PedidoRepository pedidoRepo;
     private final ProductoRepository productoRepo;
     private final ReservaMesaRepository reservaMesaRepo;
+    private final ClienteRepository clienteRepo;
+
 
     public PedidoServiceImpl(PedidoRepository pedidoRepo,
                              ProductoRepository productoRepo,
-                             ReservaMesaRepository reservaMesaRepo) {
+                             ReservaMesaRepository reservaMesaRepo,
+                             ClienteRepository clienteRepo) {
         this.pedidoRepo = pedidoRepo;
         this.productoRepo = productoRepo;
         this.reservaMesaRepo = reservaMesaRepo;
+        this.clienteRepo = clienteRepo;
     }
 
     // HELPERS
@@ -249,23 +255,23 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     @Override
-    public Pedido crearPedidoDesdeCliente(Pedido pedidoEnMemoria) {
+    public Pedido crearPedidoDesdeCliente(Pedido pedidoEnMemoria, String username) {
 
-        if (pedidoEnMemoria.getLineaPedidos().isEmpty()) {
+        if (pedidoEnMemoria == null || pedidoEnMemoria.getLineaPedidos().isEmpty()) {
             throw new IllegalArgumentException("El pedido no puede estar vacío");
         }
+
+        Cliente cliente = clienteRepo.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
 
         Pedido nuevo = new Pedido();
         nuevo.setCodigo(generarCodigo());
         nuevo.setEstado(EstadoPedido.EN_COCINA);
+        nuevo.setCliente(cliente);
 
         for (LineaPedido lp : pedidoEnMemoria.getLineaPedidos()) {
             nuevo.getLineaPedidos().add(
-                    new LineaPedido(
-                            nuevo,
-                            lp.getProducto(),
-                            lp.getCantidad()
-                    )
+                    new LineaPedido(nuevo, lp.getProducto(), lp.getCantidad())
             );
         }
 
