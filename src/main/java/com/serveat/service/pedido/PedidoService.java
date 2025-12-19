@@ -58,5 +58,7 @@ public interface PedidoService {
 
     List<Pedido> listarPedidosCliente(String username);
 
+    Pedido crearPedidoMesaDesdeCliente(Pedido pedidoEnMemoria, Integer numeroMesa, String username);
+
 
 }
