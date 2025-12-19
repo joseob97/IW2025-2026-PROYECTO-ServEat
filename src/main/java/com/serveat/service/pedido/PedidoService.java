@@ -2,9 +2,11 @@ package com.serveat.service.pedido;
 
 import com.serveat.domain.menu.Producto;
 import com.serveat.domain.pedido.EstadoPedido;
+import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.Pedido;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface PedidoService {
 
@@ -16,9 +18,13 @@ public interface PedidoService {
 
     Pedido obtenerPorCodigo(String codigo);
 
+    Pedido obtenerPedidoPorId(UUID id);
+
     List<Pedido> listarPedidos();
 
     List<Pedido> buscarPorEstado(EstadoPedido estado);
+
+    List<Pedido> obtenerPedidosPorEstado(EstadoCocina estado);
 
     // MODIFICACIÓN DIRECTA (SE GUARDA)
 
@@ -45,6 +51,10 @@ public interface PedidoService {
     // CANCELACIÓN
 
     Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername);
+
+    // CAMBIO DE ESTADO COCINA
+
+    Pedido cambiarEstadoCocina(UUID idPedido, EstadoCocina nuevoEstado);
 
     // LISTADOS ESPECIALES
 

@@ -55,4 +55,11 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "lineaPedidos.productos"
     })
     List<Pedido> findByCliente_UsernameOrderByFechaCreacionDesc(String username);
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos"
+    })
+    List<Pedido> findByEstadoCocina(EstadoCocina estadoCocina);
 }

@@ -326,4 +326,36 @@ public class PedidoServiceImpl implements PedidoService {
         pedidoRepo.save(nuevo);
         return cargarDetalle(nuevo.getCodigo());
     }
+
+    // MÉTODOS PARA COCINERO
+
+    @Override
+    public Pedido obtenerPedidoPorId(java.util.UUID id) {
+        return pedidoRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado con ID: " + id));
+    }
+
+    @Override
+    public List<Pedido> obtenerPedidosPorEstado(EstadoCocina estado) {
+        return pedidoRepo.findByEstadoCocina(estado);
+    }
+
+    @Override
+    public Pedido cambiarEstadoCocina(java.util.UUID idPedido, EstadoCocina nuevoEstado) {
+        Pedido pedido = obtenerPedidoPorId(idPedido);
+
+        if (pedido.getEstadoCocina() == nuevoEstado) {
+            throw new IllegalArgumentException("El estado ya es el mismo");
+        }
+
+        // Validar transiciones de estado
+        EstadoCocina estadoActual = pedido.getEstadoCocina();
+
+        if (estadoActual == EstadoCocina.LISTO) {
+            throw new IllegalArgumentException("No se puede cambiar el estado de un pedido " + estadoActual);
+        }
+
+        pedido.setEstadoCocina(nuevoEstado);
+        return pedidoRepo.save(pedido);
+    }
 }
