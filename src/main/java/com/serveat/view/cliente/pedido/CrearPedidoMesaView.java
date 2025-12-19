@@ -370,15 +370,10 @@ public class CrearPedidoMesaView extends VerticalLayout {
         try {
             Integer mesa = numeroMesa.getValue();
 
-            Pedido creado = pedidoService.crearPedidoMesa(mesa);
+            String username = org.springframework.security.core.context.SecurityContextHolder
+                    .getContext().getAuthentication().getName();
 
-            for (LineaPedido lp : pedidoEditable.getLineaPedidos()) {
-                pedidoService.agregarProducto(
-                        creado.getCodigo(),
-                        lp.getProducto().getCodigo(),
-                        lp.getCantidad()
-                );
-            }
+            Pedido creado = pedidoService.crearPedidoMesaDesdeCliente(pedidoEditable, mesa, username);
 
             Notification.show("Pedido creado: " + creado.getCodigo(), 3500, Notification.Position.MIDDLE);
 
