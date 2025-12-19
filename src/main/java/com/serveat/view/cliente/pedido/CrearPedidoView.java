@@ -313,7 +313,10 @@ public class CrearPedidoView extends VerticalLayout {
 
     private void ejecutarConfirmacion() {
         try {
-            Pedido creado = pedidoService.crearPedidoDesdeCliente(pedidoEditable);
+            String username = org.springframework.security.core.context.SecurityContextHolder
+                    .getContext().getAuthentication().getName();
+
+            Pedido creado = pedidoService.crearPedidoDesdeCliente(pedidoEditable, username);
 
             Notification.show("Pedido creado: " + creado.getCodigo(), 3500, Notification.Position.MIDDLE);
 
