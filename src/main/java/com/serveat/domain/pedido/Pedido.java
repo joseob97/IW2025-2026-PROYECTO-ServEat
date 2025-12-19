@@ -2,6 +2,7 @@ package com.serveat.domain.pedido;
 
 import com.serveat.domain.menu.Producto;
 import com.serveat.domain.reserva.ReservaMesa;
+import com.serveat.domain.usuario.Cliente;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -65,6 +66,11 @@ public class Pedido {
             orphanRemoval = true
     )
     private List<LineaPedido> lineaPedidos = new ArrayList<>();
+
+    // en Pedido
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id")
+    private Cliente cliente;
 
     // LÓGICA DE DOMINIO
 
@@ -171,4 +177,7 @@ public class Pedido {
     public List<LineaPedido> getLineaPedidos() {
         return lineaPedidos;
     }
+
+    public Cliente getCliente() { return cliente; }
+    public void setCliente(Cliente cliente) { this.cliente = cliente; }
 }
