@@ -286,4 +286,44 @@ public class PedidoServiceImpl implements PedidoService {
         }
         return pedidoRepo.findByCliente_UsernameOrderByFechaCreacionDesc(username);
     }
+
+    @Override
+    public Pedido crearPedidoMesaDesdeCliente(Pedido pedidoEnMemoria, Integer numeroMesa, String username) {
+
+        if (numeroMesa == null || numeroMesa <= 0) {
+            throw new IllegalArgumentException("Número de mesa inválido");
+        }
+
+        if (pedidoEnMemoria == null || pedidoEnMemoria.getLineaPedidos() == null || pedidoEnMemoria.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("El pedido no puede estar vacío");
+        }
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+
+        Cliente cliente = clienteRepo.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+
+        ReservaMesa mesa = reservaMesaRepo
+                .findByNumeroMesaAndEstado(numeroMesa, EstadoReservaMesa.ABIERTA)
+                .orElseGet(() -> reservaMesaRepo.save(new ReservaMesa(numeroMesa)));
+
+        Pedido nuevo = new Pedido();
+        nuevo.setCodigo(generarCodigo());
+        nuevo.setEstado(EstadoPedido.EN_COCINA);
+        nuevo.setReservaMesa(mesa);
+        nuevo.setCliente(cliente);
+
+        for (LineaPedido lp : pedidoEnMemoria.getLineaPedidos()) {
+            nuevo.getLineaPedidos().add(new LineaPedido(
+                    nuevo,
+                    lp.getProducto(),
+                    lp.getCantidad()
+            ));
+        }
+
+        pedidoRepo.save(nuevo);
+        return cargarDetalle(nuevo.getCodigo());
+    }
 }
