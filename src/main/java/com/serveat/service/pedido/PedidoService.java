@@ -55,4 +55,6 @@ public interface PedidoService {
     // PEDIDOS CLIENTES
 
     Pedido crearPedidoDesdeCliente(Pedido pedidoEnMemoria);
+
+    List<Pedido> listarPedidosDeCliente(String username);
 }
