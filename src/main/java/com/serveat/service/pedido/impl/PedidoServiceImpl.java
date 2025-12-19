@@ -272,4 +272,12 @@ public class PedidoServiceImpl implements PedidoService {
         pedidoRepo.save(nuevo);
         return cargarDetalle(nuevo.getCodigo());
     }
+
+    @Override
+    public List<Pedido> listarPedidosDeCliente(String username) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+        return pedidoRepo.findByCliente_UsernameOrderByFechaCreacionDesc(username);
+    }
 }
