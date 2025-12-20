@@ -1,6 +1,7 @@
 package com.serveat.view.cliente.pedido;
 
 import com.serveat.view.layout.MainLayout;
+import com.serveat.view.publico.carta.CartaView;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -53,7 +54,16 @@ public class PanelPedidoClienteView extends VerticalLayout {
         fila2.setSpacing(false);
         fila2.getStyle().set("gap", "14px");
 
-        add(fila1, fila2);
+        HorizontalLayout filaCarta = new HorizontalLayout(
+                crearCardLink("📖 Ver carta",
+                        "Consultar productos y precios sin iniciar un pedido.",
+                        CartaView.class)
+        );
+        filaCarta.setWidthFull();
+        filaCarta.setSpacing(false);
+        filaCarta.getStyle().set("gap", "14px");
+
+        add(fila1, fila2, filaCarta);
     }
 
     private VerticalLayout crearCardLink(String titulo, String descripcion, Class<? extends Component> destino) {
