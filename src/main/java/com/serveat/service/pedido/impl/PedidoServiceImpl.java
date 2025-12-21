@@ -272,6 +272,22 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(codigoPedido);
     }
 
+    @Override
+    public boolean puedeModificarCliente(Pedido pedido) {
+
+        if (pedido == null) {
+            return false;
+        }
+
+        // Nunca se puede modificar un pedido anulado
+        if (pedido.getEstado() == EstadoPedido.ANULADO) {
+            return false;
+        }
+
+        // Solo mientras cocina no lo haya aceptado
+        return pedido.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION;
+    }
+
     // LISTADOS ESPECIALES
 
     @Override
