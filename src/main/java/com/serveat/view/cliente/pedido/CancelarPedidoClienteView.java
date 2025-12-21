@@ -1,7 +1,6 @@
 package com.serveat.view.cliente.pedido;
 
 import com.serveat.domain.pedido.EstadoCocina;
-import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
@@ -105,19 +104,16 @@ public class CancelarPedidoClienteView extends VerticalLayout {
     private void cargarCancelables() {
         try {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            List<Pedido> pedidos = pedidoService.listarPedidosCliente(username);
 
-            // Solo los cancelables según tu regla
-            List<Pedido> cancelables = pedidos.stream()
-                    .filter(p -> p.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION)
-                    .filter(p -> p.getEstado() == EstadoPedido.EN_CURSO || p.getEstado() == EstadoPedido.EN_COCINA)
+            List<Pedido> pedidos = pedidoService.listarPedidosCliente(username).stream()
+                    .filter(pedidoService::puedeModificarCliente)
                     .toList();
 
-            grid.setItems(cancelables);
+            grid.setItems(pedidos);
             seleccionado = null;
             cancelar.setEnabled(false);
 
-            if (cancelables.isEmpty()) {
+            if (pedidos.isEmpty()) {
                 Notification.show("No tienes pedidos cancelables ahora mismo.", 3000, Notification.Position.BOTTOM_START);
             }
         } catch (Exception ex) {
