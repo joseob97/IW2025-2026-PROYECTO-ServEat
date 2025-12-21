@@ -45,6 +45,8 @@ public interface PedidoService {
 
     Pedido cargarDetalleCliente(String codigo, String username);
 
+    boolean puedeModificarCliente(Pedido pedido);
+
     // CANCELACIÓN
 
     Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername);
