@@ -30,7 +30,7 @@ import java.util.List;
 @PageTitle("Crear Pedido | Cliente")
 @Route(value = "cliente/pedidos/crear", layout = MainLayout.class)
 @Secured("ROLE_CLIENTE")
-public class CrearPedidoView extends VerticalLayout {
+public class CrearPedidoRecogerView extends VerticalLayout {
 
     private final transient PedidoService pedidoService;
     private final transient ProductoService productoService;
@@ -49,9 +49,9 @@ public class CrearPedidoView extends VerticalLayout {
 
     private final Button confirmarPedido = new Button("✅ Confirmar pedido (Recoger)");
 
-    public CrearPedidoView(PedidoService pedidoService,
-                           ProductoService productoService,
-                           CategoriaService categoriaService) {
+    public CrearPedidoRecogerView(PedidoService pedidoService,
+                                  ProductoService productoService,
+                                  CategoriaService categoriaService) {
 
         this.pedidoService = pedidoService;
         this.productoService = productoService;
