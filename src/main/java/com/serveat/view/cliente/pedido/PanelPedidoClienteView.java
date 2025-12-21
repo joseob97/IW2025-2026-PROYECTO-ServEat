@@ -63,20 +63,6 @@ public class PanelPedidoClienteView extends VerticalLayout {
         fila2.setSpacing(false);
         fila2.getStyle().set("gap", "14px");
 
-        // FILA 3
-        HorizontalLayout fila3 = new HorizontalLayout(
-                crearCardLink("✏️ Modificar pedido",
-                        "Modificar pedidos aún no aceptados por cocina.",
-                        ModificarPedidoClienteView.class),
-
-                crearCardLink("❌ Cancelar pedido",
-                        "Cancelar pedidos pendientes de aceptación.",
-                        CancelarPedidoClienteView.class)
-        );
-        fila3.setWidthFull();
-        fila3.setSpacing(false);
-        fila3.getStyle().set("gap", "14px");
-
         // FILA 4
         HorizontalLayout fila4 = new HorizontalLayout(
                 crearCardLink("📖 Ver carta",
@@ -87,7 +73,7 @@ public class PanelPedidoClienteView extends VerticalLayout {
         fila4.setSpacing(false);
         fila4.getStyle().set("gap", "14px");
 
-        add(fila1, fila2, fila3, fila4);
+        add(fila1, fila2, fila4);
     }
 
     private VerticalLayout crearCardLink(String titulo, String descripcion, Class<? extends Component> destino) {
