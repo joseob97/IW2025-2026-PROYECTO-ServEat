@@ -224,6 +224,7 @@ public class PedidoServiceImpl implements PedidoService {
         }
 
         pedido.setEstado(EstadoPedido.ANULADO);
+        pedido.setEstadoCocina(EstadoCocina.CANCELADO);
         pedido.setCanceladoPor(camareroUsername);
         pedido.setMotivoCancelacion(motivo);
         pedido.setFechaCancelacion(LocalDateTime.now());
