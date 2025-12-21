@@ -206,6 +206,45 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(pedidoEditado.getCodigo());
     }
 
+    @Override
+    public Pedido confirmarCambiosPedidoCliente(Pedido pedidoEditado, String username) {
+
+        if (pedidoEditado == null || pedidoEditado.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("El pedido no puede quedar vacío");
+        }
+
+        Pedido actual = cargarDetalleCliente(pedidoEditado.getCodigo(), username);
+
+        if (actual.getEstado() == EstadoPedido.ANULADO) {
+            throw new IllegalArgumentException("Pedido anulado");
+        }
+
+        if (actual.getEstadoCocina() != EstadoCocina.PENDIENTE_ACEPTACION) {
+            throw new IllegalArgumentException("La cocina ya ha aceptado el pedido");
+        }
+
+        // Reemplazar líneas
+        actual.getLineaPedidos().clear();
+
+        for (LineaPedido lp : pedidoEditado.getLineaPedidos()) {
+            actual.getLineaPedidos().add(new LineaPedido(
+                    actual,
+                    lp.getProducto(),
+                    lp.getCantidad()
+            ));
+        }
+
+        actual.marcarModificado(username);
+
+        pedidoRepo.save(actual);
+        return cargarDetalle(actual.getCodigo());
+    }
+
+    public Pedido cargarDetalleCliente(String codigo, String username) {
+        return pedidoRepo.findWithDetalleByCodigoAndCliente_Username(codigo, username)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado o no pertenece al cliente"));
+    }
+
 
     // CANCELACIÓN
 
