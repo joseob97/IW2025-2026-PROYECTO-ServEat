@@ -12,9 +12,6 @@ import com.vaadin.flow.router.RouterLink;
 import org.springframework.security.access.annotation.Secured;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.RouterLink;
 
 @PageTitle("Panel Pedidos | Cliente")
 @Route(value = "cliente/pedido", layout = MainLayout.class)
@@ -38,39 +35,59 @@ public class PanelPedidoClienteView extends VerticalLayout {
 
         add(titulo, subtitulo);
 
+        // FILA 1
         HorizontalLayout fila1 = new HorizontalLayout(
-                crearCardLink("🛍️ Pedido para recoger", "Crear pedido para recoger y confirmarlo.", CrearPedidoView.class),
-                crearCardLink("🍽️ Pedido en mesa", "Crear pedido asociado a mesa.", CrearPedidoMesaView.class)
+                crearCardLink("🛍️ Pedido para recoger",
+                        "Crear pedido para recoger y confirmarlo.",
+                        CrearPedidoRecogerView.class),
+
+                crearCardLink("🍽️ Pedido en mesa",
+                        "Crear pedido asociado a mesa.",
+                        CrearPedidoMesaView.class)
         );
         fila1.setWidthFull();
         fila1.setSpacing(false);
         fila1.getStyle().set("gap", "14px");
 
+        // FILA 2
         HorizontalLayout fila2 = new HorizontalLayout(
-                crearCardLink("🚚 Pedido online", "Carrito + pago + envío.", CrearPedidoOnlineView.class),
-                crearCardLink("📦 Mis pedidos", "Ver pedidos y estado de cocina.", ConsultaPedidosView.class)
+                crearCardLink("🚚 Pedido online",
+                        "Carrito + pago + envío.",
+                        CrearPedidoOnlineView.class),
+
+                crearCardLink("📦 Mis pedidos",
+                        "Ver pedidos y estado de cocina.",
+                        ConsultaPedidosView.class)
         );
         fila2.setWidthFull();
         fila2.setSpacing(false);
         fila2.getStyle().set("gap", "14px");
 
+        // FILA 3
         HorizontalLayout fila3 = new HorizontalLayout(
-                crearCardLink(
-                        "❌ Cancelar pedido",
-                        "Cancelar pedidos que aún no han sido aceptados por cocina.",
-                        CancelarPedidoClienteView.class
-                ),
-                crearCardLink(
-                        "📖 Ver carta",
-                        "Consultar productos y precios sin iniciar un pedido.",
-                        CartaView.class
-                )
+                crearCardLink("✏️ Modificar pedido",
+                        "Modificar pedidos aún no aceptados por cocina.",
+                        ModificarPedidoClienteView.class),
+
+                crearCardLink("❌ Cancelar pedido",
+                        "Cancelar pedidos pendientes de aceptación.",
+                        CancelarPedidoClienteView.class)
         );
         fila3.setWidthFull();
         fila3.setSpacing(false);
         fila3.getStyle().set("gap", "14px");
 
-        add(fila1, fila2, fila3);
+        // FILA 4
+        HorizontalLayout fila4 = new HorizontalLayout(
+                crearCardLink("📖 Ver carta",
+                        "Consultar productos y precios sin iniciar un pedido.",
+                        CartaView.class)
+        );
+        fila4.setWidthFull();
+        fila4.setSpacing(false);
+        fila4.getStyle().set("gap", "14px");
+
+        add(fila1, fila2, fila3, fila4);
     }
 
     private VerticalLayout crearCardLink(String titulo, String descripcion, Class<? extends Component> destino) {
