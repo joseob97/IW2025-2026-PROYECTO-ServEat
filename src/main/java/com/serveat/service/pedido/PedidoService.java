@@ -40,7 +40,10 @@ public interface PedidoService {
 
     Pedido confirmarPedido(String codigoPedido);
 
-    Pedido confirmarCambiosPedido(Pedido pedidoEditado, String usuario);
+    Pedido confirmarCambiosPedido(Pedido pedidoEditado, String usuario);          // EMPLEADO
+    Pedido confirmarCambiosPedidoCliente(Pedido pedidoEditado, String username);  // CLIENTE
+
+    Pedido cargarDetalleCliente(String codigo, String username);
 
     // CANCELACIÓN
 
