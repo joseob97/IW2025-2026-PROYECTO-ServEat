@@ -92,7 +92,7 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         confirmar.addClickListener(e -> confirmarPago());
 
         volver.setWidth("260px");
-        volver.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate(CrearPedidoOnlineView.class)));
+        volver.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate(CrearPedidoDomicilioView.class)));
 
         HorizontalLayout acciones = new HorizontalLayout(confirmar, volver);
         acciones.setWidthFull();
@@ -116,7 +116,7 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         if (carrito == null || carrito.getLineaPedidos() == null || carrito.getLineaPedidos().isEmpty()
                 || username == null || username.isBlank()) {
             Notification.show("No hay carrito para pagar. Vuelve a crear el pedido.", 3500, Notification.Position.MIDDLE);
-            event.forwardTo(CrearPedidoOnlineView.class);
+            event.forwardTo(CrearPedidoDomicilioView.class);
             return;
         }
 
