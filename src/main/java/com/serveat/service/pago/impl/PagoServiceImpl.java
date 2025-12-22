@@ -23,6 +23,7 @@ public class PagoServiceImpl implements PagoService {
         this.pagoRepo = pagoRepo;
     }
 
+    // Crea un pago en estado PENDIENTE asociado a un pedido y método.
     @Override
     public Pago iniciarPago(Pedido pedido, MetodoPago metodo) {
 
@@ -45,6 +46,7 @@ public class PagoServiceImpl implements PagoService {
         return pagoRepo.save(pago);
     }
 
+    // Confirma un pago pendiente y guarda referencia del proveedor.
     @Override
     public Pago confirmarPago(Long pagoId, String referencia) {
 
@@ -62,6 +64,7 @@ public class PagoServiceImpl implements PagoService {
         return pagoRepo.save(pago);
     }
 
+    // Marca un pago como fallido indicando el motivo.
     @Override
     public void marcarPagoFallido(Long pagoId, String motivo) {
 
@@ -79,6 +82,7 @@ public class PagoServiceImpl implements PagoService {
         pagoRepo.save(pago);
     }
 
+    // Procesa y confirma (o falla) un pago online validando los datos del método.
     @Override
     public Pago procesarPagoOnline(Pedido pedidoCreado,
                                    MetodoPago metodo,
@@ -110,11 +114,6 @@ public class PagoServiceImpl implements PagoService {
 
         } catch (Exception ex) {
             marcarPagoFallido(pago.getId(), ex.getMessage());
-            Pago recargado = pagoRepo.findById(pago.getId()).orElse(pago);
-            if (recargado.getEstado() != EstadoPago.FALLIDO) {
-                recargado.fallar(ex.getMessage());
-                pagoRepo.save(recargado);
-            }
             throw ex;
         }
     }
