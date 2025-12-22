@@ -3,6 +3,7 @@ package com.serveat.domain.pedido;
 import com.serveat.domain.menu.Producto;
 import com.serveat.domain.reserva.ReservaMesa;
 import com.serveat.domain.usuario.Cliente;
+import com.serveat.domain.usuario.Empleado;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -37,6 +38,37 @@ public class Pedido {
     @Column(nullable = false)
     private EstadoCocina estadoCocina = EstadoCocina.PENDIENTE_ACEPTACION;
 
+    // TIPO CLIENTE
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_pedido", nullable = false)
+    private TipoPedidoCliente tipoPedido;
+
+    @Column(name = "direccion_entrega", length = 255)
+    private String direccionEntrega;
+
+    // REPARTO
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_reparto", nullable = false)
+    private EstadoReparto estadoReparto = EstadoReparto.NO_APLICA;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "repartidor_id")
+    private Empleado repartidor;
+
+    @Column(name = "fecha_asignacion_reparto")
+    private LocalDateTime fechaAsignacionReparto;
+
+    @Column(name = "fecha_salida_reparto")
+    private LocalDateTime fechaSalidaReparto;
+
+    @Column(name = "fecha_entrega")
+    private LocalDateTime fechaEntrega;
+
+    @Column(name = "incidencia_reparto", length = 255)
+    private String incidenciaReparto;
+
     // FECHAS
 
     @Column(nullable = false, updatable = false)
@@ -54,45 +86,34 @@ public class Pedido {
     private String motivoCancelacion;
     private LocalDateTime fechaCancelacion;
 
-    //  RELACIONES
+    // RELACIONES
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reserva_mesa_id")
     private ReservaMesa reservaMesa;
 
-    @OneToMany(
-            mappedBy = "pedidos",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "pedidos", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LineaPedido> lineaPedidos = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
+    public Pedido() {
+    }
+
     // LÓGICA DE DOMINIO
 
-    /**
-     * Marca el pedido como modificado por un usuario.
-     * Se usa al confirmar cambios desde la vista de edición.
-     */
     public void marcarModificado(String username) {
         this.modificadoPor = username;
         this.fechaUltimaModificacion = LocalDateTime.now();
     }
 
-    /**
-     * Añade una línea al pedido.
-     */
     public void crearLineaPedido(Producto producto, int cantidad) {
         LineaPedido lineaPedido = new LineaPedido(this, producto, cantidad);
         lineaPedidos.add(lineaPedido);
     }
 
-    /**
-     * Calcula el total del pedido.
-     */
     public BigDecimal calcularPrecioTotal() {
         return lineaPedidos.stream()
                 .map(LineaPedido::calcularPrecio)
@@ -177,6 +198,79 @@ public class Pedido {
         return lineaPedidos;
     }
 
-    public Cliente getCliente() { return cliente; }
-    public void setCliente(Cliente cliente) { this.cliente = cliente; }
+    public void setLineaPedidos(List<LineaPedido> lineaPedidos) {
+        this.lineaPedidos = lineaPedidos;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
+    }
+
+    public TipoPedidoCliente getTipoPedido() {
+        return tipoPedido;
+    }
+
+    public void setTipoPedido(TipoPedidoCliente tipoPedido) {
+        this.tipoPedido = tipoPedido;
+    }
+
+    public String getDireccionEntrega() {
+        return direccionEntrega;
+    }
+
+    public void setDireccionEntrega(String direccionEntrega) {
+        this.direccionEntrega = direccionEntrega;
+    }
+
+    public EstadoReparto getEstadoReparto() {
+        return estadoReparto;
+    }
+
+    public void setEstadoReparto(EstadoReparto estadoReparto) {
+        this.estadoReparto = estadoReparto;
+    }
+
+    public Empleado getRepartidor() {
+        return repartidor;
+    }
+
+    public void setRepartidor(Empleado repartidor) {
+        this.repartidor = repartidor;
+    }
+
+    public LocalDateTime getFechaAsignacionReparto() {
+        return fechaAsignacionReparto;
+    }
+
+    public void setFechaAsignacionReparto(LocalDateTime fechaAsignacionReparto) {
+        this.fechaAsignacionReparto = fechaAsignacionReparto;
+    }
+
+    public LocalDateTime getFechaSalidaReparto() {
+        return fechaSalidaReparto;
+    }
+
+    public void setFechaSalidaReparto(LocalDateTime fechaSalidaReparto) {
+        this.fechaSalidaReparto = fechaSalidaReparto;
+    }
+
+    public LocalDateTime getFechaEntrega() {
+        return fechaEntrega;
+    }
+
+    public void setFechaEntrega(LocalDateTime fechaEntrega) {
+        this.fechaEntrega = fechaEntrega;
+    }
+
+    public String getIncidenciaReparto() {
+        return incidenciaReparto;
+    }
+
+    public void setIncidenciaReparto(String incidenciaReparto) {
+        this.incidenciaReparto = incidenciaReparto;
+    }
 }

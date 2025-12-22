@@ -1,5 +1,7 @@
 package com.serveat.view.layout;
 
+import com.serveat.view.cliente.inicio.InicioClienteView;
+import com.serveat.view.cliente.pedido.PanelPedidoClienteView;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H1;
@@ -35,6 +37,7 @@ public class MainLayout extends AppLayout {
         logo.setAlignItems(FlexComponent.Alignment.CENTER);
 
         RouterLink linkInicio = new RouterLink("Inicio", InicioView.class);
+        RouterLink linkPedidos = new RouterLink("Pedidos", PanelPedidoClienteView.class); // Solo si es cliente
         RouterLink linkCarta = new RouterLink("Carta", CartaView.class);
         RouterLink linkContacto = new RouterLink("Contacto", ContactoView.class);
         RouterLink linkInfo = new RouterLink("Información", InformacionSitioView.class);
@@ -65,6 +68,12 @@ public class MainLayout extends AppLayout {
 
             // Obtener el rol
             String role = auth.getAuthorities().iterator().next().getAuthority();
+
+            // Inicio personalizado para el cliente
+            if ("ROLE_CLIENTE".equals(role)) {
+                linkInicio = new RouterLink("Inicio", InicioClienteView.class);
+                linkPedidos.setVisible(true);
+            }
 
             // Determinar si es empleado
             boolean esEmpleado = role.startsWith("ROLE_") && !role.equals("ROLE_CLIENTE");
@@ -118,6 +127,7 @@ public class MainLayout extends AppLayout {
                     spacer,
                     usuarioConectado,
                     linkInicio,
+                    linkPedidos,
                     linkCarta,
                     linkContacto,
                     linkInfo,

@@ -52,7 +52,7 @@ public class CustomAuthenticationSuccessHandler
                     return "/empleado/repartidor";
 
                 case "ROLE_CLIENTE":
-                    return "/carta";  // página principal del cliente
+                    return "/cliente/pedido";  // página principal del cliente
             }
         }
 

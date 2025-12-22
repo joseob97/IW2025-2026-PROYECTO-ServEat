@@ -1,18 +1,19 @@
 package com.serveat.view.empleado.cocinero;
 
 import com.serveat.view.layout.MainLayout;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouterLink;
 import org.springframework.security.access.annotation.Secured;
 
 @Route(value = "empleado/cocinero", layout = MainLayout.class)
+@PageTitle("Panel Cocina")
 @Secured("ROLE_COCINERO")
 public class PanelCocineroView extends VerticalLayout {
 
@@ -26,82 +27,70 @@ public class PanelCocineroView extends VerticalLayout {
         getStyle().set("max-width", "1100px");
         getStyle().set("margin", "0 auto");
 
-        H2 titulo = new H2("Panel Cocinero");
+        H2 titulo = new H2("Cocina");
         titulo.getStyle().set("margin", "0");
-        add(titulo);
 
+        Span subtitulo = new Span("Gestión de pedidos entrantes y en preparación");
+        subtitulo.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
+        add(titulo, subtitulo);
+
+        // FILA 1
         HorizontalLayout fila1 = new HorizontalLayout(
-                crearCardAccion(
-                        "🍽️ Ver Comandas Pendientes",
-                        "Visualiza todos los pedidos esperando ser preparados.",
-                        () -> UI.getCurrent().navigate(ComandasView.class)
+                crearCard(
+                        "🧾 Pedidos pendientes",
+                        "Pedidos esperando ser aceptados por cocina",
+                        PedidosPendientesCocinaView.class
                 ),
-                crearCardAccion(
-                        "👨‍🍳 Gestionar Preparación",
-                        "Actualiza el estado de preparación de los platos.",
-                        () -> UI.getCurrent().navigate(GestionPedidoCocineroView.class)
+                crearCard(
+                        "👨‍🍳 En preparación",
+                        "Pedidos actualmente en preparación",
+                        PedidosEnPreparacionView.class
                 )
         );
+        fila1.setWidthFull();
+        fila1.getStyle().set("gap", "14px");
 
-        configurarFila(fila1);
-
-
+        // FILA 2
         HorizontalLayout fila2 = new HorizontalLayout(
-                crearCardAccion(
-                        "📋 Ver Historial",
-                        "Consulta los pedidos ya completados.",
-                        () -> {
-                            // Función a implementar o navegar a otra vista
-                            com.vaadin.flow.component.notification.Notification.show("Próximamente disponible", 3000,
-                                    com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
-                        }
+                crearCard(
+                        "✅ Listos para servir / repartir",
+                        "Pedidos terminados y listos",
+                        PedidosListosCocinaView.class
                 )
         );
-
-        configurarFila(fila2);
+        fila2.setWidthFull();
+        fila2.getStyle().set("gap", "14px");
 
         add(fila1, fila2);
     }
 
+    private Component crearCard(String titulo, String descripcion,
+                                Class<? extends Component> destino) {
 
-    private void configurarFila(HorizontalLayout fila) {
-        fila.setWidthFull();
-        fila.setSpacing(false);
-        fila.getStyle().set("gap", "16px");
-        fila.setAlignItems(FlexComponent.Alignment.STRETCH);
-    }
-
-    private VerticalLayout crearCardAccion(String titulo, String descripcion, Runnable onClick) {
-
-        VerticalLayout card = new VerticalLayout();
-        card.setPadding(true);
-        card.setSpacing(false);
-        card.setWidthFull();
-        card.getStyle().set("gap", "12px");
-
-        card.getStyle().set("background", "var(--lumo-base-color)");
-        card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
-        card.getStyle().set("border-radius", "14px");
-        card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
+        RouterLink link = new RouterLink("", destino);
+        link.getStyle().set("text-decoration", "none");
+        link.getStyle().set("width", "100%");
 
         H3 h3 = new H3(titulo);
         h3.getStyle().set("margin", "0");
 
-        Paragraph p = new Paragraph(descripcion);
-        p.getStyle().set("margin", "0");
-        p.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        Span desc = new Span(descripcion);
+        desc.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
-        Button btn = new Button("Abrir");
-        btn.getStyle().set("font-weight", "600");
-        btn.setWidth("260px");
-        btn.addClickListener(e -> onClick.run());
+        VerticalLayout card = new VerticalLayout(h3, desc);
+        card.setPadding(true);
+        card.setSpacing(false);
+        card.setWidthFull();
 
-        HorizontalLayout filaBoton = new HorizontalLayout(btn);
-        filaBoton.setWidthFull();
-        filaBoton.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        card.getStyle().set("gap", "8px");
+        card.getStyle().set("background", "var(--lumo-base-color)");
+        card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
+        card.getStyle().set("border-radius", "14px");
+        card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
+        card.getStyle().set("cursor", "pointer");
 
-        card.add(h3, p, filaBoton);
-        return card;
+        link.add(card);
+        return link;
     }
 }

@@ -2,11 +2,11 @@ package com.serveat.repository.pedido;
 
 import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.EstadoPedido;
+import com.serveat.domain.pedido.EstadoReparto;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.pedido.TipoPedidoCliente;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.lang.Nullable;
-import org.springframework.lang.NonNull;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,14 +23,18 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
-            "lineaPedidos.productos"
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
     })
     Optional<Pedido> findWithDetalleByCodigo(String codigo);
 
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
-            "lineaPedidos.productos"
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
     })
     List<Pedido> findByEstadoOrEstadoAndEstadoCocina(
             EstadoPedido estadoEnCurso,
@@ -41,7 +45,9 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
-            "lineaPedidos.productos"
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
     })
     List<Pedido> findByReservaMesa_NumeroMesaAndEstadoOrReservaMesa_NumeroMesaAndEstadoAndEstadoCocina(
             Integer numeroMesa1,
@@ -54,24 +60,47 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
-            "lineaPedidos.productos"
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
     })
     List<Pedido> findByCliente_UsernameOrderByFechaCreacionDesc(String username);
 
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
-            "lineaPedidos.productos"
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
     })
-    List<Pedido> findByEstadoCocina(EstadoCocina estadoCocina);
+    Optional<Pedido> findWithDetalleByCodigoAndCliente_Username(String codigo, String username);
 
-    @Override
-    @NonNull
     @EntityGraph(attributePaths = {
-            "reservaMesa",
+            "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
-            "cliente"
+            "repartidor"
     })
-    Optional<Pedido> findById(@Nullable UUID id);
+    List<Pedido> findByTipoPedidoAndEstadoReparto(
+            TipoPedidoCliente tipo,
+            EstadoReparto estadoReparto
+    );
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "repartidor"
+    })
+    List<Pedido> findByRepartidor_Username(String username);
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "lineaPedidos",
+            "lineaPedidos.productos"
+    })
+    List<Pedido> findByEstadoAndEstadoCocina(
+            EstadoPedido estado,
+            EstadoCocina estadoCocina
+    );
 }

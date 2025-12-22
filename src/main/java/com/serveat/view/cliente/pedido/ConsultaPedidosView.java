@@ -4,12 +4,11 @@ import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -23,16 +22,13 @@ import java.time.format.DateTimeFormatter;
 @Secured("ROLE_CLIENTE")
 public class ConsultaPedidosView extends VerticalLayout {
 
-    // SERVICIO
     private final transient PedidoService pedidoService;
 
-    // UI
     private final Grid<Pedido> gridPedidos = new Grid<>(Pedido.class, false);
     private final Grid<LineaPedido> gridLineas = new Grid<>(LineaPedido.class, false);
 
     private final Span infoSeleccion = new Span("Selecciona un pedido para ver el detalle.");
 
-    // ESTADO
     private transient Pedido pedidoSeleccionado;
 
     public ConsultaPedidosView(PedidoService pedidoService) {
@@ -46,12 +42,10 @@ public class ConsultaPedidosView extends VerticalLayout {
         getStyle().set("max-width", "1100px");
         getStyle().set("margin", "0 auto");
 
-        // TÍTULO
         H3 titulo = new H3("Mis pedidos");
         titulo.getStyle().set("margin", "0");
         add(titulo);
 
-        // CARD: LISTADO
         VerticalLayout cardListado = crearCard();
         configurarGridPedidos();
         gridPedidos.setWidthFull();
@@ -61,9 +55,7 @@ public class ConsultaPedidosView extends VerticalLayout {
         cardListado.add(gridPedidos);
         add(cardListado);
 
-        // CARD: DETALLE
         VerticalLayout cardDetalle = crearCard();
-
         infoSeleccion.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
         configurarGridLineas();
@@ -75,12 +67,9 @@ public class ConsultaPedidosView extends VerticalLayout {
         cardDetalle.add(infoSeleccion, gridLineas);
         add(cardDetalle);
 
-        // CARGA INICIAL
         cargarPedidos();
         refrescarLineas();
     }
-
-    // GRID PEDIDOS
 
     private void configurarGridPedidos() {
 
@@ -112,6 +101,24 @@ public class ConsultaPedidosView extends VerticalLayout {
                 .setHeader("Total")
                 .setAutoWidth(true);
 
+        gridPedidos.addComponentColumn(p -> {
+            if (!pedidoService.puedeModificarCliente(p)) return new Span("");
+            Button editar = new Button("✏️ Editar");
+            editar.addClickListener(e ->
+                    getUI().ifPresent(ui -> ui.navigate(ModificarPedidoClienteView.class, p.getCodigo()))
+            );
+            return editar;
+        }).setHeader("Modificar").setAutoWidth(true);
+
+        gridPedidos.addComponentColumn(p -> {
+            if (!pedidoService.puedeModificarCliente(p)) return new Span("");
+            Button cancelar = new Button("❌ Cancelar");
+            cancelar.addClickListener(e ->
+                    getUI().ifPresent(ui -> ui.navigate(CancelarPedidoClienteView.class))
+            );
+            return cancelar;
+        }).setHeader("Cancelar").setAutoWidth(true);
+
         gridPedidos.addSelectionListener(e -> {
             pedidoSeleccionado = e.getFirstSelectedItem().orElse(null);
 
@@ -135,14 +142,11 @@ public class ConsultaPedidosView extends VerticalLayout {
         try {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             gridPedidos.setItems(pedidoService.listarPedidosCliente(username));
-
             pedidoSeleccionado = null;
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
         }
     }
-
-    // GRID LÍNEAS
 
     private void configurarGridLineas() {
 
@@ -172,7 +176,6 @@ public class ConsultaPedidosView extends VerticalLayout {
         gridLineas.setItems(pedidoSeleccionado.getLineaPedidos());
     }
 
-    //  UI HELPERS
     private VerticalLayout crearCard() {
         VerticalLayout card = new VerticalLayout();
         card.setPadding(true);
