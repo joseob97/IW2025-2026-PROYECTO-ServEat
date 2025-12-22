@@ -37,43 +37,37 @@ public class PanelPedidoClienteView extends VerticalLayout {
 
         // FILA 1
         HorizontalLayout fila1 = new HorizontalLayout(
-                crearCardLink("🛍️ Pedido para recoger",
-                        "Crear pedido para recoger y confirmarlo.",
-                        CrearPedidoRecogerView.class),
-
-                crearCardLink("🍽️ Pedido en mesa",
+                crearCardLink(
+                        "🛒 Nuevo pedido",
+                        "Elige si quieres recogerlo o recibirlo en casa.",
+                        ElegirTipoPedidoView.class
+                ),
+                crearCardLink(
+                        "🍽️ Pedido en mesa",
                         "Crear pedido asociado a mesa.",
-                        CrearPedidoMesaView.class)
+                        CrearPedidoMesaView.class
+                )
         );
-        fila1.setWidthFull();
-        fila1.setSpacing(false);
-        fila1.getStyle().set("gap", "14px");
 
         // FILA 2
         HorizontalLayout fila2 = new HorizontalLayout(
-                crearCardLink("🚚 Pedido online",
-                        "Carrito + pago + envío.",
-                        CrearPedidoOnlineView.class),
-
-                crearCardLink("📦 Mis pedidos",
-                        "Ver pedidos y estado de cocina.",
-                        ConsultaPedidosView.class)
+                crearCardLink(
+                        "📦 Mis pedidos",
+                        "Ver pedidos y estado de cocina / reparto.",
+                        ConsultaPedidosView.class
+                )
         );
-        fila2.setWidthFull();
-        fila2.setSpacing(false);
-        fila2.getStyle().set("gap", "14px");
 
-        // FILA 4
-        HorizontalLayout fila4 = new HorizontalLayout(
-                crearCardLink("📖 Ver carta",
+        // FILA 3
+        HorizontalLayout fila3 = new HorizontalLayout(
+                crearCardLink(
+                        "📖 Ver carta",
                         "Consultar productos y precios sin iniciar un pedido.",
-                        CartaView.class)
+                        CartaView.class
+                )
         );
-        fila4.setWidthFull();
-        fila4.setSpacing(false);
-        fila4.getStyle().set("gap", "14px");
 
-        add(fila1, fila2, fila4);
+        add(fila1, fila2, fila3);
     }
 
     private VerticalLayout crearCardLink(String titulo, String descripcion, Class<? extends Component> destino) {
