@@ -4,10 +4,7 @@ import com.serveat.domain.menu.Producto;
 import com.serveat.domain.pago.EstadoPago;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
-import com.serveat.domain.pedido.EstadoCocina;
-import com.serveat.domain.pedido.EstadoPedido;
-import com.serveat.domain.pedido.LineaPedido;
-import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.pedido.*;
 import com.serveat.domain.reserva.EstadoReservaMesa;
 import com.serveat.domain.reserva.ReservaMesa;
 import com.serveat.domain.usuario.Cliente;
@@ -356,6 +353,8 @@ public class PedidoServiceImpl implements PedidoService {
         nuevo.setEstado(EstadoPedido.EN_CURSO);
         nuevo.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
         nuevo.setCliente(cliente);
+        nuevo.setTipoPedido(TipoPedidoCliente.RECOGER);
+        nuevo.setDireccionEntrega(null);
 
         for (LineaPedido lp : pedidoEnMemoria.getLineaPedidos()) {
             nuevo.getLineaPedidos().add(
@@ -405,6 +404,9 @@ public class PedidoServiceImpl implements PedidoService {
         nuevo.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
         nuevo.setReservaMesa(mesa);
         nuevo.setCliente(cliente);
+
+        nuevo.setTipoPedido(TipoPedidoCliente.RECOGER);
+        nuevo.setDireccionEntrega(null);
 
         for (LineaPedido lp : pedidoEnMemoria.getLineaPedidos()) {
             nuevo.getLineaPedidos().add(new LineaPedido(
