@@ -71,10 +71,26 @@ public class Pedido {
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
+    public TipoPedidoCliente getTipoPedido() {
+        return tipoPedido;
+    }
+
+    public void setTipoPedido(TipoPedidoCliente tipoPedido) {
+        this.tipoPedido = tipoPedido;
+    }
+
     // Tipo de pedido
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoPedidoCliente tipoPedido;
+
+    public String getDireccionEntrega() {
+        return direccionEntrega;
+    }
+
+    public void setDireccionEntrega(String direccionEntrega) {
+        this.direccionEntrega = direccionEntrega;
+    }
 
     @Column(length = 255)
     private String direccionEntrega;
