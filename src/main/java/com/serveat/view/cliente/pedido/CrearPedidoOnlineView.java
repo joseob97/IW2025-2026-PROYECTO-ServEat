@@ -3,12 +3,10 @@ package com.serveat.view.cliente.pedido;
 import com.serveat.domain.menu.Categoria;
 import com.serveat.domain.menu.Producto;
 import com.serveat.domain.pago.MetodoPago;
-import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
-import com.serveat.service.pago.PagoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -17,36 +15,32 @@ import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 @PageTitle("Pedido Online | Cliente")
 @Route(value = "cliente/pedido/online", layout = MainLayout.class)
 @Secured("ROLE_CLIENTE")
 public class CrearPedidoOnlineView extends VerticalLayout {
 
-    // Servicios
     private final transient PedidoService pedidoService;
     private final transient ProductoService productoService;
     private final transient CategoriaService categoriaService;
-    private final transient PagoService pagoService;
 
-    // Estado
     private transient Pedido pedidoEnMemoria = new Pedido();
 
-    // Filtros producto
     private final TextField buscarProducto = new TextField("Buscar producto");
     private final ComboBox<String> filtroCategoria = new ComboBox<>("Categoría");
 
@@ -54,23 +48,19 @@ public class CrearPedidoOnlineView extends VerticalLayout {
     private final IntegerField cantidad = new IntegerField("Cantidad");
     private final Button anadir = new Button("Añadir al carrito");
 
-    // Carrito
     private final Grid<LineaPedido> gridCarrito = new Grid<>(LineaPedido.class, false);
     private final Span total = new Span("Total: 0 €");
 
-    // Pago
     private final ComboBox<MetodoPago> metodoPago = new ComboBox<>("Método de pago");
-    private final Button pagar = new Button("✅ Pagar y enviar pedido");
+    private final Button pagar = new Button("✅ Ir a pasarela de pago");
 
     public CrearPedidoOnlineView(PedidoService pedidoService,
                                  ProductoService productoService,
-                                 CategoriaService categoriaService,
-                                 PagoService pagoService) {
+                                 CategoriaService categoriaService) {
 
         this.pedidoService = pedidoService;
         this.productoService = productoService;
         this.categoriaService = categoriaService;
-        this.pagoService = pagoService;
 
         setSpacing(false);
         setPadding(true);
@@ -164,7 +154,7 @@ public class CrearPedidoOnlineView extends VerticalLayout {
 
         pagar.setWidth("360px");
         pagar.getStyle().set("font-weight", "600");
-        pagar.addClickListener(e -> confirmarPago());
+        pagar.addClickListener(e -> confirmarIrPasarela());
 
         HorizontalLayout filaPago = new HorizontalLayout(pagar);
         filaPago.setWidthFull();
@@ -179,7 +169,6 @@ public class CrearPedidoOnlineView extends VerticalLayout {
     }
 
     private void configurarFiltrosProducto() {
-
         buscarProducto.setPlaceholder("Buscar por nombre");
         buscarProducto.setClearButtonVisible(true);
         buscarProducto.setValueChangeMode(ValueChangeMode.EAGER);
@@ -212,7 +201,6 @@ public class CrearPedidoOnlineView extends VerticalLayout {
     }
 
     private void recargarProductos() {
-
         String texto = buscarProducto.getValue();
         String categoria = filtroCategoria.getValue();
 
@@ -308,6 +296,7 @@ public class CrearPedidoOnlineView extends VerticalLayout {
         try {
             pedidoEnMemoria = pedidoService.agregarProductoEnMemoria(pedidoEnMemoria, prod, qty);
             cantidad.setValue(1);
+            comboProducto.clear();
             refrescarCarrito();
             Notification.show("Añadido al carrito", 1500, Notification.Position.BOTTOM_START);
         } catch (Exception ex) {
@@ -315,9 +304,9 @@ public class CrearPedidoOnlineView extends VerticalLayout {
         }
     }
 
-    private void confirmarPago() {
+    private void confirmarIrPasarela() {
 
-        if (pedidoEnMemoria.getLineaPedidos() == null || pedidoEnMemoria.getLineaPedidos().isEmpty()) {
+        if (pedidoEnMemoria == null || pedidoEnMemoria.getLineaPedidos() == null || pedidoEnMemoria.getLineaPedidos().isEmpty()) {
             Notification.show("El carrito está vacío", 3000, Notification.Position.MIDDLE);
             return;
         }
@@ -329,47 +318,37 @@ public class CrearPedidoOnlineView extends VerticalLayout {
         }
 
         ConfirmDialog dialog = new ConfirmDialog();
-        dialog.setHeader("Confirmar pago");
-        dialog.setText("¿Deseas pagar y enviar el pedido a cocina?");
+        dialog.setHeader("Ir a pasarela de pago");
+        dialog.setText("Te llevaremos a una pasarela simulada para completar el pago.");
         dialog.setCancelable(true);
-        dialog.setConfirmText("Sí, pagar");
-        dialog.addConfirmListener(e -> ejecutarPago());
+        dialog.setConfirmText("Continuar");
+        dialog.addConfirmListener(e -> irAPasarela());
         dialog.open();
     }
 
-    private void ejecutarPago() {
-
+    private void irAPasarela() {
         try {
-            String username = org.springframework.security.core.context.SecurityContextHolder
-                    .getContext().getAuthentication().getName();
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-            // 1) Persistir pedido desde el carrito + asignar cliente
-            Pedido pedidoCreado = pedidoService.crearPedidoDesdeCliente(pedidoEnMemoria, username);
-
-            // 2) Crear pago y confirmarlo (referencia simulada)
-            Pago pago = pagoService.iniciarPago(pedidoCreado, metodoPago.getValue());
-            pagoService.confirmarPago(pago.getId(), generarReferencia());
-
-            Notification.show("Pedido pagado y enviado a cocina", 4000, Notification.Position.MIDDLE);
-
-            // 3) Reset carrito
-            pedidoEnMemoria = new Pedido();
-            metodoPago.clear();
-            refrescarCarrito();
+            // Guardamos el "carrito" en sesión y nos vamos a la pasarela simulada
+            getUI().ifPresent(ui -> {
+                ui.getSession().setAttribute("pedidoOnlineCarrito", pedidoEnMemoria);
+                ui.getSession().setAttribute("pedidoOnlineMetodoPago", metodoPago.getValue());
+                ui.getSession().setAttribute("pedidoOnlineUsername", username);
+                ui.navigate(PasarelaPagoSimuladaView.class);
+            });
 
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
         }
     }
 
-    private String generarReferencia() {
-        return "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-    }
-
     private void refrescarCarrito() {
-        gridCarrito.setItems(
-                pedidoEnMemoria != null ? pedidoEnMemoria.getLineaPedidos() : List.of()
-        );
+        List<LineaPedido> items = (pedidoEnMemoria != null && pedidoEnMemoria.getLineaPedidos() != null)
+                ? pedidoEnMemoria.getLineaPedidos()
+                : List.of();
+
+        gridCarrito.setItems(items);
 
         BigDecimal totalCalc = BigDecimal.ZERO;
         if (pedidoEnMemoria != null && pedidoEnMemoria.getLineaPedidos() != null) {
