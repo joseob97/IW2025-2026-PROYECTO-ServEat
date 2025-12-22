@@ -30,7 +30,6 @@ public class PanelCocineroView extends VerticalLayout {
         titulo.getStyle().set("margin", "0");
         add(titulo);
 
-        // FILA 1
 
         HorizontalLayout fila1 = new HorizontalLayout(
                 crearCardAccion(
@@ -47,7 +46,6 @@ public class PanelCocineroView extends VerticalLayout {
 
         configurarFila(fila1);
 
-        // FILA 2
 
         HorizontalLayout fila2 = new HorizontalLayout(
                 crearCardAccion(
@@ -66,7 +64,6 @@ public class PanelCocineroView extends VerticalLayout {
         add(fila1, fila2);
     }
 
-    // HELPERS
 
     private void configurarFila(HorizontalLayout fila) {
         fila.setWidthFull();
@@ -83,7 +80,6 @@ public class PanelCocineroView extends VerticalLayout {
         card.setWidthFull();
         card.getStyle().set("gap", "12px");
 
-        // Estilo card
         card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");

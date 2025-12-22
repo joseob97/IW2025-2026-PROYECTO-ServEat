@@ -5,6 +5,8 @@ import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.Pedido;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.lang.Nullable;
+import org.springframework.lang.NonNull;
 
 import java.util.List;
 import java.util.Optional;
@@ -62,4 +64,14 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "lineaPedidos.productos"
     })
     List<Pedido> findByEstadoCocina(EstadoCocina estadoCocina);
+
+    @Override
+    @NonNull
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "cliente"
+    })
+    Optional<Pedido> findById(@Nullable UUID id);
 }

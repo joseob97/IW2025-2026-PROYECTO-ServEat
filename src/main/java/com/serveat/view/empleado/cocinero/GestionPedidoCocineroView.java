@@ -19,7 +19,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
 
-import java.util.Arrays;
 import java.util.List;
 
 @PageTitle("Gestión de Preparación | Cocinero")
@@ -134,9 +133,9 @@ public class GestionPedidoCocineroView extends VerticalLayout {
 
         grid.addComponentColumn(pedido -> {
             Button verDetalle = new Button("✏️ Ver Detalle");
-            verDetalle.addClickListener(e -> {
-                UI.getCurrent().navigate(DetalleComandaView.class, pedido.getId().toString());
-            });
+            verDetalle.addClickListener(e ->
+                UI.getCurrent().navigate(DetalleComandaView.class, pedido.getId().toString())
+            );
             return verDetalle;
         }).setHeader("Acciones");
     }
@@ -157,8 +156,9 @@ public class GestionPedidoCocineroView extends VerticalLayout {
             }
 
             if (mesa != null && mesa > 0) {
+                final Integer mesaFinal = mesa;
                 pedidos = pedidos.stream()
-                        .filter(p -> p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa() == mesa)
+                        .filter(p -> p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa().equals(mesaFinal))
                         .toList();
             }
 
