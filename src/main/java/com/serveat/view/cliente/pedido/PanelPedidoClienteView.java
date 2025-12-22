@@ -2,7 +2,9 @@ package com.serveat.view.cliente.pedido;
 
 import com.serveat.view.layout.MainLayout;
 import com.serveat.view.publico.carta.CartaView;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -10,8 +12,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import org.springframework.security.access.annotation.Secured;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.html.H3;
 
 @PageTitle("Panel Pedidos | Cliente")
 @Route(value = "cliente/pedido", layout = MainLayout.class)
@@ -35,7 +35,6 @@ public class PanelPedidoClienteView extends VerticalLayout {
 
         add(titulo, subtitulo);
 
-        // FILA 1
         HorizontalLayout fila1 = new HorizontalLayout(
                 crearCardLink(
                         "🛒 Nuevo pedido",
@@ -48,17 +47,26 @@ public class PanelPedidoClienteView extends VerticalLayout {
                         CrearPedidoMesaView.class
                 )
         );
+        fila1.setWidthFull();
+        fila1.setSpacing(false);
+        fila1.getStyle().set("gap", "14px");
 
-        // FILA 2
         HorizontalLayout fila2 = new HorizontalLayout(
                 crearCardLink(
                         "📦 Mis pedidos",
                         "Ver pedidos y estado de cocina / reparto.",
                         ConsultaPedidosView.class
+                ),
+                crearCardLink(
+                        "📍 Seguimiento",
+                        "Seguimiento en tiempo real de cocina y reparto.",
+                        SeguimientoPedidoView.class
                 )
         );
+        fila2.setWidthFull();
+        fila2.setSpacing(false);
+        fila2.getStyle().set("gap", "14px");
 
-        // FILA 3
         HorizontalLayout fila3 = new HorizontalLayout(
                 crearCardLink(
                         "📖 Ver carta",
@@ -66,12 +74,14 @@ public class PanelPedidoClienteView extends VerticalLayout {
                         CartaView.class
                 )
         );
+        fila3.setWidthFull();
+        fila3.setSpacing(false);
+        fila3.getStyle().set("gap", "14px");
 
         add(fila1, fila2, fila3);
     }
 
     private VerticalLayout crearCardLink(String titulo, String descripcion, Class<? extends Component> destino) {
-
         RouterLink link = new RouterLink("", destino);
         link.getStyle().set("text-decoration", "none");
         link.getStyle().set("display", "block");
@@ -87,7 +97,6 @@ public class PanelPedidoClienteView extends VerticalLayout {
         card.setSpacing(false);
         card.setWidthFull();
         card.getStyle().set("gap", "8px");
-
         card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
@@ -100,7 +109,6 @@ public class PanelPedidoClienteView extends VerticalLayout {
         wrapper.setPadding(false);
         wrapper.setSpacing(false);
         wrapper.setWidthFull();
-
         return wrapper;
     }
 }
