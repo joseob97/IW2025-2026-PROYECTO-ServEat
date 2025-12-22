@@ -1,6 +1,9 @@
 package com.serveat.service.pedido.impl;
 
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.pago.EstadoPago;
+import com.serveat.domain.pago.MetodoPago;
+import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.LineaPedido;
@@ -9,9 +12,11 @@ import com.serveat.domain.reserva.EstadoReservaMesa;
 import com.serveat.domain.reserva.ReservaMesa;
 import com.serveat.domain.usuario.Cliente;
 import com.serveat.repository.menu.ProductoRepository;
+import com.serveat.repository.pago.PagoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.reserva.ReservaMesaRepository;
 import com.serveat.repository.usuario.ClienteRepository;
+import com.serveat.service.pago.PagoService;
 import com.serveat.service.pedido.PedidoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,19 +33,22 @@ public class PedidoServiceImpl implements PedidoService {
     private final ProductoRepository productoRepo;
     private final ReservaMesaRepository reservaMesaRepo;
     private final ClienteRepository clienteRepo;
-
+    private final PagoService pagoService;
+    private final PagoRepository pagoRepo;
 
     public PedidoServiceImpl(PedidoRepository pedidoRepo,
                              ProductoRepository productoRepo,
                              ReservaMesaRepository reservaMesaRepo,
-                             ClienteRepository clienteRepo) {
+                             ClienteRepository clienteRepo,
+                             PagoService pagoService,
+                             PagoRepository pagoRepo) {
         this.pedidoRepo = pedidoRepo;
         this.productoRepo = productoRepo;
         this.reservaMesaRepo = reservaMesaRepo;
         this.clienteRepo = clienteRepo;
+        this.pagoService = pagoService;
+        this.pagoRepo = pagoRepo;
     }
-
-    // HELPERS
 
     private String generarCodigo() {
         return "PED-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -50,8 +58,6 @@ public class PedidoServiceImpl implements PedidoService {
         return pedidoRepo.findWithDetalleByCodigo(codigo)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado: " + codigo));
     }
-
-    // CREACIÓN
 
     @Override
     public Pedido crearPedidoMesa(Integer numeroMesa) {
@@ -72,8 +78,6 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(p.getCodigo());
     }
 
-    // CONSULTA
-
     @Override
     public Pedido obtenerPorCodigo(String codigo) {
         return cargarDetalle(codigo);
@@ -88,8 +92,6 @@ public class PedidoServiceImpl implements PedidoService {
     public List<Pedido> buscarPorEstado(EstadoPedido estado) {
         return pedidoRepo.findByEstado(estado);
     }
-
-    // MODIFICACIÓN DIRECTA (SE GUARDA)
 
     @Override
     public Pedido agregarProducto(String codigoPedido, String codigoProducto, int cantidad) {
@@ -118,8 +120,6 @@ public class PedidoServiceImpl implements PedidoService {
         pedidoRepo.save(pedido);
         return cargarDetalle(codigoPedido);
     }
-
-    // MODIFICACIÓN EN MEMORIA (NO SE GUARDA)
 
     @Override
     public Pedido agregarProductoEnMemoria(Pedido pedido, Producto producto, int cantidad) {
@@ -168,8 +168,6 @@ public class PedidoServiceImpl implements PedidoService {
 
         return pedido;
     }
-
-    // CONFIRMACIONES
 
     @Override
     public Pedido confirmarPedido(String codigoPedido) {
@@ -223,7 +221,6 @@ public class PedidoServiceImpl implements PedidoService {
             throw new IllegalArgumentException("La cocina ya ha aceptado el pedido");
         }
 
-        // Reemplazar líneas
         actual.getLineaPedidos().clear();
 
         for (LineaPedido lp : pedidoEditado.getLineaPedidos()) {
@@ -240,13 +237,11 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(actual.getCodigo());
     }
 
+    @Override
     public Pedido cargarDetalleCliente(String codigo, String username) {
         return pedidoRepo.findWithDetalleByCodigoAndCliente_Username(codigo, username)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado o no pertenece al cliente"));
     }
-
-
-    // CANCELACIÓN
 
     @Override
     public Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername) {
@@ -263,7 +258,6 @@ public class PedidoServiceImpl implements PedidoService {
         }
 
         pedido.setEstado(EstadoPedido.ANULADO);
-        pedido.setEstadoCocina(EstadoCocina.CANCELADO);
         pedido.setCanceladoPor(camareroUsername);
         pedido.setMotivoCancelacion(motivo);
         pedido.setFechaCancelacion(LocalDateTime.now());
@@ -279,16 +273,12 @@ public class PedidoServiceImpl implements PedidoService {
             return false;
         }
 
-        // Nunca se puede modificar un pedido anulado
         if (pedido.getEstado() == EstadoPedido.ANULADO) {
             return false;
         }
 
-        // Solo mientras cocina no lo haya aceptado
         return pedido.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION;
     }
-
-    // LISTADOS ESPECIALES
 
     @Override
     public List<Pedido> listarPedidosModificables() {
@@ -322,7 +312,7 @@ public class PedidoServiceImpl implements PedidoService {
 
         Pedido nuevo = new Pedido();
         nuevo.setCodigo(generarCodigo());
-        nuevo.setEstado(EstadoPedido.EN_COCINA);
+        nuevo.setEstado(EstadoPedido.EN_CURSO);
         nuevo.setCliente(cliente);
 
         for (LineaPedido lp : pedidoEnMemoria.getLineaPedidos()) {
@@ -367,7 +357,7 @@ public class PedidoServiceImpl implements PedidoService {
 
         Pedido nuevo = new Pedido();
         nuevo.setCodigo(generarCodigo());
-        nuevo.setEstado(EstadoPedido.EN_COCINA);
+        nuevo.setEstado(EstadoPedido.EN_CURSO);
         nuevo.setReservaMesa(mesa);
         nuevo.setCliente(cliente);
 
@@ -381,5 +371,83 @@ public class PedidoServiceImpl implements PedidoService {
 
         pedidoRepo.save(nuevo);
         return cargarDetalle(nuevo.getCodigo());
+    }
+
+    @Override
+    public Pago iniciarPagoOnline(Pedido carrito, String username, MetodoPago metodo) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+        if (carrito == null || carrito.getLineaPedidos() == null || carrito.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("El carrito está vacío");
+        }
+        if (metodo == null) {
+            throw new IllegalArgumentException("Método de pago inválido");
+        }
+
+        Pedido pedidoCreado = crearPedidoDesdeCliente(carrito, username);
+        return pagoService.iniciarPago(pedidoCreado, metodo);
+    }
+
+    @Override
+    public Pago obtenerPagoCliente(Long pagoId, String username) {
+        if (pagoId == null) {
+            throw new IllegalArgumentException("Pago inválido");
+        }
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+
+        Pago pago = pagoRepo.findWithPedidoById(pagoId)
+                .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado"));
+
+        if (pago.getPedido() == null || pago.getPedido().getCliente() == null
+                || !username.equals(pago.getPedido().getCliente().getUsername())) {
+            throw new IllegalArgumentException("Pago no pertenece al cliente");
+        }
+
+        return pago;
+    }
+
+    @Override
+    public Pedido confirmarPagoOnline(Long pagoId, String username, String referencia) {
+        Pago pago = obtenerPagoCliente(pagoId, username);
+
+        if (pago.getEstado() == EstadoPago.CONFIRMADO) {
+            throw new IllegalArgumentException("El pago ya está confirmado");
+        }
+        if (pago.getEstado() == EstadoPago.FALLIDO) {
+            throw new IllegalArgumentException("El pago está marcado como fallido");
+        }
+
+        Pago confirmado = pagoService.confirmarPago(pago.getId(), referencia);
+
+        Pedido pedido = confirmado.getPedido();
+        if (pedido.getEstado() == EstadoPedido.ANULADO) {
+            throw new IllegalArgumentException("Pedido anulado");
+        }
+
+        if (pedido.getLineaPedidos() == null || pedido.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("El pedido no puede estar vacío");
+        }
+
+        pedido.setEstado(EstadoPedido.EN_COCINA);
+        pedidoRepo.save(pedido);
+
+        return cargarDetalleCliente(pedido.getCodigo(), username);
+    }
+
+    @Override
+    public Pedido marcarPagoOnlineFallido(Long pagoId, String username, String motivo) {
+        Pago pago = obtenerPagoCliente(pagoId, username);
+
+        if (pago.getEstado() == EstadoPago.CONFIRMADO) {
+            throw new IllegalArgumentException("El pago ya está confirmado");
+        }
+
+        pagoService.marcarPagoFallido(pago.getId(), (motivo == null || motivo.isBlank()) ? "Cancelado por el cliente" : motivo.trim());
+
+        Pedido pedido = pago.getPedido();
+        return cargarDetalleCliente(pedido.getCodigo(), username);
     }
 }
