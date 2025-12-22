@@ -20,6 +20,14 @@ public class CocineroServiceImpl implements CocineroService {
     }
 
     @Override
+    public List<Pedido> listarPendientes() {
+        return pedidoRepo.findByEstadoAndEstadoCocina(
+                EstadoPedido.EN_COCINA,
+                EstadoCocina.PENDIENTE_ACEPTACION
+        );
+    }
+
+    @Override
     public List<Pedido> listarPendientesAceptacion() {
         return pedidoRepo.findByEstadoOrEstadoAndEstadoCocina(
                 EstadoPedido.EN_COCINA,

@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface CocineroService {
 
+    List<Pedido> listarPendientes();
+
     // Pedidos pendientes de aceptar
     List<Pedido> listarPendientesAceptacion();
 

@@ -11,6 +11,8 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.List;
+
 @Route("cocinero/pendientes")
 @PageTitle("Pedidos pendientes | Cocina")
 public class PedidosPendientesCocinaView extends VerticalLayout {
@@ -58,6 +60,7 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
     }
 
     private void cargar() {
-        grid.setItems(cocineroService.listarPendientesAceptacion());
+        List<Pedido> pedidos = cocineroService.listarPendientes();
+        grid.setItems(pedidos);
     }
 }

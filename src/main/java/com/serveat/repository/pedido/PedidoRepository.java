@@ -93,4 +93,14 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "repartidor"
     })
     List<Pedido> findByRepartidor_Username(String username);
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "lineaPedidos",
+            "lineaPedidos.productos"
+    })
+    List<Pedido> findByEstadoAndEstadoCocina(
+            EstadoPedido estado,
+            EstadoCocina estadoCocina
+    );
 }
