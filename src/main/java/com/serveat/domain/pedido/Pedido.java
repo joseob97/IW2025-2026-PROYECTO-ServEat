@@ -71,6 +71,14 @@ public class Pedido {
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
+    // Tipo de pedido
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TipoPedidoCliente tipoPedido;
+
+    @Column(length = 255)
+    private String direccionEntrega;
+
     // LÓGICA DE DOMINIO
 
     /**
