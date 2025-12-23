@@ -29,9 +29,10 @@ public class CocineroServiceImpl implements CocineroService {
 
     @Override
     public List<Pedido> listarPendientesAceptacion() {
+        // CORRECCIÓN: Asegurarse de que busca pedidos en EN_CURSO o EN_COCINA
         return pedidoRepo.findByEstadoOrEstadoAndEstadoCocina(
-                EstadoPedido.EN_COCINA,
-                EstadoPedido.EN_COCINA,
+                EstadoPedido.EN_CURSO, // Pedidos de cliente que aún no han sido procesados por camarero
+                EstadoPedido.EN_COCINA, // Pedidos que ya pasaron por camarero pero están pendientes de cocina
                 EstadoCocina.PENDIENTE_ACEPTACION
         );
     }
@@ -55,6 +56,8 @@ public class CocineroServiceImpl implements CocineroService {
             throw new IllegalArgumentException("Pedido no aceptable");
         }
 
+
+        p.setEstado(EstadoPedido.EN_COCINA);
         p.setEstadoCocina(EstadoCocina.ACEPTADO);
         p.marcarModificado(cocineroUsername);
         return pedidoRepo.save(p);

@@ -7,6 +7,8 @@ import com.serveat.domain.pedido.Pedido;
 import com.serveat.domain.pedido.TipoPedidoCliente;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +22,36 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
 
     List<Pedido> findByEstadoIn(List<EstadoPedido> estados);
 
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
+    })
+    List<Pedido> findAllByOrderByFechaCreacionDesc();
+
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
+    })
+    List<Pedido> findByReservaMesa_NumeroMesaOrderByFechaCreacionDesc(Integer numeroMesa);
+
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
+    })
+    List<Pedido> findByEstadoCocinaAndReservaMesa_NumeroMesaOrderByFechaCreacionDesc(EstadoCocina estado, Integer numeroMesa);
+
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
@@ -28,6 +60,16 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "repartidor"
     })
     Optional<Pedido> findWithDetalleByCodigo(String codigo);
+
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "cliente",
+            "repartidor"
+    })
+    Optional<Pedido> findWithDetalleById(UUID id);
 
     @EntityGraph(attributePaths = {
             "reservaMesa",
@@ -103,4 +145,12 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             EstadoPedido estado,
             EstadoCocina estadoCocina
     );
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "reservaMesa"
+    })
+    List<Pedido> findByEstadoCocina(EstadoCocina estadoCocina);
 }
