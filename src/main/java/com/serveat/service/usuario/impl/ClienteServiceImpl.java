@@ -36,6 +36,12 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     @Override
+    public Cliente obtenerPorId(Long id) {
+        return clienteRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+    }
+
+    @Override
     @Transactional
     public Cliente guardar(Cliente cliente) {
         return clienteRepo.save(cliente);

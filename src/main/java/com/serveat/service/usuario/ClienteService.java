@@ -5,6 +5,8 @@ import java.util.List;
 
 public interface ClienteService {
 
+    Cliente obtenerPorId(Long id);
+
     Cliente obtenerPorUsername(String username);
 
     List<Cliente> obtenerTodos();
