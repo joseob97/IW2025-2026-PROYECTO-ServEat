@@ -35,34 +35,23 @@ public class PanelCocineroView extends VerticalLayout {
 
         add(titulo, subtitulo);
 
-        // FILA 1
-        HorizontalLayout fila1 = new HorizontalLayout(
+
+        HorizontalLayout cardsLayout = new HorizontalLayout(
                 crearCard(
-                        "🧾 Pedidos pendientes",
+                        "🧾 Pedidos Entrantes",
                         "Pedidos esperando ser aceptados por cocina",
                         PedidosPendientesCocinaView.class
                 ),
                 crearCard(
-                        "👨‍🍳 En preparación",
-                        "Pedidos actualmente en preparación",
-                        PedidosEnPreparacionView.class
+                        "🔄 Modificar estado de un pedido",
+                        "Gestiona y actualiza el estado de los pedidos en curso",
+                        GestionPedidoCocineroView.class // Usamos esta vista como placeholder para la gestión de estados
                 )
         );
-        fila1.setWidthFull();
-        fila1.getStyle().set("gap", "14px");
+        cardsLayout.setWidthFull();
+        cardsLayout.getStyle().set("gap", "14px");
 
-        // FILA 2
-        HorizontalLayout fila2 = new HorizontalLayout(
-                crearCard(
-                        "✅ Listos para servir / repartir",
-                        "Pedidos terminados y listos",
-                        PedidosListosCocinaView.class
-                )
-        );
-        fila2.setWidthFull();
-        fila2.getStyle().set("gap", "14px");
-
-        add(fila1, fila2);
+        add(cardsLayout);
     }
 
     private Component crearCard(String titulo, String descripcion,

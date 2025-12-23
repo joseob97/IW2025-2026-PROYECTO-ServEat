@@ -107,7 +107,8 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
 
         Button volver = new Button("⬅️ Volver");
         volver.setWidth("260px");
-        volver.addClickListener(e -> UI.getCurrent().navigate(ComandasView.class));
+
+        volver.addClickListener(e -> UI.getCurrent().navigate(GestionPedidoCocineroView.class));
 
         HorizontalLayout filaEstado = new HorizontalLayout(estadoSelect, confirmar);
         filaEstado.setWidthFull();
@@ -128,13 +129,15 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
             pedidoActual = pedidoService.obtenerPedidoPorId(idPedido);
             if (pedidoActual == null) {
                 Notification.show("❌ Comanda no encontrada", 4000, Notification.Position.MIDDLE);
-                UI.getCurrent().navigate(ComandasView.class);
+
+                UI.getCurrent().navigate(GestionPedidoCocineroView.class);
                 return;
             }
             refrescar();
         } catch (IllegalArgumentException e) {
             Notification.show("❌ ID de comanda inválido", 4000, Notification.Position.MIDDLE);
-            UI.getCurrent().navigate(ComandasView.class);
+
+            UI.getCurrent().navigate(GestionPedidoCocineroView.class);
         } catch (Exception e) {
             Notification.show("❌ Error: " + e.getMessage(), 4000, Notification.Position.MIDDLE);
         }
@@ -213,4 +216,3 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
         return card;
     }
 }
-

@@ -4,6 +4,7 @@ import com.serveat.domain.pedido.Pedido;
 import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -26,7 +27,7 @@ import java.util.List;
 @Secured("ROLE_COCINERO")
 public class GestionPedidoCocineroView extends VerticalLayout {
 
-    // SERVICIOS (transient para Sonar/Vaadin)
+    // SERVICIOS
     private final transient PedidoService pedidoService;
 
     // COMPONENTES UI
@@ -35,7 +36,6 @@ public class GestionPedidoCocineroView extends VerticalLayout {
     private final IntegerField filtroMesa = new IntegerField("Filtrar por mesa");
 
     public GestionPedidoCocineroView(PedidoService pedidoService) {
-
         this.pedidoService = pedidoService;
 
         setSpacing(false);
@@ -51,7 +51,6 @@ public class GestionPedidoCocineroView extends VerticalLayout {
         add(titulo);
 
         // FILTROS
-
         H3 tituloFiltros = new H3("Filtros");
         tituloFiltros.getStyle().set("margin", "6px 0 0 0");
         add(tituloFiltros);
@@ -78,7 +77,6 @@ public class GestionPedidoCocineroView extends VerticalLayout {
         add(cardFiltros);
 
         // GRID
-
         H3 tituloGrid = new H3("Comandas");
         tituloGrid.getStyle().set("margin", "6px 0 0 0");
         add(tituloGrid);
@@ -92,9 +90,11 @@ public class GestionPedidoCocineroView extends VerticalLayout {
 
         cardGrid.add(grid);
         add(cardGrid);
+    }
 
-        // CARGAR DATOS
-
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
         recargarPedidos();
     }
 
@@ -132,7 +132,7 @@ public class GestionPedidoCocineroView extends VerticalLayout {
                 .setAutoWidth(true);
 
         grid.addComponentColumn(pedido -> {
-            Button verDetalle = new Button("✏️ Ver Detalle");
+            Button verDetalle = new Button("✏️ Actualizar");
             verDetalle.addClickListener(e ->
                 UI.getCurrent().navigate(DetalleComandaView.class, pedido.getId().toString())
             );
@@ -143,28 +143,26 @@ public class GestionPedidoCocineroView extends VerticalLayout {
     private void recargarPedidos() {
         try {
             List<Pedido> pedidos;
-
             EstadoCocina estado = filtroEstado.getValue();
             Integer mesa = filtroMesa.getValue();
 
-            if (estado != null) {
-                pedidos = pedidoService.obtenerPedidosPorEstado(estado);
-            } else {
-                // Obtener todos menos LISTO y CANCELADO
-                pedidos = pedidoService.obtenerPedidosPorEstado(EstadoCocina.PENDIENTE_ACEPTACION);
-                pedidos.addAll(pedidoService.obtenerPedidosPorEstado(EstadoCocina.EN_PREPARACION));
-            }
+            if (estado != null && mesa != null && mesa > 0) {
+                // Filtrar por Estado y Mesa
+                pedidos = pedidoService.obtenerPedidosPorEstadoYMesa(estado, mesa);
+            } else if (estado != null) {
 
-            if (mesa != null && mesa > 0) {
-                final Integer mesaFinal = mesa;
-                pedidos = pedidos.stream()
-                        .filter(p -> p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa().equals(mesaFinal))
-                        .toList();
+                pedidos = pedidoService.obtenerPedidosPorEstado(estado);
+            } else if (mesa != null && mesa > 0) {
+                // Filtrar solo por Mesa
+                pedidos = pedidoService.obtenerPedidosPorMesa(mesa);
+            } else {
+                // Sin filtros: Todos ordenados por fecha
+                pedidos = pedidoService.listarTodosOrdenadosPorFecha();
             }
 
             grid.setItems(pedidos);
 
-            if (pedidos.isEmpty()) {
+            if (pedidos.isEmpty() && (estado != null || mesa != null)) {
                 Notification.show("ℹ️ No hay comandas con los filtros seleccionados", 3000, Notification.Position.MIDDLE);
             }
         } catch (Exception e) {

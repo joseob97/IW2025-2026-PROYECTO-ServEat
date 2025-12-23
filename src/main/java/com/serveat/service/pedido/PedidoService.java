@@ -19,8 +19,20 @@ public interface PedidoService {
     // Devuelve todos los pedidos.
     List<Pedido> listarPedidos();
 
+    //Devuelve todos los pedidos ordenados por fecha de creación descendente.
+    List<Pedido> listarTodosOrdenadosPorFecha();
+
     // Devuelve pedidos filtrados por estado.
     List<Pedido> buscarPorEstado(EstadoPedido estado);
+
+    // Devuelve pedidos filtrados por estado de cocina (para cocinero).
+    List<Pedido> obtenerPedidosPorEstado(com.serveat.domain.pedido.EstadoCocina estado);
+
+    // NUEVO: Devuelve pedidos filtrados por mesa (ordenados por fecha).
+    List<Pedido> obtenerPedidosPorMesa(Integer numeroMesa);
+
+    // NUEVO: Devuelve pedidos filtrados por estado y mesa (ordenados por fecha).
+    List<Pedido> obtenerPedidosPorEstadoYMesa(com.serveat.domain.pedido.EstadoCocina estado, Integer numeroMesa);
 
     // Añade un producto a un pedido persistido.
     Pedido agregarProducto(String codigoPedido, String codigoProducto, int cantidad);
@@ -84,4 +96,10 @@ public interface PedidoService {
 
     // Marca el pago como fallido (sin confirmar pedido).
     Pedido marcarPagoOnlineFallido(Long pagoId, String username, String motivo);
+
+    // Obtiene un pedido por su ID (UUID).
+    Pedido obtenerPedidoPorId(java.util.UUID id);
+
+    // Cambia el estado de cocina de un pedido.
+    Pedido cambiarEstadoCocina(java.util.UUID id, com.serveat.domain.pedido.EstadoCocina nuevoEstado);
 }

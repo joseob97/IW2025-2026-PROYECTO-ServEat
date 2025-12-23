@@ -89,10 +89,43 @@ public class PedidoServiceImpl implements PedidoService {
         return pedidoRepo.findAll();
     }
 
+    //Devuelve todos los pedidos ordenados por fecha de creación descendente.
+    @Override
+    public List<Pedido> listarTodosOrdenadosPorFecha() {
+        return pedidoRepo.findAllByOrderByFechaCreacionDesc();
+    }
+
     // Devuelve pedidos filtrados por estado.
     @Override
     public List<Pedido> buscarPorEstado(EstadoPedido estado) {
         return pedidoRepo.findByEstado(estado);
+    }
+
+    // Devuelve pedidos filtrados por estado de cocina (para cocinero).
+    @Override
+    public List<Pedido> obtenerPedidosPorEstado(EstadoCocina estado) {
+        return pedidoRepo.findByEstadoCocina(estado);
+    }
+
+    // NUEVO: Devuelve pedidos filtrados por mesa (ordenados por fecha).
+    @Override
+    public List<Pedido> obtenerPedidosPorMesa(Integer numeroMesa) {
+        if (numeroMesa == null || numeroMesa <= 0) {
+            throw new IllegalArgumentException("Número de mesa inválido");
+        }
+        return pedidoRepo.findByReservaMesa_NumeroMesaOrderByFechaCreacionDesc(numeroMesa);
+    }
+
+    // NUEVO: Devuelve pedidos filtrados por estado y mesa (ordenados por fecha).
+    @Override
+    public List<Pedido> obtenerPedidosPorEstadoYMesa(EstadoCocina estado, Integer numeroMesa) {
+        if (estado == null) {
+            throw new IllegalArgumentException("El estado no puede ser nulo");
+        }
+        if (numeroMesa == null || numeroMesa <= 0) {
+            throw new IllegalArgumentException("Número de mesa inválido");
+        }
+        return pedidoRepo.findByEstadoCocinaAndReservaMesa_NumeroMesaOrderByFechaCreacionDesc(estado, numeroMesa);
     }
 
     // Añade un producto a un pedido persistido.
@@ -500,5 +533,28 @@ public class PedidoServiceImpl implements PedidoService {
 
         Pedido pedido = pago.getPedido();
         return cargarDetalleCliente(pedido.getCodigo(), username);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Pedido obtenerPedidoPorId(UUID id) {
+
+        return pedidoRepo.findWithDetalleById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado con ID: " + id));
+    }
+
+    @Override
+    @Transactional
+    public Pedido cambiarEstadoCocina(UUID id, EstadoCocina nuevoEstado) {
+        Pedido pedido = obtenerPedidoPorId(id);
+
+        if (pedido.getEstadoCocina() == nuevoEstado) {
+            return pedido; // No hacer cambios si es el mismo estado
+        }
+
+        pedido.setEstadoCocina(nuevoEstado);
+        pedido.marcarModificado("COCINERO");
+
+        return pedidoRepo.save(pedido);
     }
 }
