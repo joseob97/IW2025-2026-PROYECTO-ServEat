@@ -54,7 +54,7 @@ public class PanelAdminView extends VerticalLayout {
         }
 
         // GESTIÓN DE USUARIOS
-        add(new RouterLink("Gestionar usuarios", GestionUsuariosView.class));
+        add(new RouterLink("Gestionar usuarios", GestionClientesView.class));
     }
 
     private Button botonBloqueado(String texto) {
