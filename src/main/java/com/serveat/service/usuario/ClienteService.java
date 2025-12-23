@@ -13,6 +13,8 @@ public interface ClienteService {
 
     Cliente guardar(Cliente cliente);
 
+    void activar(Cliente cliente);
+
     void desactivar(Cliente cliente);
 
     void eliminar(Cliente cliente);

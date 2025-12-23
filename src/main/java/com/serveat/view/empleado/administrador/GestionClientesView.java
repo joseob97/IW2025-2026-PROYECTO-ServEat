@@ -81,8 +81,19 @@ public class GestionClientesView extends VerticalLayout {
     private HorizontalLayout crearAcciones(Cliente cliente) {
 
         Button editar = new Button("Editar");
-        Button desactivar = new Button("Desactivar");
+        Button cambiarEstado = new Button();
         Button eliminar = new Button("Eliminar");
+
+        // TEXTO Y ESTILO SEGÚN ESTADO
+        if (cliente.isActivo()) {
+            cambiarEstado.setText("Desactivar");
+            cambiarEstado.getStyle().set("color", "white");
+            cambiarEstado.getStyle().set("background", "#d9534f"); // rojo
+        } else {
+            cambiarEstado.setText("Activar");
+            cambiarEstado.getStyle().set("color", "white");
+            cambiarEstado.getStyle().set("background", "#5cb85c"); // verde
+        }
 
         editar.addClickListener(e ->
                 UI.getCurrent().navigate(
@@ -90,12 +101,18 @@ public class GestionClientesView extends VerticalLayout {
                 )
         );
 
-        desactivar.addClickListener(e ->
+        cambiarEstado.addClickListener(e ->
                 mostrarConfirmacion(
-                        "Desactivar cliente",
-                        "¿Seguro que quieres desactivar este cliente?",
+                        cliente.isActivo() ? "Desactivar cliente" : "Activar cliente",
+                        cliente.isActivo()
+                                ? "¿Seguro que quieres desactivar este cliente?"
+                                : "¿Seguro que quieres activar este cliente?",
                         () -> {
-                            clienteService.desactivar(cliente);
+                            if (cliente.isActivo()) {
+                                clienteService.desactivar(cliente);
+                            } else {
+                                clienteService.activar(cliente);
+                            }
                             cargarClientes();
                         }
                 )
@@ -112,8 +129,9 @@ public class GestionClientesView extends VerticalLayout {
                 )
         );
 
-        return new HorizontalLayout(editar, desactivar, eliminar);
+        return new HorizontalLayout(editar, cambiarEstado, eliminar);
     }
+
 
     /* =========================
        CARGA DE DATOS

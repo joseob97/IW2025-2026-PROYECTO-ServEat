@@ -3,6 +3,8 @@ package com.serveat.service.usuario.impl;
 import com.serveat.domain.usuario.Cliente;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.service.usuario.ClienteService;
+import com.serveat.service.usuario.exceptions.DuplicadoException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,9 +15,12 @@ import java.util.List;
 public class ClienteServiceImpl implements ClienteService {
 
     private final ClienteRepository clienteRepo;
+    private final PasswordEncoder passwordEncoder;
 
-    public ClienteServiceImpl(ClienteRepository clienteRepo) {
+    public ClienteServiceImpl(ClienteRepository clienteRepo,
+                              PasswordEncoder passwordEncoder) {
         this.clienteRepo = clienteRepo;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // =========================
@@ -44,7 +49,46 @@ public class ClienteServiceImpl implements ClienteService {
     @Override
     @Transactional
     public Cliente guardar(Cliente cliente) {
+
+        // =========================
+        // VALIDAR EMAIL DUPLICADO
+        // =========================
+        if (clienteRepo.existsByEmail(cliente.getEmail())) {
+            Cliente existente = clienteRepo.findByEmail(cliente.getEmail()).orElse(null);
+            if (existente != null && !existente.getId().equals(cliente.getId())) {
+                throw new DuplicadoException("El email ya está registrado");
+            }
+        }
+
+        // =========================
+        // VALIDAR USERNAME DUPLICADO
+        // =========================
+        if (clienteRepo.existsByUsername(cliente.getUsername())) {
+            Cliente existente = clienteRepo.findByUsername(cliente.getUsername()).orElse(null);
+            if (existente != null && !existente.getId().equals(cliente.getId())) {
+                throw new DuplicadoException("El nombre de usuario ya está en uso");
+            }
+        }
+
+        // =========================
+        // ENCRIPTAR PASSWORD
+        // =========================
+        if (cliente.getPassword() != null &&
+                !cliente.getPassword().startsWith("$2a$")) {
+
+            cliente.setPassword(
+                    passwordEncoder.encode(cliente.getPassword())
+            );
+        }
+
         return clienteRepo.save(cliente);
+    }
+
+    @Override
+    @Transactional
+    public void activar(Cliente cliente) {
+        cliente.setActivo(true);
+        clienteRepo.save(cliente);
     }
 
     @Override

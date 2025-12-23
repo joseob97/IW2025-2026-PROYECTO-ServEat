@@ -2,6 +2,7 @@ package com.serveat.view.empleado.administrador;
 
 import com.serveat.domain.usuario.Cliente;
 import com.serveat.service.usuario.ClienteService;
+import com.serveat.service.usuario.exceptions.DuplicadoException;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -12,6 +13,7 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
+import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.*;
@@ -23,18 +25,18 @@ import jakarta.annotation.security.RolesAllowed;
 public class EditarClienteView extends VerticalLayout implements BeforeEnterObserver {
 
     private final ClienteService clienteService;
-
     private Cliente cliente;
 
     private final Binder<Cliente> binder = new Binder<>(Cliente.class);
 
     // Campos editables
-    private TextField nombre = new TextField("Nombre");
-    private TextField username = new TextField("Usuario");
-    private EmailField email = new EmailField("Email");
-    private TextField telefono = new TextField("Teléfono");
-    private TextField direccion = new TextField("Dirección");
-    private Checkbox activo = new Checkbox("Cliente activo");
+    private final TextField nombre = new TextField("Nombre");
+    private final TextField username = new TextField("Usuario");
+    private final EmailField email = new EmailField("Email");
+    private final PasswordField password = new PasswordField("Nueva contraseña");
+    private final TextField telefono = new TextField("Teléfono");
+    private final TextField direccion = new TextField("Dirección");
+    private final Checkbox activo = new Checkbox("Cliente activo");
 
     public EditarClienteView(ClienteService clienteService) {
         this.clienteService = clienteService;
@@ -45,39 +47,48 @@ public class EditarClienteView extends VerticalLayout implements BeforeEnterObse
 
         H2 titulo = new H2("Editar cliente");
 
-        FormLayout formulario = new FormLayout();
+        configurarCampos();
+        configurarBinder();
 
-        email.setClearButtonVisible(true);
-        telefono.setClearButtonVisible(true);
-
-        formulario.add(
+        FormLayout formulario = new FormLayout(
                 nombre,
                 username,
                 email,
+                password,
                 telefono,
                 direccion,
                 activo
         );
 
-        Button guardar = new Button("Guardar");
-        Button cancelar = new Button("Cancelar");
-
-        guardar.addClickListener(e -> guardarCambios());
-        cancelar.addClickListener(e ->
-                getUI().ifPresent(ui ->
-                        ui.navigate("empleado/admin/gestion-clientes")
-                )
+        Button guardar = new Button("Guardar", e -> guardar());
+        Button cancelar = new Button("Cancelar",
+                e -> getUI().ifPresent(ui ->
+                        ui.navigate("empleado/admin/gestion-clientes"))
         );
 
         HorizontalLayout acciones = new HorizontalLayout(guardar, cancelar);
 
         add(titulo, formulario, acciones);
-
-        configurarBinder();
     }
 
     /* =========================
-       BINDER
+       CONFIGURACIÓN CAMPOS
+       ========================= */
+    private void configurarCampos() {
+
+        email.setClearButtonVisible(true);
+        email.setErrorMessage("Introduce un email válido");
+
+        telefono.setAllowedCharPattern("[0-9]");
+        telefono.setMaxLength(15);
+        telefono.setHelperText("Solo números (9–15 dígitos)");
+
+        password.setRevealButtonVisible(false);
+        password.setPlaceholder("Déjala en blanco para no cambiarla");
+    }
+
+    /* =========================
+       BINDER / VALIDACIONES
        ========================= */
     private void configurarBinder() {
 
@@ -91,12 +102,37 @@ public class EditarClienteView extends VerticalLayout implements BeforeEnterObse
 
         binder.forField(email)
                 .asRequired("El email es obligatorio")
+                .withValidator(
+                        e -> e != null && e.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"),
+                        "Formato de email no válido"
+                )
                 .bind(Cliente::getEmail, Cliente::setEmail);
 
+        // 🔐 PASSWORD OPCIONAL
+        binder.forField(password)
+                .withValidator(
+                        p -> p == null || p.isBlank() || p.length() >= 6,
+                        "La contraseña debe tener al menos 6 caracteres"
+                )
+                .bind(
+                        cliente -> "", // nunca mostramos la actual
+                        (cliente, nuevaPassword) -> {
+                            if (nuevaPassword != null && !nuevaPassword.isBlank()) {
+                                cliente.setPassword(nuevaPassword);
+                            }
+                        }
+                );
+
         binder.forField(telefono)
+                .asRequired("El teléfono es obligatorio")
+                .withValidator(
+                        t -> t.matches("^[0-9]{9,15}$"),
+                        "El teléfono debe tener entre 9 y 15 dígitos"
+                )
                 .bind(Cliente::getTelefono, Cliente::setTelefono);
 
         binder.forField(direccion)
+                .asRequired("La dirección es obligatoria")
                 .bind(Cliente::getDireccion, Cliente::setDireccion);
 
         binder.forField(activo)
@@ -117,16 +153,20 @@ public class EditarClienteView extends VerticalLayout implements BeforeEnterObse
                             cliente = clienteService.obtenerPorId(id);
                             binder.setBean(cliente);
                         },
-                        () -> redirigirListado()
+                        this::volverAlListado
                 );
     }
 
     /* =========================
        GUARDAR
        ========================= */
-    private void guardarCambios() {
+    private void guardar() {
 
-        if (binder.validate().isOk()) {
+        if (!binder.validate().isOk()) {
+            return;
+        }
+
+        try {
             clienteService.guardar(cliente);
 
             Notification.show(
@@ -135,11 +175,19 @@ public class EditarClienteView extends VerticalLayout implements BeforeEnterObse
                     Notification.Position.MIDDLE
             ).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
-            redirigirListado();
+            volverAlListado();
+
+        } catch (DuplicadoException e) {
+
+            Notification.show(
+                    e.getMessage(),
+                    4000,
+                    Notification.Position.MIDDLE
+            ).addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
 
-    private void redirigirListado() {
+    private void volverAlListado() {
         getUI().ifPresent(ui ->
                 ui.navigate("empleado/admin/gestion-clientes")
         );

@@ -65,7 +65,29 @@ public class DataInitializer {
 
                 clienteRepository.save(cliente);
 
-                log.info("Cliente de prueba creado.");
+                Cliente cliente2 = new Cliente();
+                cliente2.setNombre("Cliente Test");
+                cliente2.setEmail("cliente2@demo.com");
+                cliente2.setDireccion("Dirección cliente test");
+                cliente2.setTelefono("600123456");
+                cliente2.setUsername("cliente2");
+                cliente2.setPassword(pass);
+                cliente2.setRol("CLIENTE");
+
+                clienteRepository.save(cliente2);
+
+                Cliente cliente3 = new Cliente();
+                cliente3.setNombre("Cliente Prueba");
+                cliente3.setEmail("prueba@prueba.com");
+                cliente3.setDireccion("Dirección cliente prueba");
+                cliente3.setTelefono("123654987");
+                cliente3.setUsername("prueba");
+                cliente3.setPassword(pass);
+                cliente3.setRol("CLIENTE");
+
+                clienteRepository.save(cliente3);
+
+                log.info("Clientes de prueba creados.");
             }
 
 
