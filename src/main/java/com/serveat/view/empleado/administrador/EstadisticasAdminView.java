@@ -5,6 +5,7 @@ import com.serveat.service.estadisticas.EstadisticasService;
 import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
@@ -73,7 +74,16 @@ public class EstadisticasAdminView extends VerticalLayout {
                 )
         );
 
-        add(bloqueResumen);
+        Button verGraficas = new Button("📊 Ver gráficas (tablas)");
+        verGraficas.setWidth("220px");
+        verGraficas.addClickListener(e ->
+                getUI().ifPresent(ui -> ui.navigate(EstadisticasGraficasView.class))
+        );
+
+        VerticalLayout acciones = crearCard();
+        acciones.add(new H3("Detalle"), verGraficas);
+
+        add(bloqueResumen, acciones);
 
         cargar();
     }
