@@ -27,6 +27,9 @@ public class Cliente {
     @Column(nullable = true)
     private String direccion;
 
+    @Column(nullable = false)
+    private boolean activo = true;
+
     private String rol = "CLIENTE";
 
     public Cliente() {}
@@ -77,6 +80,13 @@ public class Cliente {
     }
     public void setDireccion(String direccion) {
         this.direccion = direccion;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+    public void setActivo(boolean activo) {
+        this.activo = activo;
     }
 
     public String getRol() {
