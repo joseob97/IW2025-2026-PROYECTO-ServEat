@@ -4,11 +4,15 @@ import com.serveat.domain.pedido.EstadoReparto;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.repartidor.RepartidorService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -63,7 +67,11 @@ public class PedidosDisponiblesView extends VerticalLayout {
         card.add(info, barra, grid);
 
         add(titulo, card);
+    }
 
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
         cargar();
     }
 
@@ -93,29 +101,54 @@ public class PedidosDisponiblesView extends VerticalLayout {
 
         grid.addComponentColumn(p -> {
             Button asignarme = new Button("📌 Asignarme");
+            asignarme.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             asignarme.setEnabled(p.getEstadoReparto() == EstadoReparto.PENDIENTE_ASIGNACION);
 
-            asignarme.addClickListener(e -> {
-                try {
-                    String username = SecurityContextHolder.getContext().getAuthentication().getName();
-                    repartidorService.asignarmePedido(p.getCodigo(), username);
-                    Notification.show("Pedido asignado ✅", 2500, Notification.Position.BOTTOM_START);
-                    cargar();
-                } catch (Exception ex) {
-                    Notification.show(ex.getMessage(), 4500, Notification.Position.MIDDLE);
-                }
-            });
+            asignarme.addClickListener(e -> confirmarAsignacion(p));
 
             return asignarme;
         }).setHeader("Acción").setAutoWidth(true);
+    }
+
+    private void confirmarAsignacion(Pedido p) {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Confirmar asignación");
+        dialog.setText("¿Confirma la asignación del pedido " + p.getCodigo() + "?");
+        
+        dialog.setCancelable(true);
+        dialog.setCancelText("Cancelar");
+        
+        dialog.setConfirmText("Asignar");
+        dialog.setConfirmButtonTheme("primary");
+
+        dialog.addConfirmListener(event -> procesarAsignacion(p));
+        
+        dialog.open();
+    }
+
+    private void procesarAsignacion(Pedido p) {
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            repartidorService.asignarmePedido(p.getCodigo(), username);
+            Notification.show("Pedido asignado correctamente ✅", 2500, Notification.Position.BOTTOM_START)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            cargar();
+        } catch (Exception ex) {
+            Notification.show(ex.getMessage(), 4500, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
     }
 
     private void cargar() {
         try {
             List<Pedido> pedidos = repartidorService.listarPedidosPendientes();
             grid.setItems(pedidos);
+            if (pedidos.isEmpty()) {
+                Notification.show("No hay pedidos pendientes de asignación", 3000, Notification.Position.BOTTOM_START);
+            }
         } catch (Exception ex) {
-            Notification.show(ex.getMessage(), 4500, Notification.Position.MIDDLE);
+            Notification.show("Error al cargar pedidos: " + ex.getMessage(), 4500, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
 

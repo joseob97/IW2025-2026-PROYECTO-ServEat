@@ -1,5 +1,6 @@
 package com.serveat.service.repartidor.impl;
 
+import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.EstadoReparto;
 import com.serveat.domain.pedido.Pedido;
@@ -29,9 +30,11 @@ public class RepartidorServiceImpl implements RepartidorService {
     // Pedidos a domicilio listos para asignación
     @Override
     public List<Pedido> listarPedidosPendientes() {
-        return pedidoRepo.findByTipoPedidoAndEstadoReparto(
+        // CORRECCIÓN: Ahora filtramos también por EstadoCocina.LISTO
+        return pedidoRepo.findByTipoPedidoAndEstadoRepartoAndEstadoCocina(
                 TipoPedidoCliente.DOMICILIO,
-                EstadoReparto.PENDIENTE_ASIGNACION
+                EstadoReparto.PENDIENTE_ASIGNACION,
+                EstadoCocina.LISTO
         );
     }
 
@@ -68,6 +71,11 @@ public class RepartidorServiceImpl implements RepartidorService {
 
         if (pedido.getEstadoReparto() != EstadoReparto.PENDIENTE_ASIGNACION) {
             throw new IllegalArgumentException("Pedido no disponible para asignación");
+        }
+
+        // Validación adicional: debe estar listo en cocina
+        if (pedido.getEstadoCocina() != EstadoCocina.LISTO) {
+            throw new IllegalArgumentException("El pedido aún no está listo en cocina");
         }
 
         Empleado repartidor = empleadoRepo.findByUsername(repartidorUsername)
