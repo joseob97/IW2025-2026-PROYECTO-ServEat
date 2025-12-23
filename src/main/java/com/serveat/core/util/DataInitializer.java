@@ -2,12 +2,18 @@ package com.serveat.core.util;
 
 import com.serveat.domain.menu.Categoria;
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.pago.EstadoPago;
+import com.serveat.domain.pago.MetodoPago;
+import com.serveat.domain.pago.Pago;
+import com.serveat.domain.pedido.*;
 import com.serveat.domain.seguridad.Feature;
 import com.serveat.domain.seguridad.FeatureActiva;
 import com.serveat.domain.usuario.Cliente;
 import com.serveat.domain.usuario.Empleado;
 import com.serveat.repository.menu.CategoriaRepository;
 import com.serveat.repository.menu.ProductoRepository;
+import com.serveat.repository.pago.PagoRepository;
+import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.seguridad.FeatureActivaRepository;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.repository.usuario.EmpleadoRepository;
@@ -20,7 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Profile("dev")
 @Configuration
@@ -33,7 +41,9 @@ public class DataInitializer {
                                    ClienteRepository clienteRepository,
                                    CategoriaRepository categoriaRepository,
                                    ProductoRepository productoRepository,
-                                   FeatureActivaRepository featureActivaRepository) {
+                                   FeatureActivaRepository featureActivaRepository,
+                                   PedidoRepository pedidoRepository,
+                                   PagoRepository pagoRepository) {
         return args -> {
 
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
@@ -67,7 +77,6 @@ public class DataInitializer {
 
                 log.info("Cliente de prueba creado.");
             }
-
 
             // CATEGORIAS
             if (categoriaRepository.count() == 0) {
@@ -315,6 +324,138 @@ public class DataInitializer {
                 log.info("25 productos iniciales creados.");
             }
 
+            // PEDIDOS + PAGOS
+            if (pedidoRepository.count() == 0) {
+                log.info("Insertando pedidos de demo (recoger + domicilio) ...");
+
+                Cliente cliente = clienteRepository.findByUsername("cliente1")
+                        .orElseThrow(() -> new IllegalStateException("cliente1 no existe"));
+
+                Empleado repartidor = empleadoRepository.findByUsername("repartidor1")
+                        .orElseThrow(() -> new IllegalStateException("repartidor1 no existe"));
+
+                // Coge algunos productos para líneas
+                Producto burg1 = productoRepository.findByCodigo("BURG-001")
+                        .orElseThrow(() -> new IllegalStateException("BURG-001 no existe"));
+                Producto pizz1 = productoRepository.findByCodigo("PIZZ-001")
+                        .orElseThrow(() -> new IllegalStateException("PIZZ-001 no existe"));
+                Producto beb1 = productoRepository.findByCodigo("BEB-001")
+                        .orElseThrow(() -> new IllegalStateException("BEB-001 no existe"));
+
+                // --- 1) RECOGER: EN_CURSO (pendiente cocina)
+                Pedido recoger1 = nuevoPedido(cliente, TipoPedidoCliente.RECOGER, null);
+                recoger1.setEstado(EstadoPedido.EN_CURSO);
+                recoger1.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
+                recoger1.setEstadoReparto(EstadoReparto.NO_APLICA);
+                addLinea(recoger1, burg1, 1);
+                addLinea(recoger1, beb1, 1);
+
+                // --- 2) RECOGER: EN_COCINA + EN_PREPARACION
+                Pedido recoger2 = nuevoPedido(cliente, TipoPedidoCliente.RECOGER, null);
+                recoger2.setEstado(EstadoPedido.EN_COCINA);
+                recoger2.setEstadoCocina(EstadoCocina.EN_PREPARACION);
+                recoger2.setEstadoReparto(EstadoReparto.NO_APLICA);
+                recoger2.marcarModificado("cocinero1");
+                addLinea(recoger2, pizz1, 1);
+
+                // --- 3) RECOGER: LISTO
+                Pedido recoger3 = nuevoPedido(cliente, TipoPedidoCliente.RECOGER, null);
+                recoger3.setEstado(EstadoPedido.EN_COCINA);
+                recoger3.setEstadoCocina(EstadoCocina.LISTO);
+                recoger3.setEstadoReparto(EstadoReparto.NO_APLICA);
+                recoger3.marcarModificado("cocinero1");
+                addLinea(recoger3, burg1, 2);
+
+                // --- 4) DOMICILIO: EN_COCINA + PENDIENTE_ACEPTACION
+                Pedido dom1 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "Calle Falsa 123");
+                dom1.setEstado(EstadoPedido.EN_COCINA);
+                dom1.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
+                dom1.setEstadoReparto(EstadoReparto.PENDIENTE_ASIGNACION);
+                addLinea(dom1, pizz1, 1);
+                addLinea(dom1, beb1, 2);
+
+                // --- 5) DOMICILIO: LISTO + reparto pendiente (ideal para repartidor)
+                Pedido dom2 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "Av. Principal 45");
+                dom2.setEstado(EstadoPedido.EN_COCINA);
+                dom2.setEstadoCocina(EstadoCocina.LISTO);
+                dom2.setEstadoReparto(EstadoReparto.PENDIENTE_ASIGNACION);
+                dom2.marcarModificado("cocinero1");
+                addLinea(dom2, burg1, 1);
+                addLinea(dom2, beb1, 1);
+
+                // --- 6) DOMICILIO: ASIGNADO al repartidor
+                Pedido dom3 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "C/ Mayor 9");
+                dom3.setEstado(EstadoPedido.EN_COCINA);
+                dom3.setEstadoCocina(EstadoCocina.LISTO);
+                dom3.setEstadoReparto(EstadoReparto.ASIGNADO);
+                dom3.setRepartidor(repartidor);
+                dom3.setFechaAsignacionReparto(LocalDateTime.now().minusMinutes(15));
+                dom3.marcarModificado("repartidor1");
+                addLinea(dom3, pizz1, 2);
+
+                // --- 7) DOMICILIO: EN_REPARTO
+                Pedido dom4 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "Plaza España 1");
+                dom4.setEstado(EstadoPedido.EN_COCINA);
+                dom4.setEstadoCocina(EstadoCocina.LISTO);
+                dom4.setEstadoReparto(EstadoReparto.EN_REPARTO);
+                dom4.setRepartidor(repartidor);
+                dom4.setFechaAsignacionReparto(LocalDateTime.now().minusMinutes(30));
+                dom4.setFechaSalidaReparto(LocalDateTime.now().minusMinutes(10));
+                dom4.marcarModificado("repartidor1");
+                addLinea(dom4, burg1, 1);
+                addLinea(dom4, beb1, 1);
+
+                // --- 8) DOMICILIO: ENTREGADO
+                Pedido dom5 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "C/ Sol 77");
+                dom5.setEstado(EstadoPedido.EN_COCINA);
+                dom5.setEstadoCocina(EstadoCocina.LISTO);
+                dom5.setEstadoReparto(EstadoReparto.ENTREGADO);
+                dom5.setRepartidor(repartidor);
+                dom5.setFechaAsignacionReparto(LocalDateTime.now().minusHours(1));
+                dom5.setFechaSalidaReparto(LocalDateTime.now().minusMinutes(40));
+                dom5.setFechaEntrega(LocalDateTime.now().minusMinutes(15));
+                dom5.marcarModificado("repartidor1");
+                addLinea(dom5, pizz1, 1);
+
+                // --- 9) DOMICILIO: INCIDENCIA
+                Pedido dom6 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "C/ Luna 5");
+                dom6.setEstado(EstadoPedido.EN_COCINA);
+                dom6.setEstadoCocina(EstadoCocina.LISTO);
+                dom6.setEstadoReparto(EstadoReparto.INCIDENCIA);
+                dom6.setRepartidor(repartidor);
+                dom6.setIncidenciaReparto("No hay nadie en casa");
+                dom6.setFechaAsignacionReparto(LocalDateTime.now().minusHours(2));
+                dom6.marcarModificado("repartidor1");
+                addLinea(dom6, burg1, 1);
+
+                // --- 10) CANCELADO
+                Pedido cancelado = nuevoPedido(cliente, TipoPedidoCliente.RECOGER, null);
+                cancelado.setEstado(EstadoPedido.ANULADO);
+                cancelado.setEstadoCocina(EstadoCocina.CANCELADO);
+                cancelado.setCanceladoPor("camarero1");
+                cancelado.setMotivoCancelacion("Cliente canceló");
+                cancelado.setFechaCancelacion(LocalDateTime.now().minusDays(1));
+                cancelado.setEstadoReparto(EstadoReparto.NO_APLICA);
+                addLinea(cancelado, beb1, 1);
+
+                pedidoRepository.saveAll(List.of(
+                        recoger1, recoger2, recoger3,
+                        dom1, dom2, dom3, dom4, dom5, dom6,
+                        cancelado
+                ));
+
+                // PAGOS (para estadísticas)
+                crearPago(pagoRepository, dom2, MetodoPago.TARJETA, EstadoPago.CONFIRMADO);
+                crearPago(pagoRepository, dom3, MetodoPago.PAYPAL, EstadoPago.CONFIRMADO);
+                crearPago(pagoRepository, dom4, MetodoPago.TARJETA, EstadoPago.CONFIRMADO);
+                crearPago(pagoRepository, dom5, MetodoPago.EFECTIVO, EstadoPago.CONFIRMADO);
+
+                crearPago(pagoRepository, dom1, MetodoPago.TARJETA, EstadoPago.PENDIENTE);
+                crearPago(pagoRepository, dom6, MetodoPago.PAYPAL, EstadoPago.FALLIDO);
+
+                log.info("Pedidos y pagos demo creados.");
+            }
+
         };
     }
 
@@ -368,5 +509,42 @@ public class DataInitializer {
 
             log.info("Empleados iniciales creados.");
         }
+    }
+
+    private static Pedido nuevoPedido(Cliente cliente, TipoPedidoCliente tipo, String direccionEntrega) {
+        Pedido p = new Pedido();
+        p.setCodigo("PED-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        p.setCliente(cliente);
+        p.setTipoPedido(tipo);
+        p.setDireccionEntrega(direccionEntrega);
+
+        // por defecto
+        p.setEstado(EstadoPedido.EN_CURSO);
+        p.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
+        p.setEstadoReparto(
+                tipo == TipoPedidoCliente.DOMICILIO
+                        ? EstadoReparto.PENDIENTE_ASIGNACION
+                        : EstadoReparto.NO_APLICA
+        );
+
+        return p;
+    }
+
+    private static void addLinea(Pedido pedido, Producto producto, int cantidad) {
+        pedido.getLineaPedidos().add(new LineaPedido(pedido, producto, cantidad));
+    }
+
+    private static void crearPago(PagoRepository pagoRepo, Pedido pedido, MetodoPago metodo, EstadoPago estado) {
+        BigDecimal total = pedido.calcularPrecioTotal();
+        Pago pago = new Pago(pedido, metodo, total);
+
+        if (estado == EstadoPago.CONFIRMADO) {
+            pago.confirmar("DEMO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        } else if (estado == EstadoPago.FALLIDO) {
+            pago.fallar("Pago fallido (demo)");
+        }
+        // si es PENDIENTE lo dejamos tal cual
+
+        pagoRepo.save(pago);
     }
 }
