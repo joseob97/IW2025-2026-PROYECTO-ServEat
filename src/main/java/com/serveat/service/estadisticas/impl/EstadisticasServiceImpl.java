@@ -117,4 +117,26 @@ public class EstadisticasServiceImpl implements EstadisticasService {
     public String mensajeSinResultados() {
         return "No hay resultados, selecciona otros filtros.";
     }
+
+    /* El autocompletado de productos, tambien es cacheable */
+    @Override
+    @Cacheable(value = "autocomplete_productos", key = "{#prefix,#year,#month,#tipoPedido,#metodoPago,#estadoPedido,#estadoCocina}")
+    public List<String> sugerirProductos(String prefix,
+                                         Integer year, Month month,
+                                         TipoPedidoCliente tipoPedido,
+                                         MetodoPago metodoPago,
+                                         EstadoPedido estadoPedido,
+                                         EstadoCocina estadoCocina,
+                                         int limit) {
+
+        String f = prefix == null ? "" : prefix.toLowerCase();
+
+        return cargarPedidosFiltrados(year, month, tipoPedido, estadoPedido, estadoCocina).stream()
+                .flatMap(p -> p.getLineaPedidos().stream())
+                .map(lp -> lp.getProducto().getNombre())
+                .filter(n -> n.toLowerCase().contains(f))
+                .distinct()
+                .limit(limit)
+                .toList();
+    }
 }
