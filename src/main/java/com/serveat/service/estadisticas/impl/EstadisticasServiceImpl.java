@@ -139,4 +139,35 @@ public class EstadisticasServiceImpl implements EstadisticasService {
                 .limit(limit)
                 .toList();
     }
+
+    /* Tops se implementan con Lazy y Cache */
+
+    @Override
+    @Cacheable("top_unidades_count")
+    public long topProductosPorUnidadesCount(Integer year, Month month,
+                                             TipoPedidoCliente tipoPedido,
+                                             MetodoPago metodoPago,
+                                             EstadoPedido estadoPedido,
+                                             EstadoCocina estadoCocina,
+                                             String productoExactoOrNull) {
+        return construirMapaUnidades(year, month, tipoPedido, metodoPago, estadoPedido, estadoCocina, productoExactoOrNull).size();
+    }
+
+    @Override
+    public List<Map<String, Object>> topProductosPorUnidadesPage(Integer year, Month month,
+                                                                 TipoPedidoCliente tipoPedido,
+                                                                 MetodoPago metodoPago,
+                                                                 EstadoPedido estadoPedido,
+                                                                 EstadoCocina estadoCocina,
+                                                                 String productoExactoOrNull,
+                                                                 int offset, int limit) {
+
+        return construirMapaUnidades(year, month, tipoPedido, metodoPago, estadoPedido, estadoCocina, productoExactoOrNull)
+                .entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .skip(offset)
+                .limit(limit)
+                .map(e -> Map.of("producto", e.getKey(), "unidades", e.getValue()))
+                .toList();
+    }
 }
