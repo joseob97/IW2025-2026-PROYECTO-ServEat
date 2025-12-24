@@ -170,4 +170,21 @@ public class EstadisticasServiceImpl implements EstadisticasService {
                 .map(e -> Map.of("producto", e.getKey(), "unidades", e.getValue()))
                 .toList();
     }
+
+    /*  Operaciones pesadas con Async
+    * Tareas en segundo plano de forma asincrona */
+
+    @Async
+    @CacheEvict(cacheNames = {
+            "kpi_total_pedidos",
+            "kpi_pedidos_confirmados",
+            "kpi_pedidos_cancelados",
+            "kpi_pagos_confirmados",
+            "kpi_total_facturado",
+            "top_unidades_count",
+            "autocomplete_productos"
+    }, allEntries = true)
+    public void recalcularEstadisticasAsync() {
+        // Se ejecuta en background, no bloquea UI
+    }
 }
