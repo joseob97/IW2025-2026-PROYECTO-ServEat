@@ -1,19 +1,32 @@
 package com.serveat.service.usuario;
 
+import com.serveat.domain.usuario.Cliente;
 import com.serveat.domain.usuario.Empleado;
-
 import java.util.List;
-import java.util.Optional;
 
 public interface EmpleadoService {
 
-    List<Empleado> findAll();
+    // =========================
+    // CONSULTAS
+    // =========================
+    Empleado obtenerPorId(Long id);
 
-    Optional<Empleado> findById(Long id);
+    Empleado obtenerPorUsername(String username);
 
-    Empleado save(Empleado empleado);
+    List<Empleado> obtenerTodos();
 
-    void delete(Empleado empleado);
+    List<Empleado> obtenerPorRol(String rol);
 
-    void updatePassword(Empleado empleado, String rawPassword);
+
+    // =========================
+    // GESTIÓN
+    // =========================
+    Empleado guardar(Empleado empleado);
+
+    void activar(Empleado empleado);
+
+    void desactivar(Empleado empleado);
+
+    void eliminar(Empleado empleado);
 }
+

@@ -1,11 +1,11 @@
 package com.serveat.view.empleado.administrador;
 
-import com.serveat.domain.usuario.Empleado;
-import com.serveat.service.usuario.EmpleadoService;
+import com.serveat.domain.usuario.Cliente;
+import com.serveat.service.usuario.ClienteService;
+import com.serveat.service.usuario.exceptions.DuplicadoException;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
@@ -19,58 +19,56 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.*;
 import jakarta.annotation.security.RolesAllowed;
 
-@Route(value = "empleado/admin/gestion-empleados/editar-empleado/:id", layout = MainLayout.class)
-@PageTitle("Editar empleado | ServEat")
+@PageTitle("Editar cliente | ServEat")
+@Route(value = "empleado/admin/gestion-clientes/editar/:id", layout = MainLayout.class)
 @RolesAllowed("ROLE_ADMIN")
-public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObserver {
+public class EditarClienteView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final EmpleadoService empleadoService;
-    private Empleado empleado;
+    private final ClienteService clienteService;
+    private Cliente cliente;
 
-    private final Binder<Empleado> binder = new Binder<>(Empleado.class);
+    private final Binder<Cliente> binder = new Binder<>(Cliente.class);
 
-    // Campos
-    private final TextField nombre = new TextField("Nombre completo");
+    // Campos editables
+    private final TextField nombre = new TextField("Nombre");
     private final TextField username = new TextField("Usuario");
     private final EmailField email = new EmailField("Email");
-    private final TextField direccion = new TextField("Dirección");
+    private final PasswordField password = new PasswordField("Nueva contraseña");
     private final TextField telefono = new TextField("Teléfono");
-    private final ComboBox<String> rol = new ComboBox<>("Rol");
-    private final Checkbox enabled = new Checkbox("Empleado activo");
-    private final PasswordField password = new PasswordField("Nueva contraseña (opcional)");
+    private final TextField direccion = new TextField("Dirección");
+    private final Checkbox activo = new Checkbox("Cliente activo");
 
-    public EditarEmpleadoView(EmpleadoService empleadoService) {
-        this.empleadoService = empleadoService;
+    public EditarClienteView(ClienteService clienteService) {
+        this.clienteService = clienteService;
 
         setWidth("600px");
         setPadding(true);
         setSpacing(true);
 
-        H2 titulo = new H2("Editar empleado");
+        H2 titulo = new H2("Editar cliente");
 
         configurarCampos();
         configurarBinder();
 
-        FormLayout form = new FormLayout(
+        FormLayout formulario = new FormLayout(
                 nombre,
                 username,
                 email,
-                direccion,
+                password,
                 telefono,
-                rol,
-                enabled,
-                password
+                direccion,
+                activo
         );
 
         Button guardar = new Button("Guardar", e -> guardar());
         Button cancelar = new Button("Cancelar",
                 e -> getUI().ifPresent(ui ->
-                        ui.navigate("empleado/admin/gestion-empleados"))
+                        ui.navigate("empleado/admin/gestion-clientes"))
         );
 
         HorizontalLayout acciones = new HorizontalLayout(guardar, cancelar);
 
-        add(titulo, form, acciones);
+        add(titulo, formulario, acciones);
     }
 
     /* =========================
@@ -85,10 +83,8 @@ public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObs
         telefono.setMaxLength(15);
         telefono.setHelperText("Solo números (9–15 dígitos)");
 
-        rol.setItems("ADMIN", "CAMARERO", "COCINERO", "REPARTIDOR");
-        rol.setRequired(true);
-
         password.setRevealButtonVisible(false);
+        password.setPlaceholder("Déjala en blanco para no cambiarla");
     }
 
     /* =========================
@@ -98,42 +94,53 @@ public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObs
 
         binder.forField(nombre)
                 .asRequired("El nombre es obligatorio")
-                .bind(Empleado::getNombre, Empleado::setNombre);
+                .bind(Cliente::getNombre, Cliente::setNombre);
 
         binder.forField(username)
                 .asRequired("El usuario es obligatorio")
-                .bind(Empleado::getUsername, Empleado::setUsername);
+                .bind(Cliente::getUsername, Cliente::setUsername);
 
         binder.forField(email)
                 .asRequired("El email es obligatorio")
                 .withValidator(
-                        e -> e.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"),
+                        e -> e != null && e.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"),
                         "Formato de email no válido"
                 )
-                .bind(Empleado::getEmail, Empleado::setEmail);
+                .bind(Cliente::getEmail, Cliente::setEmail);
 
-        binder.forField(direccion)
-                .asRequired("La dirección es obligatoria")
-                .bind(Empleado::getDireccion, Empleado::setDireccion);
+        // 🔐 PASSWORD OPCIONAL
+        binder.forField(password)
+                .withValidator(
+                        p -> p == null || p.isBlank() || p.length() >= 6,
+                        "La contraseña debe tener al menos 6 caracteres"
+                )
+                .bind(
+                        cliente -> "", // nunca mostramos la actual
+                        (cliente, nuevaPassword) -> {
+                            if (nuevaPassword != null && !nuevaPassword.isBlank()) {
+                                cliente.setPassword(nuevaPassword);
+                            }
+                        }
+                );
 
         binder.forField(telefono)
                 .asRequired("El teléfono es obligatorio")
                 .withValidator(
                         t -> t.matches("^[0-9]{9,15}$"),
-                        "Debe tener entre 9 y 15 dígitos"
+                        "El teléfono debe tener entre 9 y 15 dígitos"
                 )
-                .bind(Empleado::getTelefono, Empleado::setTelefono);
+                .bind(Cliente::getTelefono, Cliente::setTelefono);
 
-        binder.forField(rol)
-                .asRequired("El rol es obligatorio")
-                .bind(Empleado::getRol, Empleado::setRol);
+        binder.forField(direccion)
+                .asRequired("La dirección es obligatoria")
+                .bind(Cliente::getDireccion, Cliente::setDireccion);
 
-        binder.forField(enabled)
-                .bind(Empleado::isEnabled, Empleado::setEnabled);
+        binder.forField(activo)
+                .bind(Cliente::isActivo, Cliente::setActivo);
     }
 
     /* =========================
-       CARGA EMPLEADO
+       CARGA DEL CLIENTE
        ========================= */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
@@ -143,11 +150,10 @@ public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObs
                 .map(Long::valueOf)
                 .ifPresentOrElse(
                         id -> {
-                            empleado = empleadoService.obtenerPorId(id);
-                            binder.setBean(empleado);
+                            cliente = clienteService.obtenerPorId(id);
+                            binder.setBean(cliente);
                         },
-                        () -> getUI().ifPresent(ui ->
-                                ui.navigate("empleado/admin/gestion-empleados"))
+                        this::volverAlListado
                 );
     }
 
@@ -160,29 +166,30 @@ public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObs
             return;
         }
 
-        // Password solo si se ha escrito
-        if (!password.isEmpty()) {
-            empleado.setPassword(password.getValue());
-        }
-
         try {
-            empleadoService.guardar(empleado);
+            clienteService.guardar(cliente);
 
             Notification.show(
-                    "Empleado actualizado correctamente",
+                    "Cliente actualizado correctamente",
                     3000,
                     Notification.Position.MIDDLE
             ).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
-            getUI().ifPresent(ui ->
-                    ui.navigate("empleado/admin/gestion-empleados"));
+            volverAlListado();
 
-        } catch (RuntimeException ex) {
+        } catch (DuplicadoException e) {
+
             Notification.show(
-                    ex.getMessage(),
+                    e.getMessage(),
                     4000,
                     Notification.Position.MIDDLE
             ).addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
+    }
+
+    private void volverAlListado() {
+        getUI().ifPresent(ui ->
+                ui.navigate("empleado/admin/gestion-clientes")
+        );
     }
 }

@@ -162,4 +162,11 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa"
     })
     List<Pedido> findByEstadoCocina(EstadoCocina estadoCocina);
+
+    long countByEstadoCocina(EstadoCocina estadoCocina);
+
+    // Para las estadísticas
+    long countByEstado(EstadoPedido estado);
+
+    long count();
 }

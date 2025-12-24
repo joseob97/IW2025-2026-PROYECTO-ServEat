@@ -3,7 +3,8 @@ package com.serveat.view.layout;
 import com.serveat.view.cliente.inicio.InicioClienteView;
 import com.serveat.view.cliente.pedido.PanelPedidoClienteView;
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -43,8 +44,9 @@ public class MainLayout extends AppLayout {
         RouterLink linkInfo = new RouterLink("Información", InformacionSitioView.class);
         RouterLink linkLogin = new RouterLink("Login", LoginView.class);
 
-        Anchor logout = new Anchor("/logout", "Salir");
-        logout.getElement().setAttribute("router-ignore", true);
+        Button logout = new Button("Salir", event -> {
+            UI.getCurrent().getPage().setLocation("/logout");
+        });
 
         // DETECTAR SI HAY USUARIO LOGEADO
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

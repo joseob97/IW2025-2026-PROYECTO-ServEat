@@ -1,16 +1,21 @@
 package com.serveat.view.publico.inicio;
 
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 @PageTitle("Inicio | ServEat")
 @Route(value = "", layout = MainLayout.class)
-public class InicioView extends VerticalLayout {
+public class InicioView extends VerticalLayout implements BeforeEnterObserver {
 
     public InicioView() {
         setPadding(true);
@@ -18,11 +23,38 @@ public class InicioView extends VerticalLayout {
         setAlignItems(Alignment.CENTER);
 
         H2 titulo = new H2("Bienvenido a ServEat");
-        Paragraph subtitulo = new Paragraph("Pide a domicilio, recoge en local o gestiona tu pedido en tiempo real.");
+        Paragraph subtitulo = new Paragraph(
+                "Pide a domicilio, recoge en local o gestiona tu pedido en tiempo real."
+        );
 
-        Button verCarta = new Button("Ver carta", e -> getUI().ifPresent(ui -> ui.navigate("carta")));
+        Button verCarta = new Button("Ver carta",
+                e -> getUI().ifPresent(ui -> ui.navigate("carta"))
+        );
         verCarta.getStyle().set("margin-top", "12px");
 
         add(titulo, subtitulo, verCarta);
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+
+        boolean vieneDeLogout = event.getLocation()
+                .getQueryParameters()
+                .getParameters()
+                .containsKey("logout");
+
+        if (vieneDeLogout) {
+
+            Notification notification = Notification.show(
+                    "Has cerrado sesión correctamente",
+                    3000, // 3 segundos
+                    Notification.Position.MIDDLE
+            );
+
+            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+
+            //Limpiar la URL (quitar ?logout para que no reaparezca el mensaje)
+            UI.getCurrent().getPage().getHistory().replaceState(null, "");
+        }
     }
 }
