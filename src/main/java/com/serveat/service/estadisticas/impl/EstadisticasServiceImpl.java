@@ -187,4 +187,59 @@ public class EstadisticasServiceImpl implements EstadisticasService {
     public void recalcularEstadisticasAsync() {
         // Se ejecuta en background, no bloquea UI
     }
+
+    /* Se incluye el filtrado base */
+
+    private List<Pedido> cargarPedidosFiltrados(Integer year, Month month,
+                                                TipoPedidoCliente tipoPedido,
+                                                EstadoPedido estadoPedido,
+                                                EstadoCocina estadoCocina) {
+
+        List<Pedido> pedidos = pedidoRepository.findAllByOrderByFechaCreacionDesc();
+
+        LocalDate desde = null;
+        LocalDate hasta = null;
+
+        if (year != null && month != null) {
+            YearMonth ym = YearMonth.of(year, month);
+            desde = ym.atDay(1);
+            hasta = ym.atEndOfMonth();
+        } else if (year != null) {
+            desde = LocalDate.of(year, 1, 1);
+            hasta = LocalDate.of(year, 12, 31);
+        }
+
+        LocalDate d = desde;
+        LocalDate h = hasta;
+
+        return pedidos.stream()
+                .filter(p -> {
+                    if (d == null || h == null) return true;
+                    LocalDate f = p.getFechaCreacion().toLocalDate();
+                    return !f.isBefore(d) && !f.isAfter(h);
+                })
+                .filter(p -> tipoPedido == null || p.getTipoPedido() == tipoPedido)
+                .filter(p -> estadoPedido == null || p.getEstado() == estadoPedido)
+                .filter(p -> estadoCocina == null || p.getEstadoCocina() == estadoCocina)
+                .toList();
+    }
+
+    private Map<String, Long> construirMapaUnidades(Integer year, Month month,
+                                                    TipoPedidoCliente tipoPedido,
+                                                    MetodoPago metodoPago,
+                                                    EstadoPedido estadoPedido,
+                                                    EstadoCocina estadoCocina,
+                                                    String productoExacto) {
+
+        Map<String, Long> res = new HashMap<>();
+
+        for (Pedido p : cargarPedidosFiltrados(year, month, tipoPedido, estadoPedido, estadoCocina)) {
+            for (LineaPedido lp : p.getLineaPedidos()) {
+                String nombre = lp.getProducto().getNombre();
+                if (productoExacto != null && !productoExacto.equalsIgnoreCase(nombre)) continue;
+                res.merge(nombre, (long) lp.getCantidad(), Long::sum);
+            }
+        }
+        return res;
+    }
 }
