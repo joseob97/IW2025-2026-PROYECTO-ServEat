@@ -401,10 +401,18 @@ public class EstadisticasServiceImpl implements EstadisticasService {
         LocalDate desde = null;
         LocalDate hasta = null;
 
+    /* Filtro temporal:
+       - Año + mes => mes concreto
+       - Solo año  => año completo
+       - Solo mes  => se ignora (no se filtra por fecha)
+    */
         if (year != null && month != null) {
             YearMonth ym = YearMonth.of(year, month);
             desde = ym.atDay(1);
             hasta = ym.atEndOfMonth();
+        } else if (year != null) {
+            desde = LocalDate.of(year, 1, 1);
+            hasta = LocalDate.of(year, 12, 31);
         }
 
         LocalDate finalDesde = desde;
