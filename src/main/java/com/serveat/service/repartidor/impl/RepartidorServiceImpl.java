@@ -174,4 +174,21 @@ public class RepartidorServiceImpl implements RepartidorService {
 
         return pedido;
     }
+
+    @Override
+    public Pedido obtenerPedidoConDetalles(String codigoPedido, String usernameRepartidor) {
+
+        if (codigoPedido == null || codigoPedido.isBlank()) {
+            throw new IllegalArgumentException("Código de pedido inválido");
+        }
+        if (usernameRepartidor == null || usernameRepartidor.isBlank()) {
+            throw new IllegalArgumentException("Repartidor inválido");
+        }
+
+        return pedidoRepo.findPedidoParaRepartidor(codigoPedido, usernameRepartidor)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Pedido no asignado a este repartidor o no existe"
+                ));
+    }
+
 }

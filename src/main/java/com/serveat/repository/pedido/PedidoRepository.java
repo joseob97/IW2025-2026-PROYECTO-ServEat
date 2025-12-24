@@ -154,6 +154,24 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     })
     List<Pedido> findByEstadoCocina(EstadoCocina estadoCocina);
 
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "repartidor"
+    })
+    @Query("""
+    SELECT p FROM Pedido p
+    WHERE p.codigo = :codigo
+    AND p.repartidor.username = :username
+    AND p.tipoPedido = com.serveat.domain.pedido.TipoPedidoCliente.DOMICILIO
+""")
+    Optional<Pedido> findPedidoParaRepartidor(
+            @Param("codigo") String codigo,
+            @Param("username") String username
+    );
+
+
     long countByEstadoCocina(EstadoCocina estadoCocina);
 
     // Para las estadísticas

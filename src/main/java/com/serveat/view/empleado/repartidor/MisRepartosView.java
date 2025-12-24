@@ -144,6 +144,20 @@ public class MisRepartosView extends VerticalLayout {
 
             return incidencia;
         }).setHeader("Incidencia").setAutoWidth(true);
+
+        grid.addComponentColumn(pedido -> {
+                    Button detalles = new Button("📄 Ver detalles");
+
+                    detalles.addClickListener(e -> {
+                        detalles.getUI().ifPresent(ui ->
+                                ui.navigate("empleado/repartidor/detalle/" + pedido.getCodigo())
+                        );
+                    });
+
+                    return detalles;
+                })
+                .setHeader("Detalles")
+                .setAutoWidth(true);
     }
 
     private void cargar() {

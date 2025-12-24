@@ -23,4 +23,7 @@ public interface RepartidorService {
 
     // Marca una incidencia en el reparto
     Pedido marcarIncidencia(String codigoPedido, String repartidorUsername, String motivo);
+
+    Pedido obtenerPedidoConDetalles(String codigoPedido, String usernameRepartidor);
+
 }
