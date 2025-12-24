@@ -69,4 +69,52 @@ public class EstadisticasServiceImpl implements EstadisticasService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+    /* Filtros UI */
+
+    @Override
+    public List<Integer> añosDisponibles() {
+        return pedidoRepository.findAllByOrderByFechaCreacionDesc().stream()
+                .map(Pedido::getFechaCreacion)
+                .filter(Objects::nonNull)
+                .map(d -> d.getYear())
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .toList();
+    }
+
+    @Override
+    public List<Month> mesesDisponibles() {
+        return List.of(Month.values());
+    }
+
+    @Override
+    public String etiquetaMes(Month m) {
+        return m == null ? "-" : m.getDisplayName(java.time.format.TextStyle.FULL, new Locale("es"));
+    }
+
+    @Override
+    public String etiquetaMetodoPago(MetodoPago m) {
+        return m == null ? "-" : m.name();
+    }
+
+    @Override
+    public String etiquetaTipoPedido(TipoPedidoCliente t) {
+        return t == null ? "-" : t.name();
+    }
+
+    @Override
+    public String etiquetaEstadoPedido(EstadoPedido e) {
+        return e == null ? "-" : e.name();
+    }
+
+    @Override
+    public String etiquetaEstadoCocina(EstadoCocina e) {
+        return e == null ? "-" : e.name();
+    }
+
+    @Override
+    public String mensajeSinResultados() {
+        return "No hay resultados, selecciona otros filtros.";
+    }
 }
