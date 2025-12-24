@@ -167,8 +167,13 @@ public class EstadisticasServiceImpl implements EstadisticasService {
                 .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
                 .skip(offset)
                 .limit(limit)
-                .map(e -> Map.of("producto", e.getKey(), "unidades", e.getValue()))
-                .toList();
+                .map(e -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("producto", e.getKey());
+                    row.put("unidades", e.getValue());
+                    return row;
+                })
+                .collect(Collectors.toList());
     }
 
     /*  Operaciones pesadas con Async
