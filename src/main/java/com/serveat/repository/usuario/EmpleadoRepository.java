@@ -14,9 +14,9 @@ public interface EmpleadoRepository extends JpaRepository<Empleado, Long> {
 
     Optional<Empleado> findByEmail(String email);
 
-    List<Empleado> findByActivoTrue();
+    List<Empleado> findByEnabledTrue();
 
-    List<Empleado> findByActivoFalse();
+    List<Empleado> findByEnabledFalse();
 
     List<Empleado> findByRol(String rol);
 }

@@ -54,35 +54,47 @@ public class GestionEmpleadosView extends VerticalLayout {
        ========================= */
     private void configurarGrid() {
 
+        grid.setWidthFull();
+
+        // Columnas flexibles (se adaptan al tamaño de pantalla)
         grid.addColumn(Empleado::getNombre)
                 .setHeader("Nombre")
-                .setAutoWidth(true);
+                .setFlexGrow(1);
 
         grid.addColumn(Empleado::getUsername)
                 .setHeader("Usuario")
-                .setAutoWidth(true);
+                .setFlexGrow(1);
 
         grid.addColumn(Empleado::getEmail)
                 .setHeader("Email")
-                .setAutoWidth(true);
+                .setFlexGrow(1);
 
+        // Columnas semi-fijas
         grid.addColumn(Empleado::getTelefono)
                 .setHeader("Teléfono")
-                .setAutoWidth(true);
+                .setWidth("130px")
+                .setFlexGrow(0);
 
         grid.addColumn(Empleado::getRol)
                 .setHeader("Rol")
-                .setAutoWidth(true);
+                .setWidth("120px")
+                .setFlexGrow(0);
 
         grid.addColumn(emp -> emp.isEnabled() ? "Activo" : "Inactivo")
                 .setHeader("Estado")
-                .setAutoWidth(true);
+                .setWidth("110px")
+                .setFlexGrow(0);
 
+        // Acciones siempre visibles
         grid.addComponentColumn(this::crearAcciones)
-                .setHeader("Acciones");
+                .setHeader("Acciones")
+                .setWidth("300px")
+                .setFlexGrow(0);
 
         grid.setSizeFull();
     }
+
+
 
     /* =========================
        ACCIONES
@@ -137,7 +149,13 @@ public class GestionEmpleadosView extends VerticalLayout {
                 )
         );
 
-        return new HorizontalLayout(editar, cambiarEstado, eliminar);
+        HorizontalLayout acciones = new HorizontalLayout(editar, cambiarEstado, eliminar);
+        acciones.setSpacing(true);
+        acciones.setPadding(false);
+        acciones.setAlignItems(Alignment.CENTER);
+        acciones.getStyle().set("flex-wrap", "nowrap"); // evita que se rompan en líneas
+
+        return acciones;
     }
 
     /* =========================
@@ -160,12 +178,12 @@ public class GestionEmpleadosView extends VerticalLayout {
 
         filtroEstado = new ComboBox<>();
         filtroEstado.setItems("Todos", "Activos", "Inactivos");
-        filtroEstado.setValue("Todos");
+        filtroEstado.setValue("Estados");
         filtroEstado.setWidth("150px");
 
         filtroRol = new ComboBox<>();
         filtroRol.setItems("Todos", "ADMIN", "CAMARERO", "COCINERO", "REPARTIDOR");
-        filtroRol.setValue("Todos");
+        filtroRol.setValue("Roles");
         filtroRol.setWidth("170px");
 
         buscador.addValueChangeListener(e -> aplicarFiltros());
