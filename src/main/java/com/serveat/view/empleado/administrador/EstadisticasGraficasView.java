@@ -1,15 +1,13 @@
 package com.serveat.view.empleado.administrador;
 
-import com.serveat.domain.pago.MetodoPago;
-import com.serveat.domain.pedido.EstadoCocina;
-import com.serveat.domain.pedido.EstadoPedido;
-import com.serveat.domain.pedido.TipoPedidoCliente;
 import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.estadisticas.EstadisticasService;
 import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
@@ -18,15 +16,13 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
-import java.time.Month;
-import java.util.List;
+import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Map;
 
@@ -38,29 +34,26 @@ public class EstadisticasGraficasView extends VerticalLayout {
     private final transient FeatureService featureService;
     private final transient EstadisticasService estadisticasService;
 
-    // filtros (solo vista, sin lógica)
-    private final ComboBox<Integer> year = new ComboBox<>("Año");
-    private final ComboBox<Month> month = new ComboBox<>("Mes");
-    private final ComboBox<TipoPedidoCliente> tipoPedido = new ComboBox<>("Tipo pedido");
-    private final ComboBox<MetodoPago> metodoPago = new ComboBox<>("Método pago");
-    private final ComboBox<EstadoPedido> estadoPedido = new ComboBox<>("Estado pedido");
-    private final ComboBox<EstadoCocina> estadoCocina = new ComboBox<>("Estado cocina");
+    /* Filtros TOP (solo fechas)  */
+    private final DatePicker desde = new DatePicker("Desde");
+    private final DatePicker hasta = new DatePicker("Hasta");
+    private final Button buscarTop = new Button("Buscar");
+    private final Button limpiarTop = new Button("Limpiar");
 
-    // autocompletar: seleccionas producto, no escribes “a mano”
-    private final ComboBox<String> producto = new ComboBox<>("Producto");
+    /* Filtros Serie mensual (solo años + tipo) */
+    private final ComboBox<Integer> yearInicio = new ComboBox<>("Año inicio");
+    private final ComboBox<Integer> yearFin = new ComboBox<>("Año fin");
+    private final ComboBox<String> tipoSerie = new ComboBox<>("Serie");
+    private final Button buscarSerie = new Button("Buscar");
+    private final Button limpiarSerie = new Button("Limpiar");
 
-    private final Button aplicar = new Button("Aplicar filtros");
-    private final Button limpiar = new Button("Limpiar");
-
+    /* Grids */
     private final Grid<Map<String, Object>> topUnidades = new Grid<>();
     private final Grid<Map<String, Object>> topFacturacion = new Grid<>();
-    private final Grid<Map.Entry<String, Long>> cocinaEstados = new Grid<>();
+    private final Grid<Map<String, Object>> serieMensual = new Grid<>();
 
-    private final Span emptyUnidades = new Span();
-    private final Span emptyFacturacion = new Span();
-
-    private CallbackDataProvider<Map<String, Object>, Void> dpUnidades;
-    private CallbackDataProvider<Map<String, Object>, Void> dpFacturacion;
+    private final Span emptyTop = new Span();
+    private final Span emptySerie = new Span();
 
     public EstadisticasGraficasView(FeatureService featureService,
                                     EstadisticasService estadisticasService) {
@@ -78,18 +71,15 @@ public class EstadisticasGraficasView extends VerticalLayout {
         H2 titulo = new H2("Gráficas");
         titulo.getStyle().set("margin", "0");
 
-        Span subtitulo = new Span("Rankings y distribución por estados en tablas.");
-        subtitulo.getStyle().set("color", "var(--lumo-secondary-text-color)");
-
         Button volver = new Button("⬅ Volver");
         volver.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate(EstadisticasAdminView.class)));
 
-        HorizontalLayout top = new HorizontalLayout(titulo, volver);
-        top.setWidthFull();
-        top.setAlignItems(FlexComponent.Alignment.CENTER);
-        top.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        HorizontalLayout header = new HorizontalLayout(titulo, volver);
+        header.setWidthFull();
+        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        add(top, subtitulo);
+        add(header);
 
         if (!featureService.tieneFeature(Feature.ESTADISTICAS)) {
             add(bloqueado());
@@ -98,236 +88,197 @@ public class EstadisticasGraficasView extends VerticalLayout {
 
         configurarFiltros();
         configurarGrids();
-        configurarDataProviders();
 
-        VerticalLayout cardFiltros = crearCard();
-        cardFiltros.add(new H3("Filtros"), filtrosLayout());
+        add(
+                crearCard(new H3("Filtros"), filtrosTopLayout()),
 
-        VerticalLayout card1 = crearCard();
-        card1.add(new H3("Top productos por unidades"), emptyUnidades, topUnidades);
+                crearCard(new H3("Top productos por unidades"), emptyTop, topUnidades),
+                crearCard(new H3("Top productos por facturación"), topFacturacion),
 
-        VerticalLayout card2 = crearCard();
-        card2.add(new H3("Top productos por facturación"), emptyFacturacion, topFacturacion);
-
-        VerticalLayout card3 = crearCard();
-        card3.add(new H3("Estados de cocina (conteo)"), cocinaEstados);
-
-        add(cardFiltros, card1, card2, card3);
-
-        refrescarTodo();
+                crearCard(new H3("Evolución mensual"), filtrosSerieLayout(), emptySerie, serieMensual)
+        );
     }
+
+    /* Config filtros */
 
     private void configurarFiltros() {
-        year.setClearButtonVisible(true);
-        month.setClearButtonVisible(true);
-        tipoPedido.setClearButtonVisible(true);
-        metodoPago.setClearButtonVisible(true);
-        estadoPedido.setClearButtonVisible(true);
-        estadoCocina.setClearButtonVisible(true);
-        producto.setClearButtonVisible(true);
+        // TOP
+        desde.setClearButtonVisible(true);
+        hasta.setClearButtonVisible(true);
 
-        year.setItems(estadisticasService.añosDisponibles());
-        month.setItems(estadisticasService.mesesDisponibles());
-        month.setItemLabelGenerator(estadisticasService::etiquetaMes);
-
-        tipoPedido.setItems(TipoPedidoCliente.values());
-        tipoPedido.setItemLabelGenerator(estadisticasService::etiquetaTipoPedido);
-
-        metodoPago.setItems(MetodoPago.values());
-        metodoPago.setItemLabelGenerator(estadisticasService::etiquetaMetodoPago);
-
-        estadoPedido.setItems(EstadoPedido.values());
-        estadoPedido.setItemLabelGenerator(estadisticasService::etiquetaEstadoPedido);
-
-        estadoCocina.setItems(EstadoCocina.values());
-        estadoCocina.setItemLabelGenerator(estadisticasService::etiquetaEstadoCocina);
-
-        producto.setPlaceholder("Escribe para buscar (ej: coc)");
-        producto.setItems(query -> {
-            String filter = query.getFilter().orElse("");
-            List<String> sug = estadisticasService.sugerirProductos(
-                    filter,
-                    year.getValue(), month.getValue(),
-                    tipoPedido.getValue(),
-                    metodoPago.getValue(),
-                    estadoPedido.getValue(),
-                    estadoCocina.getValue(),
-                    15
-            );
-            return sug.stream();
+        buscarTop.addClickListener(e -> cargarTop());
+        limpiarTop.addClickListener(e -> {
+            desde.clear();
+            hasta.clear();
+            limpiarTopTablas();
         });
 
-        aplicar.addClickListener(e -> refrescarTodo());
-        limpiar.addClickListener(e -> {
-            year.clear();
-            month.clear();
-            tipoPedido.clear();
-            metodoPago.clear();
-            estadoPedido.clear();
-            estadoCocina.clear();
-            producto.clear();
-            refrescarTodo();
+        // Serie
+        yearInicio.setItems(estadisticasService.añosDisponibles());
+        yearFin.setItems(estadisticasService.añosDisponibles());
+
+        tipoSerie.setItems("Unidades", "Facturación");
+        tipoSerie.setValue("Unidades");
+
+        buscarSerie.addClickListener(e -> cargarSerie());
+        limpiarSerie.addClickListener(e -> {
+            yearInicio.clear();
+            yearFin.clear();
+            tipoSerie.setValue("Unidades");
+            limpiarSerieTabla();
         });
+
+        emptyTop.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        emptySerie.getStyle().set("color", "var(--lumo-secondary-text-color)");
     }
 
-    private HorizontalLayout filtrosLayout() {
-        HorizontalLayout row1 = new HorizontalLayout(year, month, tipoPedido);
+    /* Layout filtros */
+
+    private Component filtrosTopLayout() {
+        desde.setWidthFull();
+        hasta.setWidthFull();
+        buscarTop.setWidth("140px");
+        limpiarTop.setWidth("140px");
+
+        HorizontalLayout row = new HorizontalLayout(desde, hasta, buscarTop, limpiarTop);
+        row.setWidthFull();
+        row.setAlignItems(FlexComponent.Alignment.END);
+        row.getStyle().set("gap", "12px");
+        return row;
+    }
+
+    private Component filtrosSerieLayout() {
+        yearInicio.setWidthFull();
+        yearFin.setWidthFull();
+        tipoSerie.setWidthFull();
+
+        buscarSerie.setWidth("140px");
+        limpiarSerie.setWidth("140px");
+
+        HorizontalLayout row1 = new HorizontalLayout(yearInicio, yearFin, tipoSerie);
         row1.setWidthFull();
         row1.getStyle().set("gap", "12px");
 
-        HorizontalLayout row2 = new HorizontalLayout(metodoPago, estadoPedido, estadoCocina);
+        HorizontalLayout row2 = new HorizontalLayout(buscarSerie, limpiarSerie);
         row2.setWidthFull();
+        row2.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
         row2.getStyle().set("gap", "12px");
 
-        HorizontalLayout row3 = new HorizontalLayout(producto, aplicar, limpiar);
-        row3.setWidthFull();
-        row3.setAlignItems(FlexComponent.Alignment.END);
-        row3.getStyle().set("gap", "12px");
-
-        VerticalLayout wrap = new VerticalLayout(row1, row2, row3);
-        wrap.setPadding(false);
-        wrap.setSpacing(false);
-        wrap.getStyle().set("gap", "10px");
-
-        return new HorizontalLayout(wrap);
+        VerticalLayout v = new VerticalLayout(row1, row2);
+        v.setPadding(false);
+        v.setSpacing(true);
+        v.setWidthFull();
+        return v;
     }
+
+    /* Config grids */
 
     private void configurarGrids() {
-        topUnidades.addColumn(m -> String.valueOf(m.getOrDefault("producto", "-")))
-                .setHeader("Producto").setAutoWidth(true).setFlexGrow(1);
+        // TOP unidades
+        topUnidades.addColumn(m -> m.get("producto"))
+                .setHeader("Producto").setFlexGrow(1);
+        topUnidades.addColumn(m -> m.get("unidades"))
+                .setHeader("Unidades");
 
-        topUnidades.addColumn(m -> String.valueOf(m.getOrDefault("unidades", 0)))
-                .setHeader("Unidades").setAutoWidth(true);
-
-        topUnidades.setWidthFull();
-        topUnidades.setHeight("320px");
-
-        topFacturacion.addColumn(m -> String.valueOf(m.getOrDefault("producto", "-")))
-                .setHeader("Producto").setAutoWidth(true).setFlexGrow(1);
-
+        // TOP facturación
+        topFacturacion.addColumn(m -> m.get("producto"))
+                .setHeader("Producto").setFlexGrow(1);
         topFacturacion.addColumn(m -> formatoEuro((BigDecimal) m.get("total")))
-                .setHeader("Total").setAutoWidth(true);
+                .setHeader("Total");
 
-        topFacturacion.setWidthFull();
-        topFacturacion.setHeight("320px");
+        // Serie mensual
+        serieMensual.addColumn(m -> m.get("mes"))
+                .setHeader("Mes");
+        serieMensual.addColumn(m -> m.get("valor"))
+                .setHeader("Valor");
 
-        cocinaEstados.addColumn(Map.Entry::getKey)
-                .setHeader("Estado cocina").setAutoWidth(true).setFlexGrow(1);
-
-        cocinaEstados.addColumn(e -> String.valueOf(e.getValue()))
-                .setHeader("Cantidad").setAutoWidth(true);
-
-        cocinaEstados.setWidthFull();
-        cocinaEstados.setHeight("260px");
-
-        emptyUnidades.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        emptyFacturacion.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        serieMensual.setClassNameGenerator(m ->
+                Boolean.TRUE.equals(m.get("max")) ? "max-row" : ""
+        );
     }
 
-    private void configurarDataProviders() {
-        dpUnidades = new CallbackDataProvider<>(
-                q -> estadisticasService.topProductosPorUnidadesPage(
-                        year.getValue(), month.getValue(),
-                        tipoPedido.getValue(),
-                        metodoPago.getValue(),
-                        estadoPedido.getValue(),
-                        estadoCocina.getValue(),
-                        producto.getValue(),
-                        q.getOffset(), q.getLimit()
-                ).stream(),
-                q -> (int) estadisticasService.topProductosPorUnidadesCount(
-                        year.getValue(), month.getValue(),
-                        tipoPedido.getValue(),
-                        metodoPago.getValue(),
-                        estadoPedido.getValue(),
-                        estadoCocina.getValue(),
-                        producto.getValue()
-                )
-        );
+    /*  Acciones TOP */
 
-        dpFacturacion = new CallbackDataProvider<>(
-                q -> estadisticasService.topProductosPorFacturacionPage(
-                        year.getValue(), month.getValue(),
-                        tipoPedido.getValue(),
-                        metodoPago.getValue(),
-                        estadoPedido.getValue(),
-                        estadoCocina.getValue(),
-                        producto.getValue(),
-                        q.getOffset(), q.getLimit()
-                ).stream(),
-                q -> (int) estadisticasService.topProductosPorFacturacionCount(
-                        year.getValue(), month.getValue(),
-                        tipoPedido.getValue(),
-                        metodoPago.getValue(),
-                        estadoPedido.getValue(),
-                        estadoCocina.getValue(),
-                        producto.getValue()
-                )
-        );
-
-        topUnidades.setDataProvider(dpUnidades);
-        topFacturacion.setDataProvider(dpFacturacion);
-    }
-
-    private void refrescarTodo() {
+    private void cargarTop() {
         try {
-            long c1 = estadisticasService.topProductosPorUnidadesCount(
-                    year.getValue(), month.getValue(),
-                    tipoPedido.getValue(),
-                    metodoPago.getValue(),
-                    estadoPedido.getValue(),
-                    estadoCocina.getValue(),
-                    producto.getValue()
-            );
+            LocalDate d = desde.getValue();
+            LocalDate h = hasta.getValue();
 
-            long c2 = estadisticasService.topProductosPorFacturacionCount(
-                    year.getValue(), month.getValue(),
-                    tipoPedido.getValue(),
-                    metodoPago.getValue(),
-                    estadoPedido.getValue(),
-                    estadoCocina.getValue(),
-                    producto.getValue()
-            );
+            if (d != null && h != null && d.isAfter(h)) {
+                Notification.show("Rango de fechas inválido.", 3000, Notification.Position.MIDDLE);
+                return;
+            }
 
-            emptyUnidades.setText(c1 == 0 ? estadisticasService.mensajeSinResultados() : "");
-            emptyFacturacion.setText(c2 == 0 ? estadisticasService.mensajeSinResultados() : "");
+            var topU = estadisticasService.topProductosPorUnidades(d, h, 15);
+            var topF = estadisticasService.topProductosPorFacturacion(d, h, 15);
 
-            dpUnidades.refreshAll();
-            dpFacturacion.refreshAll();
+            emptyTop.setText(topU.isEmpty() && topF.isEmpty() ? "No hay datos disponibles" : "");
 
-            Map<String, Long> cocina = estadisticasService.resumenEstadosCocina(
-                    year.getValue(), month.getValue(),
-                    tipoPedido.getValue(),
-                    estadoPedido.getValue()
-            );
-            cocinaEstados.setItems(cocina.entrySet());
+            topUnidades.setItems(topU);
+            topFacturacion.setItems(topF);
 
         } catch (Exception ex) {
-            Notification.show("Error: " + ex.getMessage(), 4500, Notification.Position.MIDDLE);
+            Notification.show("Error: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
         }
     }
 
-    private VerticalLayout bloqueado() {
-        VerticalLayout card = crearCard();
-        H3 h3 = new H3("Funcionalidad no disponible");
-        Span p1 = new Span("Esta funcionalidad requiere el plan PRO.");
-        p1.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        Span p2 = new Span("Ve a “Suscripción / Plan” para activarla.");
-        p2.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        card.add(h3, p1, p2);
-        return card;
+    private void limpiarTopTablas() {
+        topUnidades.setItems();
+        topFacturacion.setItems();
+        emptyTop.setText("");
     }
 
-    private VerticalLayout crearCard() {
-        VerticalLayout card = new VerticalLayout();
+    /*  Acciones Serie mensual */
+
+    private void cargarSerie() {
+        try {
+            Integer yi = yearInicio.getValue();
+            Integer yf = yearFin.getValue();
+
+            if (yi == null || yf == null || yi > yf) {
+                emptySerie.setText("Selecciona un rango de años válido");
+                serieMensual.setItems();
+                return;
+            }
+
+            var rows = estadisticasService.serieMensualVista(yi, yf, tipoSerie.getValue());
+
+            if (rows.isEmpty()) {
+                emptySerie.setText("No hay datos disponibles");
+                serieMensual.setItems();
+                return;
+            }
+
+            serieMensual.setItems(rows);
+            emptySerie.setText("");
+
+        } catch (Exception ex) {
+            Notification.show("Error: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void limpiarSerieTabla() {
+        serieMensual.setItems();
+        emptySerie.setText("");
+    }
+
+    /* UI helpers */
+
+    private Component bloqueado() {
+        return crearCard(
+                new H3("Funcionalidad no disponible"),
+                new Span("Esta funcionalidad requiere el plan PRO.")
+        );
+    }
+
+    private VerticalLayout crearCard(Component... content) {
+        VerticalLayout card = new VerticalLayout(content);
         card.setPadding(true);
         card.setSpacing(false);
         card.setWidthFull();
         card.getStyle().set("gap", "12px");
-        card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
-        card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
         return card;
     }
 
