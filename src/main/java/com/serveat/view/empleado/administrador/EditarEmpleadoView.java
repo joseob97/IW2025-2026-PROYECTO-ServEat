@@ -1,7 +1,6 @@
 package com.serveat.view.empleado.administrador;
 
 import com.serveat.domain.usuario.Empleado;
-import com.serveat.repository.usuario.EmpleadoRepository;
 import com.serveat.service.usuario.EmpleadoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -10,69 +9,49 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.*;
-import org.springframework.security.access.annotation.Secured;
-
-import java.util.Optional;
+import jakarta.annotation.security.RolesAllowed;
 
 @Route(value = "empleado/admin/gestion-empleados/editar-empleado/:id", layout = MainLayout.class)
 @PageTitle("Editar empleado | ServEat")
-@Secured("ROLE_ADMIN")
+@RolesAllowed("ROLE_ADMIN")
 public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObserver {
 
     private final EmpleadoService empleadoService;
-    private final EmpleadoRepository empleadoRepository;
     private Empleado empleado;
 
-    // Campos del formulario
-    TextField nombre = new TextField("Nombre completo");
-    TextField username = new TextField("Usuario");
-    TextField email = new TextField("Email");
-    TextField direccion = new TextField("Dirección");
-    TextField telefono = new TextField("Teléfono");
-    ComboBox<String> rol = new ComboBox<>("Rol");   // ← CAMBIADO A COMBOBOX
-    Checkbox enabled = new Checkbox("Empleado activo");
-    PasswordField password = new PasswordField("Nueva contraseña (opcional)");
+    private final Binder<Empleado> binder = new Binder<>(Empleado.class);
 
-    Button guardar = new Button("Guardar cambios");
-    Button cancelar = new Button("Cancelar");
+    // Campos
+    private final TextField nombre = new TextField("Nombre completo");
+    private final TextField username = new TextField("Usuario");
+    private final EmailField email = new EmailField("Email");
+    private final TextField direccion = new TextField("Dirección");
+    private final TextField telefono = new TextField("Teléfono");
+    private final ComboBox<String> rol = new ComboBox<>("Rol");
+    private final Checkbox enabled = new Checkbox("Empleado activo");
+    private final PasswordField password = new PasswordField("Nueva contraseña (opcional)");
 
-    public EditarEmpleadoView(EmpleadoService empleadoService,
-                              EmpleadoRepository empleadoRepository) {
-
+    public EditarEmpleadoView(EmpleadoService empleadoService) {
         this.empleadoService = empleadoService;
-        this.empleadoRepository = empleadoRepository;
 
-        setSpacing(true);
-        setPadding(true);
         setWidth("600px");
+        setPadding(true);
+        setSpacing(true);
 
         H2 titulo = new H2("Editar empleado");
-        add(titulo);
 
-        // Validación del teléfono (solo números)
-        telefono.addValueChangeListener(event -> {
-            String value = event.getValue();
-            if (!value.matches("\\d*")) {
-                telefono.setInvalid(true);
-                telefono.setErrorMessage("El teléfono solo puede contener números.");
-            } else {
-                telefono.setInvalid(false);
-            }
-        });
+        configurarCampos();
+        configurarBinder();
 
-        // Configuración del ComboBox de roles
-        rol.setItems("CAMARERO", "COCINERO", "REPARTIDOR", "ADMIN");
-        rol.setPlaceholder("Selecciona un rol");
-        rol.setRequired(true);
-
-        // Formulario
-        FormLayout form = new FormLayout();
-        form.add(
+        FormLayout form = new FormLayout(
                 nombre,
                 username,
                 email,
@@ -83,106 +62,127 @@ public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObs
                 password
         );
 
-        // Botones
-        guardar.getStyle().set("background-color", "#0366d6");
-        guardar.getStyle().set("color", "white");
-
-        cancelar.addClickListener(e ->
-                getUI().ifPresent(ui -> ui.navigate("empleado/admin/gestion-empleados"))
+        Button guardar = new Button("Guardar", e -> guardar());
+        Button cancelar = new Button("Cancelar",
+                e -> getUI().ifPresent(ui ->
+                        ui.navigate("empleado/admin/gestion-empleados"))
         );
 
-        guardar.addClickListener(e -> guardarCambios());
+        HorizontalLayout acciones = new HorizontalLayout(guardar, cancelar);
 
-        HorizontalLayout botones = new HorizontalLayout(guardar, cancelar);
-
-        add(form, botones);
+        add(titulo, form, acciones);
     }
 
+    /* =========================
+       CONFIGURACIÓN CAMPOS
+       ========================= */
+    private void configurarCampos() {
+
+        email.setClearButtonVisible(true);
+        email.setErrorMessage("Introduce un email válido");
+
+        telefono.setAllowedCharPattern("[0-9]");
+        telefono.setMaxLength(15);
+        telefono.setHelperText("Solo números (9–15 dígitos)");
+
+        rol.setItems("ADMIN", "CAMARERO", "COCINERO", "REPARTIDOR");
+        rol.setRequired(true);
+
+        password.setRevealButtonVisible(false);
+    }
+
+    /* =========================
+       BINDER / VALIDACIONES
+       ========================= */
+    private void configurarBinder() {
+
+        binder.forField(nombre)
+                .asRequired("El nombre es obligatorio")
+                .bind(Empleado::getNombre, Empleado::setNombre);
+
+        binder.forField(username)
+                .asRequired("El usuario es obligatorio")
+                .bind(Empleado::getUsername, Empleado::setUsername);
+
+        binder.forField(email)
+                .asRequired("El email es obligatorio")
+                .withValidator(
+                        e -> e.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"),
+                        "Formato de email no válido"
+                )
+                .bind(Empleado::getEmail, Empleado::setEmail);
+
+        binder.forField(direccion)
+                .asRequired("La dirección es obligatoria")
+                .bind(Empleado::getDireccion, Empleado::setDireccion);
+
+        binder.forField(telefono)
+                .asRequired("El teléfono es obligatorio")
+                .withValidator(
+                        t -> t.matches("^[0-9]{9,15}$"),
+                        "Debe tener entre 9 y 15 dígitos"
+                )
+                .bind(Empleado::getTelefono, Empleado::setTelefono);
+
+        binder.forField(rol)
+                .asRequired("El rol es obligatorio")
+                .bind(Empleado::getRol, Empleado::setRol);
+
+        binder.forField(enabled)
+                .bind(Empleado::isEnabled, Empleado::setEnabled);
+    }
+
+    /* =========================
+       CARGA EMPLEADO
+       ========================= */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
 
-        Optional<String> idParam = event.getRouteParameters().get("id");
-
-        if (idParam.isEmpty()) {
-            Notification.show("No se proporcionó el ID del empleado.");
-            event.forwardTo("empleado/admin/gestion-empleados");
-            return;
-        }
-
-        Long id = Long.valueOf(idParam.get());
-
-        Optional<Empleado> empleadoOpt = empleadoService.findById(id);
-        if (empleadoOpt.isEmpty()) {
-            Notification.show("Empleado no encontrado.");
-            event.forwardTo("empleado/admin/gestion-empleados");
-            return;
-        }
-
-        this.empleado = empleadoOpt.get();
-
-        // Precargar datos en el formulario
-        nombre.setValue(empleado.getNombre());
-        username.setValue(empleado.getUsername());
-        email.setValue(empleado.getEmail());
-        direccion.setValue(empleado.getDireccion());
-        telefono.setValue(empleado.getTelefono());
-        rol.setValue(empleado.getRol());   // ← Ahora es ComboBox
-        enabled.setValue(empleado.isEnabled());
+        event.getRouteParameters()
+                .get("id")
+                .map(Long::valueOf)
+                .ifPresentOrElse(
+                        id -> {
+                            empleado = empleadoService.obtenerPorId(id);
+                            binder.setBean(empleado);
+                        },
+                        () -> getUI().ifPresent(ui ->
+                                ui.navigate("empleado/admin/gestion-empleados"))
+                );
     }
 
-    private void guardarCambios() {
+    /* =========================
+       GUARDAR
+       ========================= */
+    private void guardar() {
 
-        // Validación de campos vacíos
-        if (nombre.isEmpty() || username.isEmpty() || telefono.isEmpty()
-                || email.isEmpty() || direccion.isEmpty() || rol.isEmpty()) {
-
-            Notification.show("Los campos obligatorios no pueden estar vacíos.",
-                    3000, Notification.Position.MIDDLE);
+        if (!binder.validate().isOk()) {
             return;
         }
 
-        // Validación teléfono
-        if (telefono.isInvalid()) {
-            Notification.show("Corrige el teléfono antes de guardar.",
-                    3000, Notification.Position.MIDDLE);
-            return;
-        }
-
-        // Validar email único SOLO si pertenece a otro empleado
-        empleadoRepository.findByEmail(email.getValue()).ifPresent(e -> {
-            if (!e.getId().equals(empleado.getId())) {
-                Notification.show("Ese email ya está registrado.");
-                return;
-            }
-        });
-
-        // Validar username único SOLO si pertenece a otro empleado
-        empleadoRepository.findByUsername(username.getValue()).ifPresent(e -> {
-            if (!e.getId().equals(empleado.getId())) {
-                Notification.show("Ese nombre de usuario ya existe.");
-                return;
-            }
-        });
-
-        // Actualizar datos
-        empleado.setNombre(nombre.getValue());
-        empleado.setUsername(username.getValue());
-        empleado.setEmail(email.getValue());
-        empleado.setDireccion(direccion.getValue());
-        empleado.setTelefono(telefono.getValue());
-        empleado.setRol(rol.getValue());   // ← Obtención del valor del ComboBox
-        empleado.setEnabled(enabled.getValue());
-
-        // Si quiere cambiar contraseña
+        // Password solo si se ha escrito
         if (!password.isEmpty()) {
-            empleadoService.updatePassword(empleado, password.getValue());
+            empleado.setPassword(password.getValue());
         }
 
-        empleadoService.save(empleado);
+        try {
+            empleadoService.guardar(empleado);
 
-        Notification.show("Empleado actualizado correctamente.",
-                3000, Notification.Position.MIDDLE);
+            Notification.show(
+                    "Empleado actualizado correctamente",
+                    3000,
+                    Notification.Position.MIDDLE
+            ).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
-        getUI().ifPresent(ui -> ui.navigate("empleado/admin/gestion-empleados"));
+            getUI().ifPresent(ui ->
+                    ui.navigate("empleado/admin/gestion-empleados"));
+
+        } catch (RuntimeException ex) {
+            Notification.show(
+                    ex.getMessage(),
+                    4000,
+                    Notification.Position.MIDDLE
+            ).addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
     }
 }
