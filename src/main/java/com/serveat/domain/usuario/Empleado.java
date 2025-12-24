@@ -1,6 +1,7 @@
 package com.serveat.domain.usuario;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 
 @Entity
 @Table(name = "empleados")
@@ -10,21 +11,37 @@ public class Empleado {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTOINCREMENT
     private Long id;
 
+    @NotBlank(message = "El nombre es obligatorio")
     @Column(nullable = false)
     private String nombre;
 
+    @NotBlank(message = "El nombre de usuario es obligatorio")
     @Column(nullable = false, unique = true)
     private String username;
 
+    @NotBlank(message = "La contraseña es obligatoria")
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
+    @NotBlank(message = "El teléfono es obligatorio")
+    @Pattern(
+            regexp = "^[0-9]+$",
+            message = "El teléfono solo puede contener números"
+    )
+    @Size(
+            min = 9,
+            max = 15,
+            message = "El teléfono debe tener entre 9 y 15 dígitos"
+    )
+    @Column(nullable = false, length = 15)
     private String telefono;
 
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El email no tiene un formato válido")
     @Column(nullable = false, unique = true)
     private String email;
 
+    @NotBlank(message = "La dirección es obligatoria")
     @Column(nullable = false)
     private String direccion;
 
