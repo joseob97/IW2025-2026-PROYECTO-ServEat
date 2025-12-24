@@ -3,46 +3,105 @@ package com.serveat.service.usuario.impl;
 import com.serveat.domain.usuario.Empleado;
 import com.serveat.repository.usuario.EmpleadoRepository;
 import com.serveat.service.usuario.EmpleadoService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.serveat.service.usuario.exceptions.DuplicadoException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
+@Transactional(readOnly = true)
 public class EmpleadoServiceImpl implements EmpleadoService {
 
     private final EmpleadoRepository empleadoRepository;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
-    public EmpleadoServiceImpl(EmpleadoRepository empleadoRepository) {
+    public EmpleadoServiceImpl(
+            EmpleadoRepository empleadoRepository,
+            PasswordEncoder passwordEncoder
+    ) {
         this.empleadoRepository = empleadoRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
+    // =========================
+    // CONSULTAS
+    // =========================
     @Override
-    public List<Empleado> findAll() {
+    public List<Empleado> obtenerTodos() {
         return empleadoRepository.findAll();
     }
 
     @Override
-    public Optional<Empleado> findById(Long id) {
-        return empleadoRepository.findById(id);
+    public List<Empleado> obtenerPorRol(String rol) {
+        return empleadoRepository.findByRol(rol);
     }
 
     @Override
-    public Empleado save(Empleado empleado) {
+    public Empleado obtenerPorId(Long id) {
+        return empleadoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado"));
+    }
+
+    @Override
+    public Empleado obtenerPorUsername(String username) {
+        return empleadoRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado"));
+    }
+
+    // =========================
+    // GUARDAR / VALIDAR
+    // =========================
+    @Override
+    @Transactional
+    public Empleado guardar(Empleado empleado) {
+
+        // ---- VALIDAR EMAIL ÚNICO
+        empleadoRepository.findByEmail(empleado.getEmail())
+                .filter(e -> !e.getId().equals(empleado.getId()))
+                .ifPresent(e -> {
+                    throw new DuplicadoException("El email ya está en uso por otro empleado");
+                });
+
+        // ---- VALIDAR USERNAME ÚNICO
+        empleadoRepository.findByUsername(empleado.getUsername())
+                .filter(e -> !e.getId().equals(empleado.getId()))
+                .ifPresent(e -> {
+                    throw new DuplicadoException("El nombre de usuario ya está en uso");
+                });
+
+        // ---- CIFRAR PASSWORD SI NO LO ESTÁ
+        if (!empleado.getPassword().startsWith("$2a$")) {
+            empleado.setPassword(passwordEncoder.encode(empleado.getPassword()));
+        }
+
         return empleadoRepository.save(empleado);
     }
 
+    // =========================
+    // ACTIVAR / DESACTIVAR
+    // =========================
     @Override
-    public void delete(Empleado empleado) {
-        empleadoRepository.delete(empleado);
+    @Transactional
+    public void activar(Empleado empleado) {
+        empleado.setEnabled(true);
+        empleadoRepository.save(empleado);
     }
 
     @Override
-    public void updatePassword(Empleado empleado, String rawPassword) {
-        empleado.setPassword(passwordEncoder.encode(rawPassword));
+    @Transactional
+    public void desactivar(Empleado empleado) {
+        empleado.setEnabled(false);
         empleadoRepository.save(empleado);
+    }
+
+    // =========================
+    // ELIMINAR
+    // =========================
+    @Override
+    @Transactional
+    public void eliminar(Empleado empleado) {
+        empleadoRepository.delete(empleado);
     }
 }
