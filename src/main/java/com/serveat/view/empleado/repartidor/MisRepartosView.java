@@ -1,14 +1,20 @@
 package com.serveat.view.empleado.repartidor;
 
+import com.serveat.domain.pago.EstadoPago;
+import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.EstadoReparto;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.repartidor.RepartidorService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -63,7 +69,11 @@ public class MisRepartosView extends VerticalLayout {
         card.add(info, barra, grid);
 
         add(titulo, card);
+    }
 
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
         cargar();
     }
 
@@ -87,63 +97,101 @@ public class MisRepartosView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setFlexGrow(1);
 
+        // NUEVO: Columna Total
+        grid.addColumn(p -> p.calcularPrecioTotal() + " €")
+                .setHeader("Total")
+                .setAutoWidth(true);
+
+        // NUEVO: Columna Estado Pago
+        grid.addComponentColumn(p -> {
+            Pago pago = p.getPago();
+            boolean pagado = pago != null && pago.getEstado() == EstadoPago.CONFIRMADO;
+            
+            Span badge = new Span(pagado ? "PAGADO" : "COBRAR");
+            badge.getElement().getThemeList().add("badge " + (pagado ? "success" : "error"));
+            return badge;
+        }).setHeader("Pago").setAutoWidth(true);
+
         grid.addColumn(p -> p.getEstadoReparto() != null ? p.getEstadoReparto().name() : "-")
                 .setHeader("Estado reparto")
                 .setAutoWidth(true);
 
+        // Columna de acciones unificada
         grid.addComponentColumn(p -> {
-            Button enReparto = new Button("🚚 En reparto");
-            enReparto.setEnabled(p.getEstadoReparto() == EstadoReparto.ASIGNADO);
+            HorizontalLayout actions = new HorizontalLayout();
+            
+            if (p.getEstadoReparto() == EstadoReparto.ASIGNADO) {
+                Button enReparto = new Button("🚚 En Reparto");
+                enReparto.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+                enReparto.addClickListener(e -> confirmarCambioEstado(p, "EN_REPARTO"));
+                actions.add(enReparto);
+            } else if (p.getEstadoReparto() == EstadoReparto.EN_REPARTO) {
+                Button entregado = new Button("✅ Entregar");
+                entregado.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+                entregado.addClickListener(e -> confirmarCambioEstado(p, "ENTREGADO"));
+                actions.add(entregado);
+            }
 
-            enReparto.addClickListener(e -> {
-                try {
-                    String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (p.getEstadoReparto() == EstadoReparto.ASIGNADO || p.getEstadoReparto() == EstadoReparto.EN_REPARTO) {
+                Button incidencia = new Button("⚠ Incidencia");
+                incidencia.addThemeVariants(ButtonVariant.LUMO_ERROR);
+                incidencia.addClickListener(e -> confirmarIncidencia(p));
+                actions.add(incidencia);
+            }
+
+            return actions;
+        }).setHeader("Acciones").setAutoWidth(true);
+    }
+
+    private void confirmarCambioEstado(Pedido p, String accion) {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Confirmar acción");
+        dialog.setText("¿Estás seguro de marcar el pedido como " + accion + "?");
+        dialog.setCancelable(true);
+        dialog.setConfirmText("Confirmar");
+        dialog.setConfirmButtonTheme("primary");
+
+        dialog.addConfirmListener(event -> {
+            try {
+                String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                if ("EN_REPARTO".equals(accion)) {
                     repartidorService.marcarEnReparto(p.getCodigo(), username);
-                    Notification.show("Pedido marcado EN_REPARTO", 2500, Notification.Position.BOTTOM_START);
-                    cargar();
-                } catch (Exception ex) {
-                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
-                }
-            });
-
-            return enReparto;
-        }).setHeader("Acción 1").setAutoWidth(true);
-
-        grid.addComponentColumn(p -> {
-            Button entregado = new Button("✅ Entregado");
-            entregado.setEnabled(p.getEstadoReparto() == EstadoReparto.EN_REPARTO);
-
-            entregado.addClickListener(e -> {
-                try {
-                    String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                } else if ("ENTREGADO".equals(accion)) {
                     repartidorService.marcarEntregado(p.getCodigo(), username);
-                    Notification.show("Pedido marcado ENTREGADO", 2500, Notification.Position.BOTTOM_START);
-                    cargar();
-                } catch (Exception ex) {
-                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
                 }
-            });
+                Notification.show("Estado actualizado correctamente", 2500, Notification.Position.BOTTOM_START)
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                cargar();
+            } catch (Exception ex) {
+                Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+        dialog.open();
+    }
 
-            return entregado;
-        }).setHeader("Acción 2").setAutoWidth(true);
+    private void confirmarIncidencia(Pedido p) {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Reportar Incidencia");
+        dialog.setText("¿Estás seguro de reportar una incidencia para este pedido?");
+        dialog.setCancelable(true);
+        dialog.setConfirmText("Reportar");
+        dialog.setConfirmButtonTheme("error");
 
-        grid.addComponentColumn(p -> {
-            Button incidencia = new Button("⚠ Incidencia");
-            incidencia.setEnabled(p.getEstadoReparto() == EstadoReparto.ASIGNADO || p.getEstadoReparto() == EstadoReparto.EN_REPARTO);
-
-            incidencia.addClickListener(e -> {
-                try {
-                    String username = SecurityContextHolder.getContext().getAuthentication().getName();
-                    repartidorService.marcarIncidencia(p.getCodigo(), username, "Incidencia indicada por el repartidor");
-                    Notification.show("Incidencia registrada", 3000, Notification.Position.MIDDLE);
-                    cargar();
-                } catch (Exception ex) {
-                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
-                }
-            });
-
-            return incidencia;
-        }).setHeader("Incidencia").setAutoWidth(true);
+        dialog.addConfirmListener(event -> {
+            try {
+                String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                // Aquí podríamos abrir otro diálogo para pedir el motivo, pero por simplicidad usamos uno genérico
+                repartidorService.marcarIncidencia(p.getCodigo(), username, "Incidencia reportada por repartidor");
+                Notification.show("Incidencia registrada", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                cargar();
+            } catch (Exception ex) {
+                Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+        dialog.open();
     }
 
     private void cargar() {
