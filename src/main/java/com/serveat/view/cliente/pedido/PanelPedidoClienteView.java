@@ -44,7 +44,7 @@ public class PanelPedidoClienteView extends VerticalLayout {
                 crearCardLink(
                         "🍽️ Pedido en mesa",
                         "Crear pedido asociado a mesa.",
-                        CrearPedidoMesaView.class
+                        CrearPedidoMesaCartaView.class
                 )
         );
         fila1.setWidthFull();

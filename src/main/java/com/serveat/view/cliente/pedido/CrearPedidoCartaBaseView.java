@@ -1,4 +1,4 @@
-package com.serveat.view.empleado.camarero;
+package com.serveat.view.cliente.pedido;
 
 import com.serveat.domain.menu.Categoria;
 import com.serveat.domain.menu.Producto;
@@ -7,7 +7,6 @@ import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
 import com.serveat.service.pedido.PedidoService;
-import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -22,62 +21,49 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
-import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@PageTitle("Iniciar Pedido | Camarero")
-@Route(value = "empleado/camarero/pedidos/nuevo", layout = MainLayout.class)
-@Secured("ROLE_CAMARERO")
-public class IniciarPedidoView extends VerticalLayout {
+public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
 
-    /* Servicios */
-    private final transient PedidoService pedidoService;
-    private final transient ProductoService productoService;
-    private final transient CategoriaService categoriaService;
+    protected final transient PedidoService pedidoService;
+    protected final transient ProductoService productoService;
+    protected final transient CategoriaService categoriaService;
 
-    /* Estado */
-    private transient Pedido pedidoActual;
-    private transient Pedido carrito = new Pedido();
+    protected Pedido carrito = new Pedido();
 
     /* Filtros */
-    private final ComboBox<String> filtroCategoria = new ComboBox<>("Categoría");
-    private final TextField buscador = new TextField("Buscar");
+    protected final ComboBox<String> categoriaFiltro = new ComboBox<>("Categoría");
+    protected final TextField buscador = new TextField("Buscar");
 
     /* Zona productos */
-    private final VerticalLayout contenido = new VerticalLayout();
+    protected final VerticalLayout contenido = new VerticalLayout();
 
     /* Carrito */
-    private final Grid<LineaPedido> gridCarrito = new Grid<>(LineaPedido.class, false);
-    private final Span total = new Span("Total: 0 €");
+    protected final Grid<LineaPedido> gridCarrito = new Grid<>(LineaPedido.class, false);
+    protected final Span total = new Span("Total: 0 €");
 
-    /* Cabecera mesa */
-    private final IntegerField mesa = new IntegerField("Número de mesa");
-    private final TextField codigo = new TextField("Código pedido");
-    private final Button crearPedido = new Button("Crear pedido");
-
-    /* Botón principal */
-    private final Button confirmar = new Button("✅ Confirmar pedido (Enviar a cocina)");
+    /* Acción principal */
+    protected final Button continuar = new Button("➡ Continuar");
 
     /* Modo edición del carrito */
     private boolean editarCarrito = false;
     private Grid.Column<LineaPedido> colAcciones;
     private final Button btnEditarCarrito = new Button("✏️ Editar carrito");
 
-    public IniciarPedidoView(PedidoService pedidoService,
-                             ProductoService productoService,
-                             CategoriaService categoriaService) {
+    protected CrearPedidoCartaBaseView(PedidoService pedidoService,
+                                       ProductoService productoService,
+                                       CategoriaService categoriaService) {
         this.pedidoService = pedidoService;
         this.productoService = productoService;
         this.categoriaService = categoriaService;
 
-        setSpacing(false);
-        setPadding(true);
         setWidthFull();
+        setPadding(true);
+        setSpacing(false);
         getStyle().set("gap", "16px");
         getStyle().set("max-width", "1280px");
         getStyle().set("margin", "0 auto");
@@ -86,58 +72,20 @@ public class IniciarPedidoView extends VerticalLayout {
         if (carrito.getLineaPedidos() == null) {
             carrito.setLineaPedidos(new ArrayList<>());
         }
+    }
 
-        H3 titulo = new H3("Iniciar pedido de mesa");
+    protected void construirUI(String tituloPantalla) {
+
+        H3 titulo = new H3(tituloPantalla);
         titulo.getStyle().set("margin", "0");
-        add(titulo);
 
-        add(crearBloqueMesa());
-        add(crearBloqueCartaYCarrito());
-
-        cargarProductos();
-        refrescarCarrito();
-        setUiPedidoCreado(false);
-    }
-
-    private Component crearBloqueMesa() {
-        VerticalLayout card = crearCard();
-        card.getStyle().set("gap", "14px");
-
-        mesa.setMin(1);
-        mesa.setStepButtonsVisible(true);
-        mesa.setWidth("260px");
-
-        crearPedido.setWidth("260px");
-        crearPedido.getStyle().set("font-weight", "700");
-        crearPedido.addClickListener(e -> crearPedidoMesa());
-
-        codigo.setReadOnly(true);
-        codigo.setWidth("320px");
-
-        VerticalLayout bloqueMesa = new VerticalLayout(mesa, crearPedido);
-        bloqueMesa.setPadding(false);
-        bloqueMesa.setSpacing(false);
-        bloqueMesa.getStyle().set("gap", "10px");
-        bloqueMesa.setAlignItems(FlexComponent.Alignment.CENTER);
-
-        HorizontalLayout fila = new HorizontalLayout(bloqueMesa, codigo);
-        fila.setWidthFull();
-        fila.setSpacing(true);
-        fila.getStyle().set("gap", "18px");
-        fila.setAlignItems(FlexComponent.Alignment.END);
-
-        card.add(fila);
-        return card;
-    }
-
-    private Component crearBloqueCartaYCarrito() {
         configurarFiltros();
 
-        HorizontalLayout filtros = new HorizontalLayout(filtroCategoria, buscador);
+        HorizontalLayout filtros = new HorizontalLayout(categoriaFiltro, buscador);
         filtros.setWidthFull();
         filtros.setSpacing(false);
         filtros.getStyle().set("gap", "12px");
-        filtroCategoria.setWidth("260px");
+        categoriaFiltro.setWidth("260px");
         buscador.setWidth("360px");
 
         HorizontalLayout main = new HorizontalLayout();
@@ -145,20 +93,17 @@ public class IniciarPedidoView extends VerticalLayout {
         main.setSpacing(false);
         main.getStyle().set("gap", "16px");
 
-        /* Izquierda: carta */
         VerticalLayout izquierda = crearCard();
         izquierda.setWidthFull();
         izquierda.getStyle().set("flex", "2");
-        izquierda.getStyle().set("gap", "12px");
 
         contenido.setWidthFull();
         contenido.setPadding(false);
         contenido.setSpacing(false);
         contenido.getStyle().set("gap", "18px");
 
-        izquierda.add(new H3("Carta"), filtros, contenido);
+        izquierda.add(filtros, contenido);
 
-        /* Derecha: carrito + confirmar */
         VerticalLayout derecha = new VerticalLayout();
         derecha.setPadding(false);
         derecha.setSpacing(false);
@@ -167,7 +112,6 @@ public class IniciarPedidoView extends VerticalLayout {
         derecha.setWidth("520px");
 
         VerticalLayout cardCarrito = crearCard();
-        cardCarrito.getStyle().set("gap", "12px");
 
         H3 hCarrito = new H3("Carrito");
         hCarrito.getStyle().set("margin", "0");
@@ -175,53 +119,61 @@ public class IniciarPedidoView extends VerticalLayout {
         btnEditarCarrito.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         btnEditarCarrito.getStyle().set("font-weight", "700");
 
-        HorizontalLayout filaTop = new HorizontalLayout(hCarrito);
-        filaTop.setWidthFull();
-        filaTop.setAlignItems(FlexComponent.Alignment.CENTER);
+        HorizontalLayout filaTopCarrito = new HorizontalLayout(hCarrito);
+        filaTopCarrito.setWidthFull();
+        filaTopCarrito.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        HorizontalLayout filaEditar = new HorizontalLayout(btnEditarCarrito);
-        filaEditar.setWidthFull();
-        filaEditar.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        HorizontalLayout filaBotonEditar = new HorizontalLayout(btnEditarCarrito);
+        filaBotonEditar.setWidthFull();
+        filaBotonEditar.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
 
         btnEditarCarrito.addClickListener(e -> {
             editarCarrito = !editarCarrito;
             btnEditarCarrito.setText(editarCarrito ? "✅ Listo" : "✏️ Editar carrito");
-            if (colAcciones != null) colAcciones.setVisible(editarCarrito);
+
+            if (colAcciones != null) {
+                colAcciones.setVisible(editarCarrito);
+            }
             gridCarrito.getDataProvider().refreshAll();
         });
 
         configurarGridCarrito();
 
-        cardCarrito.add(filaTop, filaEditar, gridCarrito, total);
+        cardCarrito.add(filaTopCarrito, filaBotonEditar, gridCarrito, total);
 
-        VerticalLayout cardConfirmar = crearCard();
-        cardConfirmar.getStyle().set("gap", "10px");
+        VerticalLayout cardDetalles = crearCard();
+        H3 hDetalles = new H3("Detalles");
+        hDetalles.getStyle().set("margin", "0");
+        cardDetalles.add(hDetalles, construirBloqueDetalles());
 
-        confirmar.setWidthFull();
-        confirmar.getStyle().set("font-weight", "700");
-        confirmar.addClickListener(e -> confirmarPedido());
+        continuar.setWidthFull();
+        continuar.getStyle().set("font-weight", "700");
+        continuar.addClickListener(e -> onContinuar());
 
-        cardConfirmar.add(new H3("Acción"), confirmar);
+        cardDetalles.add(continuar);
 
-        derecha.add(cardCarrito, cardConfirmar);
+        derecha.add(cardCarrito, cardDetalles);
 
         main.add(izquierda, derecha);
         main.setFlexGrow(2, izquierda);
         main.setFlexGrow(1, derecha);
 
-        return main;
+        add(titulo, main);
+
+        cargarProductos();
+        refrescarCarrito();
     }
 
     private void configurarFiltros() {
-        filtroCategoria.setItems(
+        categoriaFiltro.setItems(
                 categoriaService.listarCategorias().stream()
                         .map(Categoria::getNombre)
                         .filter(Objects::nonNull)
                         .sorted(String.CASE_INSENSITIVE_ORDER)
                         .toList()
         );
-        filtroCategoria.setClearButtonVisible(true);
-        filtroCategoria.addValueChangeListener(e -> cargarProductos());
+        categoriaFiltro.setClearButtonVisible(true);
+        categoriaFiltro.addValueChangeListener(e -> cargarProductos());
 
         buscador.setPlaceholder("Buscar por nombre...");
         buscador.setClearButtonVisible(true);
@@ -229,8 +181,8 @@ public class IniciarPedidoView extends VerticalLayout {
         buscador.addValueChangeListener(e -> cargarProductos());
     }
 
-    private void cargarProductos() {
-        String categoria = filtroCategoria.getValue();
+    protected void cargarProductos() {
+        String categoria = categoriaFiltro.getValue();
         String texto = buscador.getValue() != null ? buscador.getValue().trim() : "";
 
         List<Producto> productos;
@@ -279,9 +231,11 @@ public class IniciarPedidoView extends VerticalLayout {
 
             for (Producto p : lista) {
                 Component card = crearCardProducto(p);
+
                 card.getElement().getStyle().set("flex", "1 1 320px");
                 card.getElement().getStyle().set("max-width", "380px");
                 card.getElement().getStyle().set("box-sizing", "border-box");
+
                 grid.add(card);
             }
 
@@ -303,6 +257,8 @@ public class IniciarPedidoView extends VerticalLayout {
         );
         img.setWidthFull();
         img.setHeight("250px");
+
+
         img.getStyle().set("object-fit", "contain");
         img.getStyle().set("background", "var(--lumo-contrast-5pct)");
         img.getStyle().set("border-radius", "12px");
@@ -326,8 +282,6 @@ public class IniciarPedidoView extends VerticalLayout {
         qty.setWidth("120px");
 
         Button add = new Button("➕ Añadir", e -> {
-            if (!hayPedidoCreado()) return;
-
             try {
                 int cantidad = qty.getValue() != null ? qty.getValue() : 1;
                 carrito = pedidoService.agregarProductoEnMemoria(carrito, p, cantidad);
@@ -339,33 +293,43 @@ public class IniciarPedidoView extends VerticalLayout {
             }
         });
 
+
         add.getElement().getStyle().set("height", "32px");
         add.getElement().getStyle().set("min-height", "32px");
         add.getElement().getStyle().set("padding", "0 12px");
         add.getElement().getStyle().set("border-radius", "8px");
+
         add.getElement().getStyle().set("background", "var(--lumo-success-color)");
         add.getElement().getStyle().set("color", "var(--lumo-success-contrast-color)");
         add.getElement().getStyle().set("border", "1px solid var(--lumo-success-color)");
+
         add.getElement().getStyle().set("font-weight", "700");
         add.getElement().getStyle().set("font-size", "var(--lumo-font-size-s)");
         add.getElement().getStyle().set("white-space", "nowrap");
         add.getElement().getStyle().set("cursor", "pointer");
+
         add.setWidth("120px");
 
         HorizontalLayout acciones = new HorizontalLayout(qty, add);
         acciones.setWidthFull();
         acciones.setSpacing(false);
         acciones.getStyle().set("gap", "10px");
-        acciones.setAlignItems(FlexComponent.Alignment.END);
+        acciones.setAlignItems(Alignment.END);
+        acciones.setFlexGrow(0, qty);
+        acciones.setFlexGrow(1, add);
+        acciones.getElement().getStyle().set("min-width", "0");
 
         VerticalLayout card = new VerticalLayout(img, nombre, desc, precio, acciones);
         card.setPadding(true);
         card.setSpacing(false);
         card.getStyle().set("gap", "8px");
+
         card.setWidthFull();
         card.getStyle().set("min-height", "320px");
+
         card.getStyle().set("overflow", "hidden");
         card.getStyle().set("box-sizing", "border-box");
+
         card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
@@ -425,7 +389,8 @@ public class IniciarPedidoView extends VerticalLayout {
         HorizontalLayout acciones = new HorizontalLayout(minus, plus, trash);
         acciones.setSpacing(false);
         acciones.getStyle().set("gap", "8px");
-        acciones.setAlignItems(FlexComponent.Alignment.CENTER);
+        acciones.setAlignItems(Alignment.CENTER);
+
         return acciones;
     }
 
@@ -439,6 +404,7 @@ public class IniciarPedidoView extends VerticalLayout {
                     lp.getProducto().getCodigo(),
                     nueva
             );
+
             refrescarCarrito();
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 3500, Notification.Position.MIDDLE);
@@ -457,49 +423,7 @@ public class IniciarPedidoView extends VerticalLayout {
         }
     }
 
-    private void crearPedidoMesa() {
-        Integer nMesa = mesa.getValue();
-        if (nMesa == null || nMesa <= 0) {
-            Notification.show("Mesa inválida", 3000, Notification.Position.MIDDLE);
-            return;
-        }
-
-        try {
-            pedidoActual = pedidoService.crearPedidoMesa(nMesa);
-            codigo.setValue(pedidoActual.getCodigo());
-            setUiPedidoCreado(true);
-            refrescarCarrito();
-            Notification.show("Pedido creado: " + pedidoActual.getCodigo(), 3000, Notification.Position.MIDDLE);
-        } catch (Exception ex) {
-            Notification.show("Error creando pedido: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
-        }
-    }
-
-    private void confirmarPedido() {
-        if (!hayPedidoCreado()) return;
-
-        if (carrito == null || carrito.getLineaPedidos() == null || carrito.getLineaPedidos().isEmpty()) {
-            Notification.show("El pedido no puede estar vacío", 3000, Notification.Position.MIDDLE);
-            return;
-        }
-
-        try {
-            /* Volcado del carrito al pedido creado en BBDD */
-            for (LineaPedido lp : carrito.getLineaPedidos()) {
-                pedidoService.agregarProducto(pedidoActual.getCodigo(), lp.getProducto().getCodigo(), lp.getCantidad());
-            }
-
-            /* Confirmación y envío a cocina */
-            pedidoService.confirmarPedido(pedidoActual.getCodigo());
-
-            Notification.show("Pedido enviado a cocina", 3000, Notification.Position.MIDDLE);
-            setUiPedidoConfirmado();
-        } catch (Exception ex) {
-            Notification.show("Error confirmando: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
-        }
-    }
-
-    private void refrescarCarrito() {
+    protected void refrescarCarrito() {
         List<LineaPedido> items =
                 carrito != null && carrito.getLineaPedidos() != null ? carrito.getLineaPedidos() : List.of();
 
@@ -511,35 +435,14 @@ public class IniciarPedidoView extends VerticalLayout {
         }
         total.setText("Total: " + totalCalc + " €");
 
-        confirmar.setEnabled(hayPedidoCreado() && !items.isEmpty());
+        continuar.setEnabled(puedeContinuar());
     }
 
-    private boolean hayPedidoCreado() {
-        if (pedidoActual == null) {
-            return false;
-        }
-        return true;
+    protected String usernameActual() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
-    private void setUiPedidoCreado(boolean creado) {
-        filtroCategoria.setEnabled(creado);
-        buscador.setEnabled(creado);
-        btnEditarCarrito.setEnabled(creado);
-        gridCarrito.setEnabled(creado);
-        confirmar.setEnabled(creado && carrito != null && carrito.getLineaPedidos() != null && !carrito.getLineaPedidos().isEmpty());
-    }
-
-    private void setUiPedidoConfirmado() {
-        filtroCategoria.setEnabled(false);
-        buscador.setEnabled(false);
-        btnEditarCarrito.setEnabled(false);
-        gridCarrito.setEnabled(false);
-        confirmar.setEnabled(false);
-        crearPedido.setEnabled(false);
-        mesa.setEnabled(false);
-    }
-
-    private VerticalLayout crearCard() {
+    protected VerticalLayout crearCard() {
         VerticalLayout card = new VerticalLayout();
         card.setPadding(true);
         card.setSpacing(false);
@@ -551,4 +454,8 @@ public class IniciarPedidoView extends VerticalLayout {
         card.getStyle().set("gap", "12px");
         return card;
     }
+
+    protected abstract Component construirBloqueDetalles();
+    protected abstract boolean puedeContinuar();
+    protected abstract void onContinuar();
 }
