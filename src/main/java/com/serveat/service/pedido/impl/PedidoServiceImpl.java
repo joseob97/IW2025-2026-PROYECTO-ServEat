@@ -56,58 +56,74 @@ public class PedidoServiceImpl implements PedidoService {
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado: " + codigo));
     }
 
-    // Crea un pedido asociado a una mesa abierta.
-    @Override
-    public Pedido crearPedidoMesa(Integer numeroMesa) {
+    private void validarCarrito(Pedido carrito) {
+        if (carrito == null || carrito.getLineaPedidos() == null || carrito.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("El pedido no puede estar vacío");
+        }
+    }
+
+    private Cliente cargarCliente(String username) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+        return clienteRepo.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+    }
+
+    private ReservaMesa cargarOMesaAbierta(Integer numeroMesa) {
         if (numeroMesa == null || numeroMesa <= 0) {
             throw new IllegalArgumentException("Número de mesa inválido");
         }
-
-        ReservaMesa mesa = reservaMesaRepo
+        return reservaMesaRepo
                 .findByNumeroMesaAndEstado(numeroMesa, EstadoReservaMesa.ABIERTA)
                 .orElseGet(() -> reservaMesaRepo.save(new ReservaMesa(numeroMesa)));
+    }
+
+    // ------------------- Empleados / backoffice -------------------
+
+    @Override
+    public Pedido crearPedidoMesa(Integer numeroMesa) {
+
+        ReservaMesa mesa = cargarOMesaAbierta(numeroMesa);
 
         Pedido p = new Pedido();
         p.setCodigo(generarCodigo());
         p.setEstado(EstadoPedido.EN_CURSO);
         p.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
         p.setReservaMesa(mesa);
+        p.setTipoPedido(TipoPedidoCliente.MESA);
+        p.setEstadoReparto(EstadoReparto.NO_APLICA);
+        p.setDireccionEntrega(null);
 
         pedidoRepo.save(p);
         return cargarDetalle(p.getCodigo());
     }
 
-    // Devuelve un pedido por su código con detalle.
     @Override
     public Pedido obtenerPorCodigo(String codigo) {
         return cargarDetalle(codigo);
     }
 
-    // Devuelve todos los pedidos.
     @Override
     public List<Pedido> listarPedidos() {
         return pedidoRepo.findAll();
     }
 
-    //Devuelve todos los pedidos ordenados por fecha de creación descendente.
     @Override
     public List<Pedido> listarTodosOrdenadosPorFecha() {
         return pedidoRepo.findAllByOrderByFechaCreacionDesc();
     }
 
-    // Devuelve pedidos filtrados por estado.
     @Override
     public List<Pedido> buscarPorEstado(EstadoPedido estado) {
         return pedidoRepo.findByEstado(estado);
     }
 
-    // Devuelve pedidos filtrados por estado de cocina (para cocinero).
     @Override
     public List<Pedido> obtenerPedidosPorEstado(EstadoCocina estado) {
         return pedidoRepo.findByEstadoCocina(estado);
     }
 
-    // NUEVO: Devuelve pedidos filtrados por mesa (ordenados por fecha).
     @Override
     public List<Pedido> obtenerPedidosPorMesa(Integer numeroMesa) {
         if (numeroMesa == null || numeroMesa <= 0) {
@@ -116,19 +132,13 @@ public class PedidoServiceImpl implements PedidoService {
         return pedidoRepo.findByReservaMesa_NumeroMesaOrderByFechaCreacionDesc(numeroMesa);
     }
 
-    // NUEVO: Devuelve pedidos filtrados por estado y mesa (ordenados por fecha).
     @Override
     public List<Pedido> obtenerPedidosPorEstadoYMesa(EstadoCocina estado, Integer numeroMesa) {
-        if (estado == null) {
-            throw new IllegalArgumentException("El estado no puede ser nulo");
-        }
-        if (numeroMesa == null || numeroMesa <= 0) {
-            throw new IllegalArgumentException("Número de mesa inválido");
-        }
+        if (estado == null) throw new IllegalArgumentException("El estado no puede ser nulo");
+        if (numeroMesa == null || numeroMesa <= 0) throw new IllegalArgumentException("Número de mesa inválido");
         return pedidoRepo.findByEstadoCocinaAndReservaMesa_NumeroMesaOrderByFechaCreacionDesc(estado, numeroMesa);
     }
 
-    // Añade un producto a un pedido persistido.
     @Override
     public Pedido agregarProducto(String codigoPedido, String codigoProducto, int cantidad) {
         Pedido pedido = cargarDetalle(codigoPedido);
@@ -141,7 +151,6 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(codigoPedido);
     }
 
-    // Actualiza cantidad de un producto en un pedido persistido.
     @Override
     public Pedido actualizarCantidadProducto(String codigoPedido, String codigoProducto, int nuevaCantidad) {
         Pedido pedido = cargarDetalle(codigoPedido);
@@ -150,7 +159,6 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(codigoPedido);
     }
 
-    // Elimina un producto de un pedido persistido.
     @Override
     public Pedido eliminarProducto(String codigoPedido, String codigoProducto) {
         Pedido pedido = cargarDetalle(codigoPedido);
@@ -159,18 +167,13 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(codigoPedido);
     }
 
-    // Añade un producto a un pedido en memoria (carrito).
+    // ------------------- Carrito (memoria) -------------------
+
     @Override
     public Pedido agregarProductoEnMemoria(Pedido pedido, Producto producto, int cantidad) {
-        if (pedido == null) {
-            throw new IllegalArgumentException("Pedido inválido");
-        }
-        if (producto == null) {
-            throw new IllegalArgumentException("Producto inválido");
-        }
-        if (cantidad <= 0) {
-            throw new IllegalArgumentException("Cantidad inválida");
-        }
+        if (pedido == null) throw new IllegalArgumentException("Pedido inválido");
+        if (producto == null) throw new IllegalArgumentException("Producto inválido");
+        if (cantidad <= 0) throw new IllegalArgumentException("Cantidad inválida");
 
         LineaPedido existente = pedido.getLineaPedidos().stream()
                 .filter(lp -> lp.getProducto().getCodigo().equals(producto.getCodigo()))
@@ -182,19 +185,13 @@ public class PedidoServiceImpl implements PedidoService {
         } else {
             pedido.getLineaPedidos().add(new LineaPedido(pedido, producto, cantidad));
         }
-
         return pedido;
     }
 
-    // Actualiza cantidad en un pedido en memoria (carrito).
     @Override
     public Pedido actualizarCantidadEnMemoria(Pedido pedido, String codigoProducto, int nuevaCantidad) {
-        if (pedido == null) {
-            throw new IllegalArgumentException("Pedido inválido");
-        }
-        if (codigoProducto == null || codigoProducto.isBlank()) {
-            throw new IllegalArgumentException("Producto inválido");
-        }
+        if (pedido == null) throw new IllegalArgumentException("Pedido inválido");
+        if (codigoProducto == null || codigoProducto.isBlank()) throw new IllegalArgumentException("Producto inválido");
 
         LineaPedido lp = pedido.getLineaPedidos().stream()
                 .filter(l -> l.getProducto().getCodigo().equals(codigoProducto))
@@ -206,31 +203,23 @@ public class PedidoServiceImpl implements PedidoService {
         } else {
             lp.setCantidad(nuevaCantidad);
         }
-
         return pedido;
     }
 
-    // Elimina un producto de un pedido en memoria (carrito).
     @Override
     public Pedido eliminarProductoEnMemoria(Pedido pedido, String codigoProducto) {
-        if (pedido == null) {
-            throw new IllegalArgumentException("Pedido inválido");
-        }
-        if (codigoProducto == null || codigoProducto.isBlank()) {
-            throw new IllegalArgumentException("Producto inválido");
-        }
+        if (pedido == null) throw new IllegalArgumentException("Pedido inválido");
+        if (codigoProducto == null || codigoProducto.isBlank()) throw new IllegalArgumentException("Producto inválido");
 
         boolean removed = pedido.getLineaPedidos()
                 .removeIf(l -> l.getProducto().getCodigo().equals(codigoProducto));
 
-        if (!removed) {
-            throw new IllegalArgumentException("Producto no está en el pedido");
-        }
-
+        if (!removed) throw new IllegalArgumentException("Producto no está en el pedido");
         return pedido;
     }
 
-    // Confirma un pedido para enviarlo a cocina.
+    // ------------------- Confirmaciones -------------------
+
     @Override
     public Pedido confirmarPedido(String codigoPedido) {
         Pedido pedido = cargarDetalle(codigoPedido);
@@ -244,25 +233,19 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(codigoPedido);
     }
 
-    // Persiste cambios en un pedido (camarero).
     @Override
     public Pedido confirmarCambiosPedido(Pedido pedidoEditado, String usuario) {
 
-        if (pedidoEditado == null) {
-            throw new IllegalArgumentException("Pedido inválido");
-        }
-        if (pedidoEditado.getLineaPedidos() == null || pedidoEditado.getLineaPedidos().isEmpty()) {
+        if (pedidoEditado == null) throw new IllegalArgumentException("Pedido inválido");
+        if (pedidoEditado.getLineaPedidos() == null || pedidoEditado.getLineaPedidos().isEmpty())
             throw new IllegalArgumentException("El pedido no puede quedar vacío");
-        }
 
         boolean modificable =
                 pedidoEditado.getEstado() == EstadoPedido.EN_CURSO
                         || (pedidoEditado.getEstado() == EstadoPedido.EN_COCINA
                         && pedidoEditado.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION);
 
-        if (!modificable) {
-            throw new IllegalArgumentException("La cocina ya ha aceptado el pedido");
-        }
+        if (!modificable) throw new IllegalArgumentException("La cocina ya ha aceptado el pedido");
 
         pedidoEditado.marcarModificado(usuario);
 
@@ -270,7 +253,6 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(pedidoEditado.getCodigo());
     }
 
-    // Persiste cambios en un pedido del cliente si es modificable.
     @Override
     public Pedido confirmarCambiosPedidoCliente(Pedido pedidoEditado, String username) {
 
@@ -280,22 +262,13 @@ public class PedidoServiceImpl implements PedidoService {
 
         Pedido actual = cargarDetalleCliente(pedidoEditado.getCodigo(), username);
 
-        if (actual.getEstado() == EstadoPedido.ANULADO) {
-            throw new IllegalArgumentException("Pedido anulado");
-        }
-
-        if (actual.getEstadoCocina() != EstadoCocina.PENDIENTE_ACEPTACION) {
+        if (actual.getEstado() == EstadoPedido.ANULADO) throw new IllegalArgumentException("Pedido anulado");
+        if (actual.getEstadoCocina() != EstadoCocina.PENDIENTE_ACEPTACION)
             throw new IllegalArgumentException("La cocina ya ha aceptado el pedido");
-        }
 
         actual.getLineaPedidos().clear();
-
         for (LineaPedido lp : pedidoEditado.getLineaPedidos()) {
-            actual.getLineaPedidos().add(new LineaPedido(
-                    actual,
-                    lp.getProducto(),
-                    lp.getCantidad()
-            ));
+            actual.getLineaPedidos().add(new LineaPedido(actual, lp.getProducto(), lp.getCantidad()));
         }
 
         actual.marcarModificado(username);
@@ -304,14 +277,12 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(actual.getCodigo());
     }
 
-    // Carga el pedido de un cliente validando pertenencia.
     @Override
     public Pedido cargarDetalleCliente(String codigo, String username) {
         return pedidoRepo.findWithDetalleByCodigoAndCliente_Username(codigo, username)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado o no pertenece al cliente"));
     }
 
-    // Cancela un pedido si el estado lo permite.
     @Override
     public Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername) {
 
@@ -322,9 +293,7 @@ public class PedidoServiceImpl implements PedidoService {
                         || (pedido.getEstado() == EstadoPedido.EN_COCINA
                         && pedido.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION);
 
-        if (!cancelable) {
-            throw new IllegalArgumentException("No se puede cancelar el pedido");
-        }
+        if (!cancelable) throw new IllegalArgumentException("No se puede cancelar el pedido");
 
         pedido.setEstado(EstadoPedido.ANULADO);
         pedido.setEstadoCocina(EstadoCocina.CANCELADO);
@@ -336,19 +305,13 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalle(codigoPedido);
     }
 
-    // Indica si un pedido es modificable por el cliente.
     @Override
     public boolean puedeModificarCliente(Pedido pedido) {
-        if (pedido == null) {
-            return false;
-        }
-        if (pedido.getEstado() == EstadoPedido.ANULADO) {
-            return false;
-        }
+        if (pedido == null) return false;
+        if (pedido.getEstado() == EstadoPedido.ANULADO) return false;
         return pedido.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION;
     }
 
-    // Lista pedidos modificables por regla de negocio.
     @Override
     public List<Pedido> listarPedidosModificables() {
         return pedidoRepo.findByEstadoOrEstadoAndEstadoCocina(
@@ -358,7 +321,6 @@ public class PedidoServiceImpl implements PedidoService {
         );
     }
 
-    // Lista pedidos modificables filtrando por mesa.
     @Override
     public List<Pedido> listarPedidosModificablesPorMesa(Integer numeroMesa) {
         return pedidoRepo.findByReservaMesa_NumeroMesaAndEstadoOrReservaMesa_NumeroMesaAndEstadoAndEstadoCocina(
@@ -370,115 +332,91 @@ public class PedidoServiceImpl implements PedidoService {
         );
     }
 
-    // Crea un pedido desde el carrito del cliente (sin pago).
-    @Override
-    public Pedido crearPedidoDesdeCliente(Pedido pedidoEnMemoria, String username) {
-
-        if (pedidoEnMemoria == null || pedidoEnMemoria.getLineaPedidos() == null || pedidoEnMemoria.getLineaPedidos().isEmpty()) {
-            throw new IllegalArgumentException("El pedido no puede estar vacío");
-        }
-
-        Cliente cliente = clienteRepo.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-
-        Pedido nuevo = new Pedido();
-        nuevo.setCodigo(generarCodigo());
-        nuevo.setEstado(EstadoPedido.EN_CURSO);
-        nuevo.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
-        nuevo.setCliente(cliente);
-        nuevo.setTipoPedido(TipoPedidoCliente.RECOGER);
-        nuevo.setDireccionEntrega(null);
-
-        for (LineaPedido lp : pedidoEnMemoria.getLineaPedidos()) {
-            nuevo.getLineaPedidos().add(
-                    new LineaPedido(nuevo, lp.getProducto(), lp.getCantidad())
-            );
-        }
-
-        pedidoRepo.save(nuevo);
-        return cargarDetalle(nuevo.getCodigo());
-    }
-
-    // Lista pedidos de un cliente ordenados por fecha.
     @Override
     public List<Pedido> listarPedidosCliente(String username) {
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Usuario inválido");
-        }
+        if (username == null || username.isBlank()) throw new IllegalArgumentException("Usuario inválido");
         return pedidoRepo.findByCliente_UsernameOrderByFechaCreacionDesc(username);
     }
 
-    // Crea un pedido en mesa desde el carrito del cliente.
+    // ------------------- Cliente: creación clara -------------------
+
     @Override
-    public Pedido crearPedidoMesaDesdeCliente(Pedido pedidoEnMemoria, Integer numeroMesa, String username) {
+    public Pedido crearPedidoClienteRecoger(Pedido carrito, String username) {
+        return crearPedidoClienteBase(carrito, username, TipoPedidoCliente.RECOGER, null, null, false);
+    }
 
-        if (numeroMesa == null || numeroMesa <= 0) {
-            throw new IllegalArgumentException("Número de mesa inválido");
+    @Override
+    public Pedido crearPedidoClienteDomicilio(Pedido carrito, String username, String direccionEntrega) {
+        if (direccionEntrega == null || direccionEntrega.trim().isBlank()) {
+            throw new IllegalArgumentException("La dirección de entrega es obligatoria");
         }
+        return crearPedidoClienteBase(carrito, username, TipoPedidoCliente.DOMICILIO, direccionEntrega.trim(), null, false);
+    }
 
-        if (pedidoEnMemoria == null || pedidoEnMemoria.getLineaPedidos() == null || pedidoEnMemoria.getLineaPedidos().isEmpty()) {
-            throw new IllegalArgumentException("El pedido no puede estar vacío");
-        }
+    @Override
+    public Pedido crearPedidoClienteMesa(Pedido carrito, String username, Integer numeroMesa) {
+        return crearPedidoClienteBase(carrito, username, TipoPedidoCliente.MESA, null, numeroMesa, true);
+    }
 
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Usuario inválido");
-        }
+    private Pedido crearPedidoClienteBase(Pedido carrito,
+                                          String username,
+                                          TipoPedidoCliente tipo,
+                                          String direccionEntrega,
+                                          Integer numeroMesa,
+                                          boolean enviarDirectoACocina) {
 
-        Cliente cliente = clienteRepo.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-
-        ReservaMesa mesa = reservaMesaRepo
-                .findByNumeroMesaAndEstado(numeroMesa, EstadoReservaMesa.ABIERTA)
-                .orElseGet(() -> reservaMesaRepo.save(new ReservaMesa(numeroMesa)));
+        validarCarrito(carrito);
+        Cliente cliente = cargarCliente(username);
 
         Pedido nuevo = new Pedido();
         nuevo.setCodigo(generarCodigo());
-        nuevo.setEstado(EstadoPedido.EN_CURSO);
-        nuevo.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
-        nuevo.setReservaMesa(mesa);
         nuevo.setCliente(cliente);
+        nuevo.setTipoPedido(tipo);
 
-        nuevo.setTipoPedido(TipoPedidoCliente.RECOGER);
-        nuevo.setDireccionEntrega(null);
+        if (tipo == TipoPedidoCliente.DOMICILIO) {
+            nuevo.setDireccionEntrega(direccionEntrega);
+            // reparto aplicará; lo pondrá cocina al marcar LISTO (tu lógica actual)
+        } else {
+            nuevo.setDireccionEntrega(null);
+            nuevo.setEstadoReparto(EstadoReparto.NO_APLICA);
+        }
 
-        for (LineaPedido lp : pedidoEnMemoria.getLineaPedidos()) {
-            nuevo.getLineaPedidos().add(new LineaPedido(
-                    nuevo,
-                    lp.getProducto(),
-                    lp.getCantidad()
-            ));
+        if (tipo == TipoPedidoCliente.MESA) {
+            ReservaMesa mesa = cargarOMesaAbierta(numeroMesa);
+            nuevo.setReservaMesa(mesa);
+        }
+
+        // Estados iniciales
+        if (enviarDirectoACocina) {
+            nuevo.setEstado(EstadoPedido.EN_COCINA);
+        } else {
+            // recoger/domicilio: se crea y pasa a cocina al confirmar pago
+            nuevo.setEstado(EstadoPedido.EN_CURSO);
+        }
+        nuevo.setEstadoCocina(EstadoCocina.PENDIENTE_ACEPTACION);
+
+        for (LineaPedido lp : carrito.getLineaPedidos()) {
+            nuevo.getLineaPedidos().add(new LineaPedido(nuevo, lp.getProducto(), lp.getCantidad()));
         }
 
         pedidoRepo.save(nuevo);
         return cargarDetalle(nuevo.getCodigo());
     }
 
-    // Inicia un pago pendiente creando el pedido del carrito.
+    // ------------------- Pago online -------------------
+
     @Override
     public Pago iniciarPagoOnline(Pedido carrito, String username, MetodoPago metodo) {
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Usuario inválido");
-        }
-        if (carrito == null || carrito.getLineaPedidos() == null || carrito.getLineaPedidos().isEmpty()) {
-            throw new IllegalArgumentException("El carrito está vacío");
-        }
-        if (metodo == null) {
-            throw new IllegalArgumentException("Método de pago inválido");
-        }
-
-        Pedido pedidoCreado = crearPedidoDesdeCliente(carrito, username);
+        if (metodo == null) throw new IllegalArgumentException("Método de pago inválido");
+        // Si quieres soportar domicilio, la pasarela llamará al método correcto antes de pago
+        Pedido pedidoCreado = crearPedidoClienteRecoger(carrito, username);
         return pagoService.iniciarPago(pedidoCreado, metodo);
     }
 
-    // Devuelve un pago validando que pertenece al cliente.
     @Override
     public Pago obtenerPagoCliente(Long pagoId, String username) {
-        if (pagoId == null) {
-            throw new IllegalArgumentException("Pago inválido");
-        }
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Usuario inválido");
-        }
+        if (pagoId == null) throw new IllegalArgumentException("Pago inválido");
+        if (username == null || username.isBlank()) throw new IllegalArgumentException("Usuario inválido");
 
         Pago pago = pagoRepo.findById(pagoId)
                 .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado"));
@@ -487,31 +425,22 @@ public class PedidoServiceImpl implements PedidoService {
         if (pedido == null || pedido.getCliente() == null || !username.equals(pedido.getCliente().getUsername())) {
             throw new IllegalArgumentException("Pago no pertenece al cliente");
         }
-
         return pago;
     }
 
-    // Confirma el pago y envía el pedido a cocina.
     @Override
     public Pedido confirmarPagoOnline(Long pagoId, String username, String referencia) {
         Pago pago = obtenerPagoCliente(pagoId, username);
 
-        if (pago.getEstado() == EstadoPago.CONFIRMADO) {
-            throw new IllegalArgumentException("El pago ya está confirmado");
-        }
-        if (pago.getEstado() == EstadoPago.FALLIDO) {
-            throw new IllegalArgumentException("El pago está marcado como fallido");
-        }
+        if (pago.getEstado() == EstadoPago.CONFIRMADO) throw new IllegalArgumentException("El pago ya está confirmado");
+        if (pago.getEstado() == EstadoPago.FALLIDO) throw new IllegalArgumentException("El pago está marcado como fallido");
 
         Pago confirmado = pagoService.confirmarPago(pago.getId(), referencia);
 
         Pedido pedido = confirmado.getPedido();
-        if (pedido.getEstado() == EstadoPedido.ANULADO) {
-            throw new IllegalArgumentException("Pedido anulado");
-        }
-        if (pedido.getLineaPedidos() == null || pedido.getLineaPedidos().isEmpty()) {
+        if (pedido.getEstado() == EstadoPedido.ANULADO) throw new IllegalArgumentException("Pedido anulado");
+        if (pedido.getLineaPedidos() == null || pedido.getLineaPedidos().isEmpty())
             throw new IllegalArgumentException("El pedido no puede estar vacío");
-        }
 
         pedido.setEstado(EstadoPedido.EN_COCINA);
         pedidoRepo.save(pedido);
@@ -519,14 +448,11 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalleCliente(pedido.getCodigo(), username);
     }
 
-    // Marca el pago como fallido (sin confirmar pedido).
     @Override
     public Pedido marcarPagoOnlineFallido(Long pagoId, String username, String motivo) {
         Pago pago = obtenerPagoCliente(pagoId, username);
 
-        if (pago.getEstado() == EstadoPago.CONFIRMADO) {
-            throw new IllegalArgumentException("El pago ya está confirmado");
-        }
+        if (pago.getEstado() == EstadoPago.CONFIRMADO) throw new IllegalArgumentException("El pago ya está confirmado");
 
         String m = (motivo == null || motivo.isBlank()) ? "Cancelado por el cliente" : motivo.trim();
         pagoService.marcarPagoFallido(pago.getId(), m);
@@ -535,26 +461,54 @@ public class PedidoServiceImpl implements PedidoService {
         return cargarDetalleCliente(pedido.getCodigo(), username);
     }
 
+    // ------------------- Cocina -------------------
+
     @Override
     @Transactional(readOnly = true)
     public Pedido obtenerPedidoPorId(UUID id) {
-
         return pedidoRepo.findWithDetalleById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado con ID: " + id));
     }
 
     @Override
-    @Transactional
     public Pedido cambiarEstadoCocina(UUID id, EstadoCocina nuevoEstado) {
         Pedido pedido = obtenerPedidoPorId(id);
 
+        if (nuevoEstado == null) {
+            throw new IllegalArgumentException("Estado de cocina inválido");
+        }
+
+        if (pedido.getEstado() == EstadoPedido.ANULADO) {
+            throw new IllegalArgumentException("No se puede modificar un pedido anulado");
+        }
+
         if (pedido.getEstadoCocina() == nuevoEstado) {
-            return pedido; // No hacer cambios si es el mismo estado
+            return pedido;
+        }
+
+        /* La cocina siempre trabaja sobre pedidos en flujo de cocina */
+        if (pedido.getEstado() != EstadoPedido.EN_COCINA) {
+            pedido.setEstado(EstadoPedido.EN_COCINA);
         }
 
         pedido.setEstadoCocina(nuevoEstado);
-        pedido.marcarModificado("COCINERO");
 
+        /* Al marcar LISTO: domicilio pasa a reparto, resto NO_APLICA */
+        if (nuevoEstado == EstadoCocina.LISTO) {
+            if (pedido.getTipoPedido() == TipoPedidoCliente.DOMICILIO) {
+                pedido.setEstadoReparto(EstadoReparto.PENDIENTE_ASIGNACION);
+            } else {
+                pedido.setEstadoReparto(EstadoReparto.NO_APLICA);
+            }
+        }
+
+        /* Si se cancela desde cocina, se anula el pedido completo */
+        if (nuevoEstado == EstadoCocina.CANCELADO) {
+            pedido.setEstado(EstadoPedido.ANULADO);
+            pedido.setEstadoReparto(EstadoReparto.NO_APLICA);
+        }
+
+        pedido.marcarModificado("COCINERO");
         return pedidoRepo.save(pedido);
     }
 }

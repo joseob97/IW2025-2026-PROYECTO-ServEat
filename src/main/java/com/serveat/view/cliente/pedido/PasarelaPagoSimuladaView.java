@@ -3,6 +3,7 @@ package com.serveat.view.cliente.pedido;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.pedido.TipoPedidoCliente;
 import com.serveat.service.pago.PagoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
@@ -37,6 +38,9 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
     private transient Pedido carrito;
     private transient MetodoPago metodo;
     private transient String username;
+
+    private transient TipoPedidoCliente tipoPedido;
+    private transient String direccionEntrega;
 
     private final Span info = new Span("Cargando...");
     private final Span total = new Span("Total: -");
@@ -92,7 +96,7 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         confirmar.addClickListener(e -> confirmarPago());
 
         volver.setWidth("260px");
-        volver.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate(CrearPedidoDomicilioView.class)));
+        volver.addClickListener(e -> volverAlCarrito());
 
         HorizontalLayout acciones = new HorizontalLayout(confirmar, volver);
         acciones.setWidthFull();
@@ -113,16 +117,27 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         metodo = (MetodoPago) event.getUI().getSession().getAttribute("pedidoOnlineMetodoPago");
         username = (String) event.getUI().getSession().getAttribute("pedidoOnlineUsername");
 
+        tipoPedido = (TipoPedidoCliente) event.getUI().getSession().getAttribute("pedidoOnlineTipo");
+        direccionEntrega = (String) event.getUI().getSession().getAttribute("pedidoOnlineDireccion");
+
         if (carrito == null || carrito.getLineaPedidos() == null || carrito.getLineaPedidos().isEmpty()
-                || username == null || username.isBlank()) {
+                || username == null || username.isBlank()
+                || tipoPedido == null) {
             Notification.show("No hay carrito para pagar. Vuelve a crear el pedido.", 3500, Notification.Position.MIDDLE);
-            event.forwardTo(CrearPedidoDomicilioView.class);
+            event.forwardTo(PanelPedidoClienteView.class);
+            return;
+        }
+
+        // Mesa no pasa por pasarela
+        if (tipoPedido == TipoPedidoCliente.MESA) {
+            Notification.show("El pedido en mesa no usa pasarela de pago.", 3500, Notification.Position.MIDDLE);
+            event.forwardTo(PanelPedidoClienteView.class);
             return;
         }
 
         metodoPago.setValue(metodo);
 
-        info.setText("Usuario: " + username);
+        info.setText("Usuario: " + username + " | Tipo: " + tipoPedido);
         total.setText("Total: " + carrito.calcularPrecioTotal() + " €");
 
         setAccionesEnabled(true);
@@ -133,7 +148,11 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         try {
             setAccionesEnabled(false);
 
-            Pedido pedidoCreado = pedidoService.crearPedidoDesdeCliente(carrito, username);
+            Pedido pedidoCreado = switch (tipoPedido) {
+                case RECOGER -> pedidoService.crearPedidoClienteRecoger(carrito, username);
+                case DOMICILIO -> pedidoService.crearPedidoClienteDomicilio(carrito, username, direccionEntrega);
+                case MESA -> throw new IllegalArgumentException("El pedido en mesa no usa pasarela de pago");
+            };
 
             BigDecimal pagaCon = efectivoPagaCon.getValue() != null
                     ? BigDecimal.valueOf(efectivoPagaCon.getValue())
@@ -162,11 +181,23 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         }
     }
 
+    private void volverAlCarrito() {
+        getUI().ifPresent(ui -> {
+            if (tipoPedido == TipoPedidoCliente.DOMICILIO) {
+                ui.navigate(CrearPedidoDomicilioCartaView.class);
+            } else {
+                ui.navigate(CrearPedidoRecogerCartaView.class);
+            }
+        });
+    }
+
     private void limpiarSesion() {
         getUI().ifPresent(ui -> {
             ui.getSession().setAttribute("pedidoOnlineCarrito", null);
             ui.getSession().setAttribute("pedidoOnlineMetodoPago", null);
             ui.getSession().setAttribute("pedidoOnlineUsername", null);
+            ui.getSession().setAttribute("pedidoOnlineTipo", null);
+            ui.getSession().setAttribute("pedidoOnlineDireccion", null);
         });
     }
 
