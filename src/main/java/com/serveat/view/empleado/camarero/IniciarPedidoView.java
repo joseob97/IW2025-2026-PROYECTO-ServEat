@@ -8,58 +8,69 @@ import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
+
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @PageTitle("Iniciar Pedido | Camarero")
 @Route(value = "empleado/camarero/pedidos/nuevo", layout = MainLayout.class)
 @Secured("ROLE_CAMARERO")
 public class IniciarPedidoView extends VerticalLayout {
 
-    // SERVICIOS (transient para Sonar/Vaadin)
+    /* Servicios */
     private final transient PedidoService pedidoService;
     private final transient ProductoService productoService;
     private final transient CategoriaService categoriaService;
 
-    // ESTADO DE LA VISTA
+    /* Estado */
     private transient Pedido pedidoActual;
+    private transient Pedido carrito = new Pedido();
 
-    private final Grid<LineaPedido> grid = new Grid<>(LineaPedido.class, false);
+    /* Filtros */
+    private final ComboBox<String> filtroCategoria = new ComboBox<>("Categoría");
+    private final TextField buscador = new TextField("Buscar");
+
+    /* Zona productos */
+    private final VerticalLayout contenido = new VerticalLayout();
+
+    /* Carrito */
+    private final Grid<LineaPedido> gridCarrito = new Grid<>(LineaPedido.class, false);
     private final Span total = new Span("Total: 0 €");
 
-    // UI refs
+    /* Cabecera mesa */
     private final IntegerField mesa = new IntegerField("Número de mesa");
     private final TextField codigo = new TextField("Código pedido");
     private final Button crearPedido = new Button("Crear pedido");
 
-    // FILTROS DE PRODUCTO
-    private final TextField buscarProducto = new TextField("Buscar producto");
-    private final ComboBox<String> filtroCategoria = new ComboBox<>("Categoría");
-
-    private final ComboBox<Producto> comboProducto = new ComboBox<>("Producto");
-    private final IntegerField cantidad = new IntegerField("Cantidad");
-    private final Button anadir = new Button("Añadir");
-
-    // Confirmación
+    /* Botón principal */
     private final Button confirmar = new Button("✅ Confirmar pedido (Enviar a cocina)");
+
+    /* Modo edición del carrito */
+    private boolean editarCarrito = false;
+    private Grid.Column<LineaPedido> colAcciones;
+    private final Button btnEditarCarrito = new Button("✏️ Editar carrito");
 
     public IniciarPedidoView(PedidoService pedidoService,
                              ProductoService productoService,
                              CategoriaService categoriaService) {
-
         this.pedidoService = pedidoService;
         this.productoService = productoService;
         this.categoriaService = categoriaService;
@@ -67,150 +78,294 @@ public class IniciarPedidoView extends VerticalLayout {
         setSpacing(false);
         setPadding(true);
         setWidthFull();
-
-        // Un poco de “aire” general y ancho cómodo tipo “card”
-        getStyle().set("gap", "18px");
-        getStyle().set("max-width", "1100px");
+        getStyle().set("gap", "16px");
+        getStyle().set("max-width", "1280px");
         getStyle().set("margin", "0 auto");
+
+        /* Inicialización defensiva del carrito en memoria */
+        if (carrito.getLineaPedidos() == null) {
+            carrito.setLineaPedidos(new ArrayList<>());
+        }
 
         H3 titulo = new H3("Iniciar pedido de mesa");
         titulo.getStyle().set("margin", "0");
         add(titulo);
 
-        // CREAR PEDIDO
+        add(crearBloqueMesa());
+        add(crearBloqueCartaYCarrito());
 
-        VerticalLayout cardPedido = crearCard();
-        cardPedido.getStyle().set("gap", "14px");
+        cargarProductos();
+        refrescarCarrito();
+        setUiPedidoCreado(false);
+    }
+
+    private Component crearBloqueMesa() {
+        VerticalLayout card = crearCard();
+        card.getStyle().set("gap", "14px");
 
         mesa.setMin(1);
         mesa.setStepButtonsVisible(true);
         mesa.setWidth("260px");
 
-        crearPedido.addClickListener(e -> crearPedidoMesa());
         crearPedido.setWidth("260px");
+        crearPedido.getStyle().set("font-weight", "700");
+        crearPedido.addClickListener(e -> crearPedidoMesa());
 
         codigo.setReadOnly(true);
         codigo.setWidth("320px");
 
-        // Centrado y con separación (botón debajo)
         VerticalLayout bloqueMesa = new VerticalLayout(mesa, crearPedido);
         bloqueMesa.setPadding(false);
         bloqueMesa.setSpacing(false);
         bloqueMesa.getStyle().set("gap", "10px");
         bloqueMesa.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        HorizontalLayout filaPedido = new HorizontalLayout(bloqueMesa, codigo);
-        filaPedido.setWidthFull();
-        filaPedido.setSpacing(true);
-        filaPedido.getStyle().set("gap", "18px");
-        filaPedido.setAlignItems(FlexComponent.Alignment.END);
-        filaPedido.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+        HorizontalLayout fila = new HorizontalLayout(bloqueMesa, codigo);
+        fila.setWidthFull();
+        fila.setSpacing(true);
+        fila.getStyle().set("gap", "18px");
+        fila.setAlignItems(FlexComponent.Alignment.END);
 
-        cardPedido.add(filaPedido);
-        add(cardPedido);
-
-        // AÑADIR PRODUCTOS
-
-        H3 tituloAdd = new H3("Añadir productos");
-        tituloAdd.getStyle().set("margin", "6px 0 0 0");
-        add(tituloAdd);
-
-        VerticalLayout cardProductos = crearCard();
-        cardProductos.getStyle().set("gap", "14px");
-
-        configurarFiltrosProducto();
-        configurarComboProducto();
-
-        buscarProducto.setWidth("360px");
-        filtroCategoria.setWidth("260px");
-
-        HorizontalLayout filtros = new HorizontalLayout(buscarProducto, filtroCategoria);
-        filtros.setWidthFull();
-        filtros.setSpacing(false);
-        filtros.getStyle().set("gap", "14px");
-        filtros.setAlignItems(FlexComponent.Alignment.END);
-        filtros.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
-
-        cantidad.setMin(1);
-        cantidad.setStepButtonsVisible(true);
-        cantidad.setValue(1);
-        cantidad.setWidth("160px");
-
-        anadir.addClickListener(e -> anadirProducto());
-        anadir.setWidth("420px");
-
-        // “Producto + botón debajo” con aire
-        VerticalLayout bloqueProducto = new VerticalLayout(comboProducto, anadir);
-        bloqueProducto.setPadding(false);
-        bloqueProducto.setSpacing(false);
-        bloqueProducto.getStyle().set("gap", "10px");
-        bloqueProducto.setAlignItems(FlexComponent.Alignment.STRETCH);
-        bloqueProducto.setWidth("420px");
-
-        HorizontalLayout filaAdd = new HorizontalLayout(bloqueProducto, cantidad);
-        filaAdd.setWidthFull();
-        filaAdd.setSpacing(false);
-        filaAdd.getStyle().set("gap", "14px");
-        filaAdd.setAlignItems(FlexComponent.Alignment.END);
-        filaAdd.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
-
-        cardProductos.add(filtros, filaAdd);
-        add(cardProductos);
-
-        // GRID DE PRODUCTOS
-
-        H3 tituloGrid = new H3("Productos añadidos");
-        tituloGrid.getStyle().set("margin", "6px 0 0 0");
-        add(tituloGrid);
-
-        VerticalLayout cardGrid = crearCard();
-        cardGrid.getStyle().set("gap", "12px");
-
-        configurarGrid();
-
-        grid.setWidthFull();
-        grid.getStyle().set("border-radius", "10px");
-        grid.getStyle().set("overflow", "hidden");
-
-        total.getStyle().set("font-weight", "600");
-        total.getStyle().set("font-size", "1.05rem");
-
-        HorizontalLayout pie = new HorizontalLayout(total);
-        pie.setWidthFull();
-        pie.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
-
-        cardGrid.add(grid, pie);
-        add(cardGrid);
-
-        // CONFIRMAR PEDIDO
-
-        VerticalLayout cardConfirmar = crearCard();
-        cardConfirmar.setPadding(true);
-        cardConfirmar.getStyle().set("gap", "10px");
-
-        confirmar.addClickListener(e -> confirmarPedido());
-        confirmar.getStyle().set("font-weight", "600");
-        confirmar.setWidth("360px");
-
-        HorizontalLayout filaConfirmar = new HorizontalLayout(confirmar);
-        filaConfirmar.setWidthFull();
-        filaConfirmar.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-
-        cardConfirmar.add(filaConfirmar);
-        add(cardConfirmar);
-
-        // Estado inicial
-        setUiPedidoCreado(false);
-        recargarProductos();
+        card.add(fila);
+        return card;
     }
 
-    private VerticalLayout crearCard() {
-        VerticalLayout card = new VerticalLayout();
+    private Component crearBloqueCartaYCarrito() {
+        configurarFiltros();
+
+        HorizontalLayout filtros = new HorizontalLayout(filtroCategoria, buscador);
+        filtros.setWidthFull();
+        filtros.setSpacing(false);
+        filtros.getStyle().set("gap", "12px");
+        filtroCategoria.setWidth("260px");
+        buscador.setWidth("360px");
+
+        HorizontalLayout main = new HorizontalLayout();
+        main.setWidthFull();
+        main.setSpacing(false);
+        main.getStyle().set("gap", "16px");
+
+        /* Izquierda: carta */
+        VerticalLayout izquierda = crearCard();
+        izquierda.setWidthFull();
+        izquierda.getStyle().set("flex", "2");
+        izquierda.getStyle().set("gap", "12px");
+
+        contenido.setWidthFull();
+        contenido.setPadding(false);
+        contenido.setSpacing(false);
+        contenido.getStyle().set("gap", "18px");
+
+        izquierda.add(new H3("Carta"), filtros, contenido);
+
+        /* Derecha: carrito + confirmar */
+        VerticalLayout derecha = new VerticalLayout();
+        derecha.setPadding(false);
+        derecha.setSpacing(false);
+        derecha.getStyle().set("gap", "14px");
+        derecha.getStyle().set("flex", "1");
+        derecha.setWidth("520px");
+
+        VerticalLayout cardCarrito = crearCard();
+        cardCarrito.getStyle().set("gap", "12px");
+
+        H3 hCarrito = new H3("Carrito");
+        hCarrito.getStyle().set("margin", "0");
+
+        btnEditarCarrito.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        btnEditarCarrito.getStyle().set("font-weight", "700");
+
+        HorizontalLayout filaTop = new HorizontalLayout(hCarrito);
+        filaTop.setWidthFull();
+        filaTop.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        HorizontalLayout filaEditar = new HorizontalLayout(btnEditarCarrito);
+        filaEditar.setWidthFull();
+        filaEditar.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+
+        btnEditarCarrito.addClickListener(e -> {
+            editarCarrito = !editarCarrito;
+            btnEditarCarrito.setText(editarCarrito ? "✅ Listo" : "✏️ Editar carrito");
+            if (colAcciones != null) colAcciones.setVisible(editarCarrito);
+            gridCarrito.getDataProvider().refreshAll();
+        });
+
+        configurarGridCarrito();
+
+        cardCarrito.add(filaTop, filaEditar, gridCarrito, total);
+
+        VerticalLayout cardConfirmar = crearCard();
+        cardConfirmar.getStyle().set("gap", "10px");
+
+        confirmar.setWidthFull();
+        confirmar.getStyle().set("font-weight", "700");
+        confirmar.addClickListener(e -> confirmarPedido());
+
+        cardConfirmar.add(new H3("Acción"), confirmar);
+
+        derecha.add(cardCarrito, cardConfirmar);
+
+        main.add(izquierda, derecha);
+        main.setFlexGrow(2, izquierda);
+        main.setFlexGrow(1, derecha);
+
+        return main;
+    }
+
+    private void configurarFiltros() {
+        filtroCategoria.setItems(
+                categoriaService.listarCategorias().stream()
+                        .map(Categoria::getNombre)
+                        .filter(Objects::nonNull)
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .toList()
+        );
+        filtroCategoria.setClearButtonVisible(true);
+        filtroCategoria.addValueChangeListener(e -> cargarProductos());
+
+        buscador.setPlaceholder("Buscar por nombre...");
+        buscador.setClearButtonVisible(true);
+        buscador.setValueChangeMode(ValueChangeMode.EAGER);
+        buscador.addValueChangeListener(e -> cargarProductos());
+    }
+
+    private void cargarProductos() {
+        String categoria = filtroCategoria.getValue();
+        String texto = buscador.getValue() != null ? buscador.getValue().trim() : "";
+
+        List<Producto> productos;
+
+        if (categoria != null && !categoria.isBlank()) {
+            productos = productoService.buscarPorCategoria(categoria);
+            if (!texto.isBlank()) {
+                String t = texto.toLowerCase(Locale.ROOT);
+                productos = productos.stream()
+                        .filter(p -> p.getNombre() != null && p.getNombre().toLowerCase(Locale.ROOT).contains(t))
+                        .toList();
+            }
+        } else {
+            productos = productoService.buscarPorNombreParcial(texto);
+        }
+
+        renderizarPorCategorias(productos);
+    }
+
+    private void renderizarPorCategorias(List<Producto> productos) {
+        contenido.removeAll();
+
+        Map<String, List<Producto>> porCategoria = productos.stream()
+                .collect(Collectors.groupingBy(p ->
+                        p.getCategoria() != null && p.getCategoria().getNombre() != null
+                                ? p.getCategoria().getNombre()
+                                : "Otros"
+                ));
+
+        List<String> categoriasOrdenadas = new ArrayList<>(porCategoria.keySet());
+        categoriasOrdenadas.sort(String::compareToIgnoreCase);
+
+        for (String nombreCat : categoriasOrdenadas) {
+            H3 tituloCat = new H3(nombreCat);
+            tituloCat.getStyle().set("margin", "6px 0 0 0");
+
+            FlexLayout grid = new FlexLayout();
+            grid.setWidthFull();
+            grid.getStyle().set("gap", "14px");
+            grid.getStyle().set("flex-wrap", "wrap");
+            grid.getStyle().set("align-items", "stretch");
+
+            List<Producto> lista = porCategoria.get(nombreCat).stream()
+                    .sorted(Comparator.comparing(Producto::getNombre, Comparator.nullsLast(String::compareToIgnoreCase)))
+                    .toList();
+
+            for (Producto p : lista) {
+                Component card = crearCardProducto(p);
+                card.getElement().getStyle().set("flex", "1 1 320px");
+                card.getElement().getStyle().set("max-width", "380px");
+                card.getElement().getStyle().set("box-sizing", "border-box");
+                grid.add(card);
+            }
+
+            contenido.add(tituloCat, grid);
+        }
+
+        if (productos.isEmpty()) {
+            Span vacio = new Span("No hay productos con esos filtros.");
+            vacio.getStyle().set("color", "var(--lumo-secondary-text-color)");
+            contenido.add(vacio);
+        }
+    }
+
+    private Component crearCardProducto(Producto p) {
+
+        Image img = new Image(
+                p.getImagenUrl() != null ? p.getImagenUrl() : "/images/productos/placeholder.png",
+                p.getNombre() != null ? p.getNombre() : "Producto"
+        );
+        img.setWidthFull();
+        img.setHeight("250px");
+        img.getStyle().set("object-fit", "contain");
+        img.getStyle().set("background", "var(--lumo-contrast-5pct)");
+        img.getStyle().set("border-radius", "12px");
+        img.getStyle().set("padding", "6px");
+
+        Span nombre = new Span(p.getNombre() != null ? p.getNombre() : "-");
+        nombre.getStyle().set("font-weight", "800");
+        nombre.getStyle().set("font-size", "1.05rem");
+
+        Span desc = new Span(p.getDescripcion() != null ? p.getDescripcion() : "");
+        desc.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        desc.getStyle().set("font-size", "0.95rem");
+
+        Span precio = new Span(p.getPrecio() != null ? (p.getPrecio() + " €") : "-");
+        precio.getStyle().set("font-weight", "800");
+
+        IntegerField qty = new IntegerField();
+        qty.setMin(1);
+        qty.setValue(1);
+        qty.setStepButtonsVisible(true);
+        qty.setWidth("120px");
+
+        Button add = new Button("➕ Añadir", e -> {
+            if (!hayPedidoCreado()) return;
+
+            try {
+                int cantidad = qty.getValue() != null ? qty.getValue() : 1;
+                carrito = pedidoService.agregarProductoEnMemoria(carrito, p, cantidad);
+                refrescarCarrito();
+                Notification.show("Añadido: " + (p.getNombre() != null ? p.getNombre() : p.getCodigo()),
+                        1500, Notification.Position.BOTTOM_START);
+            } catch (Exception ex) {
+                Notification.show(ex.getMessage(), 3500, Notification.Position.MIDDLE);
+            }
+        });
+
+        add.getElement().getStyle().set("height", "32px");
+        add.getElement().getStyle().set("min-height", "32px");
+        add.getElement().getStyle().set("padding", "0 12px");
+        add.getElement().getStyle().set("border-radius", "8px");
+        add.getElement().getStyle().set("background", "var(--lumo-success-color)");
+        add.getElement().getStyle().set("color", "var(--lumo-success-contrast-color)");
+        add.getElement().getStyle().set("border", "1px solid var(--lumo-success-color)");
+        add.getElement().getStyle().set("font-weight", "700");
+        add.getElement().getStyle().set("font-size", "var(--lumo-font-size-s)");
+        add.getElement().getStyle().set("white-space", "nowrap");
+        add.getElement().getStyle().set("cursor", "pointer");
+        add.setWidth("120px");
+
+        HorizontalLayout acciones = new HorizontalLayout(qty, add);
+        acciones.setWidthFull();
+        acciones.setSpacing(false);
+        acciones.getStyle().set("gap", "10px");
+        acciones.setAlignItems(FlexComponent.Alignment.END);
+
+        VerticalLayout card = new VerticalLayout(img, nombre, desc, precio, acciones);
         card.setPadding(true);
         card.setSpacing(false);
+        card.getStyle().set("gap", "8px");
         card.setWidthFull();
-
-        // “card” simple sin dependencias externas
+        card.getStyle().set("min-height", "320px");
+        card.getStyle().set("overflow", "hidden");
+        card.getStyle().set("box-sizing", "border-box");
         card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
@@ -219,69 +374,91 @@ public class IniciarPedidoView extends VerticalLayout {
         return card;
     }
 
-    // FILTROS
+    private void configurarGridCarrito() {
+        gridCarrito.setWidthFull();
+        gridCarrito.setHeight("380px");
+        gridCarrito.getStyle().set("border-radius", "10px");
+        gridCarrito.getStyle().set("overflow", "hidden");
+        gridCarrito.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
 
-    private void configurarFiltrosProducto() {
+        gridCarrito.addColumn(lp -> lp.getProducto() != null ? lp.getProducto().getNombre() : "-")
+                .setHeader("Producto")
+                .setFlexGrow(1);
 
-        buscarProducto.setPlaceholder("Buscar por nombre");
-        buscarProducto.setClearButtonVisible(true);
-        buscarProducto.setValueChangeMode(ValueChangeMode.EAGER);
+        gridCarrito.addColumn(LineaPedido::getCantidad)
+                .setHeader("Cant.")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
-        filtroCategoria.setItems(
-                categoriaService.listarCategorias().stream()
-                        .map(Categoria::getNombre)
-                        .toList()
-        );
-        filtroCategoria.setClearButtonVisible(true);
+        gridCarrito.addColumn(lp -> lp.calcularPrecio() + " €")
+                .setHeader("Subtotal")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
-        // Buscar por nombre → limpia categoría
-        buscarProducto.addValueChangeListener(e -> {
-            if (e.isFromClient()) {
-                filtroCategoria.clear();
-                recargarProductos();
-            }
-        });
+        colAcciones = gridCarrito.addComponentColumn(this::accionesCarritoPorFila)
+                .setHeader("Acciones")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
-        // Filtrar por categoría → limpia buscador
-        filtroCategoria.addValueChangeListener(e -> {
-            if (e.isFromClient()) {
-                buscarProducto.clear();
-                recargarProductos();
-            }
-        });
+        colAcciones.setVisible(editarCarrito);
+
+        total.getStyle().set("font-weight", "800");
     }
 
-    private void configurarComboProducto() {
-        comboProducto.setItemLabelGenerator(
-                p -> p.getNombre() + " - " + p.getPrecio() + "€"
-        );
-        comboProducto.setWidth("420px");
-    }
-
-    private void recargarProductos() {
-
-        String texto = buscarProducto.getValue();
-        String categoria = filtroCategoria.getValue();
-
-        if (texto != null && !texto.isBlank()) {
-            comboProducto.setItems(productoService.buscarPorNombreParcial(texto));
-            return;
+    private Component accionesCarritoPorFila(LineaPedido lp) {
+        if (!editarCarrito) {
+            return new Span("");
         }
 
-        if (categoria != null && !categoria.isBlank()) {
-            comboProducto.setItems(productoService.buscarPorCategoria(categoria));
-            return;
-        }
+        Button minus = new Button("–", e -> cambiarCantidad(lp, -1));
+        Button plus = new Button("+", e -> cambiarCantidad(lp, +1));
+        Button trash = new Button("🗑", e -> eliminarLinea(lp));
 
-        // Estado inicial
-        comboProducto.setItems(productoService.buscarPorNombreParcial(""));
+        minus.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        plus.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        trash.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+
+        minus.getStyle().set("padding", "0 10px");
+        plus.getStyle().set("padding", "0 10px");
+        trash.getStyle().set("padding", "0 10px");
+
+        HorizontalLayout acciones = new HorizontalLayout(minus, plus, trash);
+        acciones.setSpacing(false);
+        acciones.getStyle().set("gap", "8px");
+        acciones.setAlignItems(FlexComponent.Alignment.CENTER);
+        return acciones;
     }
 
-    // ACCIONES
+    private void cambiarCantidad(LineaPedido lp, int delta) {
+        try {
+            int actual = lp.getCantidad();
+            int nueva = actual + delta;
+
+            carrito = pedidoService.actualizarCantidadEnMemoria(
+                    carrito,
+                    lp.getProducto().getCodigo(),
+                    nueva
+            );
+            refrescarCarrito();
+        } catch (Exception ex) {
+            Notification.show(ex.getMessage(), 3500, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void eliminarLinea(LineaPedido lp) {
+        try {
+            carrito = pedidoService.eliminarProductoEnMemoria(
+                    carrito,
+                    lp.getProducto().getCodigo()
+            );
+            refrescarCarrito();
+        } catch (Exception ex) {
+            Notification.show(ex.getMessage(), 3500, Notification.Position.MIDDLE);
+        }
+    }
 
     private void crearPedidoMesa() {
         Integer nMesa = mesa.getValue();
-
         if (nMesa == null || nMesa <= 0) {
             Notification.show("Mesa inválida", 3000, Notification.Position.MIDDLE);
             return;
@@ -291,157 +468,87 @@ public class IniciarPedidoView extends VerticalLayout {
             pedidoActual = pedidoService.crearPedidoMesa(nMesa);
             codigo.setValue(pedidoActual.getCodigo());
             setUiPedidoCreado(true);
+            refrescarCarrito();
             Notification.show("Pedido creado: " + pedidoActual.getCodigo(), 3000, Notification.Position.MIDDLE);
-            refrescarGrid();
         } catch (Exception ex) {
             Notification.show("Error creando pedido: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
-        }
-    }
-
-    private void anadirProducto() {
-        if (!hayPedidoCreado()) return;
-
-        Producto prod = comboProducto.getValue();
-        Integer qty = cantidad.getValue();
-
-        if (prod == null || qty == null || qty <= 0) {
-            Notification.show("Producto o cantidad inválidos", 3000, Notification.Position.MIDDLE);
-            return;
-        }
-
-        try {
-            pedidoActual = pedidoService.agregarProducto(
-                    pedidoActual.getCodigo(),
-                    prod.getCodigo(),
-                    qty
-            );
-
-            cantidad.setValue(1);
-            refrescarGrid();
-        } catch (Exception ex) {
-            Notification.show("Error: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
         }
     }
 
     private void confirmarPedido() {
         if (!hayPedidoCreado()) return;
 
+        if (carrito == null || carrito.getLineaPedidos() == null || carrito.getLineaPedidos().isEmpty()) {
+            Notification.show("El pedido no puede estar vacío", 3000, Notification.Position.MIDDLE);
+            return;
+        }
+
         try {
-            pedidoActual = pedidoService.confirmarPedido(pedidoActual.getCodigo());
+            /* Volcado del carrito al pedido creado en BBDD */
+            for (LineaPedido lp : carrito.getLineaPedidos()) {
+                pedidoService.agregarProducto(pedidoActual.getCodigo(), lp.getProducto().getCodigo(), lp.getCantidad());
+            }
+
+            /* Confirmación y envío a cocina */
+            pedidoService.confirmarPedido(pedidoActual.getCodigo());
+
             Notification.show("Pedido enviado a cocina", 3000, Notification.Position.MIDDLE);
             setUiPedidoConfirmado();
-            refrescarGrid();
         } catch (Exception ex) {
             Notification.show("Error confirmando: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
         }
     }
 
+    private void refrescarCarrito() {
+        List<LineaPedido> items =
+                carrito != null && carrito.getLineaPedidos() != null ? carrito.getLineaPedidos() : List.of();
+
+        gridCarrito.setItems(items);
+
+        BigDecimal totalCalc = BigDecimal.ZERO;
+        if (!items.isEmpty()) {
+            totalCalc = carrito.calcularPrecioTotal();
+        }
+        total.setText("Total: " + totalCalc + " €");
+
+        confirmar.setEnabled(hayPedidoCreado() && !items.isEmpty());
+    }
+
     private boolean hayPedidoCreado() {
         if (pedidoActual == null) {
-            Notification.show("Primero crea un pedido", 3000, Notification.Position.MIDDLE);
             return false;
         }
         return true;
     }
 
     private void setUiPedidoCreado(boolean creado) {
-        buscarProducto.setEnabled(creado);
         filtroCategoria.setEnabled(creado);
-
-        comboProducto.setEnabled(creado);
-        cantidad.setEnabled(creado);
-        anadir.setEnabled(creado);
-
-        grid.setEnabled(creado);
-        confirmar.setEnabled(creado);
+        buscador.setEnabled(creado);
+        btnEditarCarrito.setEnabled(creado);
+        gridCarrito.setEnabled(creado);
+        confirmar.setEnabled(creado && carrito != null && carrito.getLineaPedidos() != null && !carrito.getLineaPedidos().isEmpty());
     }
 
     private void setUiPedidoConfirmado() {
-        buscarProducto.setEnabled(false);
         filtroCategoria.setEnabled(false);
-
-        comboProducto.setEnabled(false);
-        cantidad.setEnabled(false);
-        anadir.setEnabled(false);
-
-        grid.setEnabled(false);
+        buscador.setEnabled(false);
+        btnEditarCarrito.setEnabled(false);
+        gridCarrito.setEnabled(false);
         confirmar.setEnabled(false);
+        crearPedido.setEnabled(false);
+        mesa.setEnabled(false);
     }
 
-    // GRID
-
-    private void configurarGrid() {
-
-        configurarGridColumnasBasicas();
-
-        grid.addComponentColumn(lp -> {
-            IntegerField qty = new IntegerField();
-            qty.setMin(1);
-            qty.setValue(lp.getCantidad());
-            qty.setValueChangeMode(ValueChangeMode.ON_CHANGE);
-            qty.setWidth("140px");
-
-            qty.addValueChangeListener(ev -> {
-                if (!ev.isFromClient()) return;
-                if (!hayPedidoCreado()) return;
-
-                Integer nueva = ev.getValue();
-                if (nueva == null || nueva <= 0) {
-                    Notification.show("Cantidad inválida", 2500, Notification.Position.MIDDLE);
-                    qty.setValue(lp.getCantidad());
-                    return;
-                }
-
-                pedidoActual = pedidoService.actualizarCantidadProducto(
-                        pedidoActual.getCodigo(),
-                        lp.getProducto().getCodigo(),
-                        nueva
-                );
-                refrescarGrid();
-            });
-
-            return qty;
-        }).setHeader("Modificar");
-
-        configurarGridEliminar();
-    }
-
-    private void configurarGridColumnasBasicas() {
-        grid.addColumn(lp -> lp.getProducto().getNombre())
-                .setHeader("Producto")
-                .setAutoWidth(true)
-                .setFlexGrow(1);
-
-        grid.addColumn(LineaPedido::getCantidad)
-                .setHeader("Cantidad")
-                .setAutoWidth(true);
-
-        grid.addColumn(lp -> lp.calcularPrecio() + " €")
-                .setHeader("Subtotal")
-                .setAutoWidth(true);
-    }
-
-    private void configurarGridEliminar() {
-        grid.addComponentColumn(lp -> {
-            Button borrar = new Button("❌");
-            borrar.addClickListener(e -> {
-                if (!hayPedidoCreado()) return;
-
-                pedidoActual = pedidoService.eliminarProducto(
-                        pedidoActual.getCodigo(),
-                        lp.getProducto().getCodigo()
-                );
-                refrescarGrid();
-            });
-            return borrar;
-        }).setHeader("Eliminar");
-    }
-
-    // REFRESCO
-
-    private void refrescarGrid() {
-        if (pedidoActual == null) return;
-        grid.setItems(pedidoActual.getLineaPedidos());
-        total.setText("Total: " + pedidoActual.calcularPrecioTotal() + " €");
+    private VerticalLayout crearCard() {
+        VerticalLayout card = new VerticalLayout();
+        card.setPadding(true);
+        card.setSpacing(false);
+        card.setWidthFull();
+        card.getStyle().set("background", "var(--lumo-base-color)");
+        card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
+        card.getStyle().set("border-radius", "14px");
+        card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
+        card.getStyle().set("gap", "12px");
+        return card;
     }
 }
