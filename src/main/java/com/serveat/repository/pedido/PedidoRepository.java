@@ -22,33 +22,33 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
 
     List<Pedido> findByEstadoIn(List<EstadoPedido> estados);
 
-
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     List<Pedido> findAllByOrderByFechaCreacionDesc();
 
-
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     List<Pedido> findByReservaMesa_NumeroMesaOrderByFechaCreacionDesc(Integer numeroMesa);
 
-
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     List<Pedido> findByEstadoCocinaAndReservaMesa_NumeroMesaOrderByFechaCreacionDesc(EstadoCocina estado, Integer numeroMesa);
 
@@ -57,17 +57,18 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     Optional<Pedido> findWithDetalleByCodigo(String codigo);
-
 
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     Optional<Pedido> findWithDetalleById(UUID id);
 
@@ -76,7 +77,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     List<Pedido> findByEstadoOrEstadoAndEstadoCocina(
             EstadoPedido estadoEnCurso,
@@ -89,7 +91,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     List<Pedido> findByReservaMesa_NumeroMesaAndEstadoOrReservaMesa_NumeroMesaAndEstadoAndEstadoCocina(
             Integer numeroMesa1,
@@ -104,7 +107,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     List<Pedido> findByCliente_UsernameOrderByFechaCreacionDesc(String username);
 
@@ -113,7 +117,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "lineaPedidos",
             "lineaPedidos.productos",
             "cliente",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     Optional<Pedido> findWithDetalleByCodigoAndCliente_Username(String codigo, String username);
 
@@ -121,25 +126,42 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
-            "repartidor"
+            "repartidor",
+            "pago"
     })
     List<Pedido> findByTipoPedidoAndEstadoReparto(
             TipoPedidoCliente tipo,
             EstadoReparto estadoReparto
     );
 
+    // NUEVO: Filtrar por Tipo, EstadoReparto y EstadoCocina (para repartidores)
     @EntityGraph(attributePaths = {
             "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
-            "repartidor"
+            "repartidor",
+            "pago"
+    })
+    List<Pedido> findByTipoPedidoAndEstadoRepartoAndEstadoCocina(
+            TipoPedidoCliente tipo,
+            EstadoReparto estadoReparto,
+            EstadoCocina estadoCocina
+    );
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "repartidor",
+            "pago"
     })
     List<Pedido> findByRepartidor_Username(String username);
 
     @EntityGraph(attributePaths = {
             "cliente",
             "lineaPedidos",
-            "lineaPedidos.productos"
+            "lineaPedidos.productos",
+            "pago"
     })
     List<Pedido> findByEstadoAndEstadoCocina(
             EstadoPedido estado,
@@ -150,7 +172,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
-            "reservaMesa"
+            "reservaMesa",
+            "pago"
     })
     List<Pedido> findByEstadoCocina(EstadoCocina estadoCocina);
 

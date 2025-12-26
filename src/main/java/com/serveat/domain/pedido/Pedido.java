@@ -1,6 +1,7 @@
 package com.serveat.domain.pedido;
 
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.pago.Pago;
 import com.serveat.domain.reserva.ReservaMesa;
 import com.serveat.domain.usuario.Cliente;
 import com.serveat.domain.usuario.Empleado;
@@ -98,6 +99,10 @@ public class Pedido {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
+
+    // NUEVO: Relación inversa con Pago para facilitar acceso desde Repartidor
+    @OneToOne(mappedBy = "pedido", fetch = FetchType.LAZY)
+    private Pago pago;
 
     public Pedido() {
     }
@@ -272,5 +277,13 @@ public class Pedido {
 
     public void setIncidenciaReparto(String incidenciaReparto) {
         this.incidenciaReparto = incidenciaReparto;
+    }
+
+    public Pago getPago() {
+        return pago;
+    }
+
+    public void setPago(Pago pago) {
+        this.pago = pago;
     }
 }
