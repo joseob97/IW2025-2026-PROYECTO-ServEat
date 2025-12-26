@@ -1,4 +1,4 @@
-package com.serveat.view.empleado.administrador;
+package com.serveat.view.empleado.administrador.estadisticas;
 
 import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.estadisticas.EstadisticasService;
