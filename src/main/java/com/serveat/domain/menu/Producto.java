@@ -6,6 +6,8 @@ import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -30,6 +32,9 @@ public class Producto {
     @Column(name = "imagen_url")
     private String imagenUrl;
 
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductoIngrediente> ingredientes = new ArrayList<>();
+
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
     public String getDescripcion() { return descripcion; }
@@ -42,4 +47,9 @@ public class Producto {
     public void setCategoria(Categoria categoria) { this.categoria = categoria; }
     public String getImagenUrl() { return imagenUrl; }
     public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
+    public List<ProductoIngrediente> getIngredientes() { return ingredientes; }
+
+    public void setIngredientes(List<ProductoIngrediente> ingredientes) {
+        this.ingredientes = (ingredientes == null) ? new ArrayList<>() : ingredientes;
+    }
 }
