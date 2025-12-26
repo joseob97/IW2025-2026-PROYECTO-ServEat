@@ -34,9 +34,16 @@ public class SecurityConfig {
                 // Vaadin usa llamadas internas (UIDL/push) que no incluyen CSRF de Spring Security.
                 // Se ignoran SOLO esos endpoints para evitar 403 y mantener CSRF en el resto.
                 .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        /* Vaadin UIDL */
                         new RegexRequestMatcher(".*\\?v-r=uidl.*", null),
-                        new AntPathRequestMatcher("/VAADIN/push/**")
+                        /* Vaadin Push */
+                        new AntPathRequestMatcher("/VAADIN/push/**"),
+                        /* Vaadin Upload (dynamic resource) */
+                        new AntPathRequestMatcher("/VAADIN/dynamic/resource/**"),
+                        /* (opcional) otros recursos dinámicos de Vaadin */
+                        new AntPathRequestMatcher("/VAADIN/dynamic/**")
                 ))
+
 
                 // RUTAS PÚBLICAS
                 .authorizeHttpRequests(auth -> auth
