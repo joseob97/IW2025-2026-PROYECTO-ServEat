@@ -1,6 +1,7 @@
 package com.serveat.view.empleado.repartidor;
 
 import com.serveat.domain.pago.EstadoPago;
+import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.EstadoReparto;
 import com.serveat.domain.pedido.Pedido;
@@ -102,13 +103,13 @@ public class MisRepartosView extends VerticalLayout {
                 .setHeader("Total")
                 .setAutoWidth(true);
 
-        // NUEVO: Columna Estado Pago
+        // CORREGIDO: Columna Estado Pago basada en MetodoPago
         grid.addComponentColumn(p -> {
             Pago pago = p.getPago();
-            boolean pagado = pago != null && pago.getEstado() == EstadoPago.CONFIRMADO;
+            boolean cobrar = pago != null && pago.getMetodo() == MetodoPago.EFECTIVO;
             
-            Span badge = new Span(pagado ? "PAGADO" : "COBRAR");
-            badge.getElement().getThemeList().add("badge " + (pagado ? "success" : "error"));
+            Span badge = new Span(cobrar ? "COBRAR" : "PAGADO");
+            badge.getElement().getThemeList().add("badge " + (cobrar ? "error" : "success"));
             return badge;
         }).setHeader("Pago").setAutoWidth(true);
 
@@ -121,7 +122,7 @@ public class MisRepartosView extends VerticalLayout {
             HorizontalLayout actions = new HorizontalLayout();
             
             if (p.getEstadoReparto() == EstadoReparto.ASIGNADO) {
-                Button enReparto = new Button("🚚 En Reparto");
+                Button enReparto = new Button("🚚 Salir");
                 enReparto.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
                 enReparto.addClickListener(e -> confirmarCambioEstado(p, "EN_REPARTO"));
                 actions.add(enReparto);
