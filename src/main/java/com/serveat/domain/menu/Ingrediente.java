@@ -19,13 +19,18 @@ public class Ingrediente {
     @Column(nullable = false, unique = true)
     private String nombre;
 
-    /* Opcional: si añadir este ingrediente cuesta extra */
     @Column(precision = 10, scale = 2)
     private BigDecimal precioExtra = BigDecimal.ZERO;
 
     public UUID getId() { return id; }
+
     public String getNombre() { return nombre; }
+
     public void setNombre(String nombre) { this.nombre = nombre; }
+
     public BigDecimal getPrecioExtra() { return precioExtra; }
-    public void setPrecioExtra(BigDecimal precioExtra) { this.precioExtra = precioExtra; }
+
+    public void setPrecioExtra(BigDecimal precioExtra) {
+        this.precioExtra = (precioExtra == null) ? BigDecimal.ZERO : precioExtra;
+    }
 }

@@ -35,21 +35,35 @@ public class ProductoIngrediente {
 
     protected ProductoIngrediente() {}
 
-    public ProductoIngrediente(Producto producto, Ingrediente ingrediente, boolean porDefecto, boolean opcional, BigDecimal precioExtra) {
+    public ProductoIngrediente(Producto producto,
+                               Ingrediente ingrediente,
+                               boolean porDefecto,
+                               boolean opcional,
+                               BigDecimal precioExtra) {
         this.producto = producto;
         this.ingrediente = ingrediente;
         this.porDefecto = porDefecto;
         this.opcional = opcional;
-        this.precioExtra = precioExtra == null ? BigDecimal.ZERO : precioExtra;
+        this.precioExtra = (precioExtra == null) ? BigDecimal.ZERO : precioExtra;
     }
 
     public UUID getId() { return id; }
+
     public Producto getProducto() { return producto; }
+
     public Ingrediente getIngrediente() { return ingrediente; }
+
     public boolean isPorDefecto() { return porDefecto; }
+
     public void setPorDefecto(boolean porDefecto) { this.porDefecto = porDefecto; }
+
     public boolean isOpcional() { return opcional; }
+
     public void setOpcional(boolean opcional) { this.opcional = opcional; }
+
     public BigDecimal getPrecioExtra() { return precioExtra; }
-    public void setPrecioExtra(BigDecimal precioExtra) { this.precioExtra = precioExtra; }
+
+    public void setPrecioExtra(BigDecimal precioExtra) {
+        this.precioExtra = (precioExtra == null) ? BigDecimal.ZERO : precioExtra;
+    }
 }
