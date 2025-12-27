@@ -1,8 +1,8 @@
 package com.serveat.view.empleado.administrador.estadisticas;
 
 import com.serveat.domain.seguridad.Feature;
-import com.serveat.service.estadisticas.EstadisticasService;
-import com.serveat.service.estadisticas.EstadisticasSnapshot;
+import com.serveat.service.administrador.estadisticas.EstadisticasService;
+import com.serveat.service.administrador.estadisticas.EstadisticasSnapshot;
 import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;

@@ -5,6 +5,7 @@ import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.domain.pedido.TipoPedidoCliente;
 import com.serveat.service.pago.PagoService;
+import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -34,6 +35,7 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
 
     private final transient PedidoService pedidoService;
     private final transient PagoService pagoService;
+    private final transient PedidoCalculoService pedidoCalculoService;
 
     private transient Pedido carrito;
     private transient MetodoPago metodo;
@@ -64,9 +66,12 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
     private final VerticalLayout bloquePaypal = new VerticalLayout();
     private final VerticalLayout bloqueEfectivo = new VerticalLayout();
 
-    public PasarelaPagoSimuladaView(PedidoService pedidoService, PagoService pagoService) {
+    public PasarelaPagoSimuladaView(PedidoService pedidoService,
+                                    PagoService pagoService,
+                                    PedidoCalculoService pedidoCalculoService) {
         this.pedidoService = pedidoService;
         this.pagoService = pagoService;
+        this.pedidoCalculoService = pedidoCalculoService;
 
         setPadding(true);
         setSpacing(false);
@@ -138,7 +143,7 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         metodoPago.setValue(metodo);
 
         info.setText("Usuario: " + username + " | Tipo: " + tipoPedido);
-        total.setText("Total: " + carrito.calcularPrecioTotal() + " €");
+        total.setText("Total: " + pedidoCalculoService.calcularTotalPedido(carrito) + " €");
 
         setAccionesEnabled(true);
         actualizarBloques();

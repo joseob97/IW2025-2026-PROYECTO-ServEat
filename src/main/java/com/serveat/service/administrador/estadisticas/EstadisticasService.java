@@ -1,4 +1,4 @@
-package com.serveat.service.estadisticas;
+package com.serveat.service.administrador.estadisticas;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

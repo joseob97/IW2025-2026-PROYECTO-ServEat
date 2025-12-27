@@ -29,10 +29,10 @@ public class CocineroServiceImpl implements CocineroService {
 
     @Override
     public List<Pedido> listarPendientesAceptacion() {
-        // CORRECCIÓN: Asegurarse de que busca pedidos en EN_CURSO o EN_COCINA
+        // Busca pedidos de cliente en EN_CURSO o ya en EN_COCINA pendientes de aceptación
         return pedidoRepo.findByEstadoOrEstadoAndEstadoCocina(
-                EstadoPedido.EN_CURSO, // Pedidos de cliente que aún no han sido procesados por camarero
-                EstadoPedido.EN_COCINA, // Pedidos que ya pasaron por camarero pero están pendientes de cocina
+                EstadoPedido.EN_CURSO,
+                EstadoPedido.EN_COCINA,
                 EstadoCocina.PENDIENTE_ACEPTACION
         );
     }
@@ -56,10 +56,12 @@ public class CocineroServiceImpl implements CocineroService {
             throw new IllegalArgumentException("Pedido no aceptable");
         }
 
-
         p.setEstado(EstadoPedido.EN_COCINA);
         p.setEstadoCocina(EstadoCocina.ACEPTADO);
-        p.marcarModificado(cocineroUsername);
+
+        p.setModificadoPor(cocineroUsername);
+        p.setFechaUltimaModificacion(LocalDateTime.now());
+
         return pedidoRepo.save(p);
     }
 
@@ -72,7 +74,10 @@ public class CocineroServiceImpl implements CocineroService {
         }
 
         p.setEstadoCocina(EstadoCocina.EN_PREPARACION);
-        p.marcarModificado(cocineroUsername);
+
+        p.setModificadoPor(cocineroUsername);
+        p.setFechaUltimaModificacion(LocalDateTime.now());
+
         return pedidoRepo.save(p);
     }
 
@@ -91,7 +96,9 @@ public class CocineroServiceImpl implements CocineroService {
             p.setEstadoReparto(EstadoReparto.PENDIENTE_ASIGNACION);
         }
 
-        p.marcarModificado(cocineroUsername);
+        p.setModificadoPor(cocineroUsername);
+        p.setFechaUltimaModificacion(LocalDateTime.now());
+
         return pedidoRepo.save(p);
     }
 
@@ -104,6 +111,9 @@ public class CocineroServiceImpl implements CocineroService {
         p.setCanceladoPor(cocineroUsername);
         p.setMotivoCancelacion(motivo);
         p.setFechaCancelacion(LocalDateTime.now());
+
+        p.setModificadoPor(cocineroUsername);
+        p.setFechaUltimaModificacion(LocalDateTime.now());
 
         return pedidoRepo.save(p);
     }

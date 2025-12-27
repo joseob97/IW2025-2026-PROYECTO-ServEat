@@ -1,10 +1,10 @@
 package com.serveat.view.empleado.repartidor;
 
-import com.serveat.domain.pago.EstadoPago;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.EstadoReparto;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.repartidor.RepartidorService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.AttachEvent;
@@ -33,14 +33,17 @@ import java.util.List;
 public class MisRepartosView extends VerticalLayout {
 
     private final transient RepartidorService repartidorService;
+    private final transient PedidoCalculoService pedidoCalculoService;
 
     private final Span info = new Span("Aquí verás los pedidos asignados a ti.");
     private final Grid<Pedido> grid = new Grid<>(Pedido.class, false);
 
     private final Button refrescar = new Button("🔄 Refrescar");
 
-    public MisRepartosView(RepartidorService repartidorService) {
+    public MisRepartosView(RepartidorService repartidorService,
+                           PedidoCalculoService pedidoCalculoService) {
         this.repartidorService = repartidorService;
+        this.pedidoCalculoService = pedidoCalculoService;
 
         setPadding(true);
         setSpacing(false);
@@ -98,16 +101,21 @@ public class MisRepartosView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setFlexGrow(1);
 
-        // NUEVO: Columna Total
-        grid.addColumn(p -> p.calcularPrecioTotal() + " €")
+        grid.addColumn(p -> {
+                    try {
+                        return pedidoCalculoService.calcularTotalPedido(p) + " €";
+                    } catch (Exception ex) {
+                        return "-";
+                    }
+                })
                 .setHeader("Total")
                 .setAutoWidth(true);
 
-        // CORREGIDO: Columna Estado Pago basada en MetodoPago
+        // Estado Pago (si es efectivo => COBRAR)
         grid.addComponentColumn(p -> {
             Pago pago = p.getPago();
             boolean cobrar = pago != null && pago.getMetodo() == MetodoPago.EFECTIVO;
-            
+
             Span badge = new Span(cobrar ? "COBRAR" : "PAGADO");
             badge.getElement().getThemeList().add("badge " + (cobrar ? "error" : "success"));
             return badge;
@@ -117,10 +125,10 @@ public class MisRepartosView extends VerticalLayout {
                 .setHeader("Estado reparto")
                 .setAutoWidth(true);
 
-        // Columna de acciones unificada
+        // Acciones
         grid.addComponentColumn(p -> {
             HorizontalLayout actions = new HorizontalLayout();
-            
+
             if (p.getEstadoReparto() == EstadoReparto.ASIGNADO) {
                 Button enReparto = new Button("🚚 Salir");
                 enReparto.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -182,7 +190,6 @@ public class MisRepartosView extends VerticalLayout {
         dialog.addConfirmListener(event -> {
             try {
                 String username = SecurityContextHolder.getContext().getAuthentication().getName();
-                // Aquí podríamos abrir otro diálogo para pedir el motivo, pero por simplicidad usamos uno genérico
                 repartidorService.marcarIncidencia(p.getCodigo(), username, "Incidencia reportada por repartidor");
                 Notification.show("Incidencia registrada", 3000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);

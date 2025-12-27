@@ -1,8 +1,9 @@
 package com.serveat.view.empleado.cocinero;
 
+import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
-import com.serveat.domain.pedido.EstadoCocina;
+import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.UI;
@@ -21,6 +22,9 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
 
+import java.math.BigDecimal;
+import java.util.UUID;
+
 @PageTitle("Detalle Comanda | Cocinero")
 @Route(value = "empleado/cocinero/comanda", layout = MainLayout.class)
 @Secured("ROLE_COCINERO")
@@ -28,6 +32,7 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
 
     // SERVICIOS (transient para Sonar/Vaadin)
     private final transient PedidoService pedidoService;
+    private final transient PedidoCalculoService pedidoCalculoService;
 
     // ESTADO
     private transient Pedido pedidoActual;
@@ -39,9 +44,11 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
     private final Span infoCodigo = new Span();
     private final Span infoTotal = new Span();
 
-    public DetalleComandaView(PedidoService pedidoService) {
+    public DetalleComandaView(PedidoService pedidoService,
+                              PedidoCalculoService pedidoCalculoService) {
 
         this.pedidoService = pedidoService;
+        this.pedidoCalculoService = pedidoCalculoService;
 
         setSpacing(false);
         setPadding(true);
@@ -56,7 +63,6 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
         add(titulo);
 
         // INFORMACIÓN DEL PEDIDO
-
         VerticalLayout cardInfo = crearCard();
         cardInfo.getStyle().set("gap", "10px");
 
@@ -73,7 +79,6 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
         add(cardInfo);
 
         // PRODUCTOS
-
         H3 tituloProductos = new H3("Productos");
         tituloProductos.getStyle().set("margin", "6px 0 0 0");
         add(tituloProductos);
@@ -89,7 +94,6 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
         add(cardProductos);
 
         // ESTADO Y BOTONES
-
         H3 tituloEstado = new H3("Cambiar Estado");
         tituloEstado.getStyle().set("margin", "6px 0 0 0");
         add(tituloEstado);
@@ -107,7 +111,6 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
 
         Button volver = new Button("⬅️ Volver");
         volver.setWidth("260px");
-
         volver.addClickListener(e -> UI.getCurrent().navigate(GestionPedidoCocineroView.class));
 
         HorizontalLayout filaEstado = new HorizontalLayout(estadoSelect, confirmar);
@@ -125,18 +128,19 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
     @Override
     public void setParameter(BeforeEvent event, String idPedidoStr) {
         try {
-            java.util.UUID idPedido = java.util.UUID.fromString(idPedidoStr);
+            UUID idPedido = UUID.fromString(idPedidoStr);
             pedidoActual = pedidoService.obtenerPedidoPorId(idPedido);
+
             if (pedidoActual == null) {
                 Notification.show("❌ Comanda no encontrada", 4000, Notification.Position.MIDDLE);
-
                 UI.getCurrent().navigate(GestionPedidoCocineroView.class);
                 return;
             }
+
             refrescar();
+
         } catch (IllegalArgumentException e) {
             Notification.show("❌ ID de comanda inválido", 4000, Notification.Position.MIDDLE);
-
             UI.getCurrent().navigate(GestionPedidoCocineroView.class);
         } catch (Exception e) {
             Notification.show("❌ Error: " + e.getMessage(), 4000, Notification.Position.MIDDLE);
@@ -144,7 +148,8 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
     }
 
     private void configurarGrid() {
-        grid.addColumn(lp -> lp.getProducto().getNombre())
+
+        grid.addColumn(lp -> lp.getProducto() != null ? lp.getProducto().getNombre() : "-")
                 .setHeader("Producto")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
@@ -153,11 +158,15 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
                 .setHeader("Cantidad")
                 .setAutoWidth(true);
 
-        grid.addColumn(lp -> lp.getProducto().getPrecio() + " €")
+        grid.addColumn(lp -> {
+                    if (lp.getPrecioUnitario() != null) return lp.getPrecioUnitario() + " €";
+                    if (lp.getProducto() != null && lp.getProducto().getPrecio() != null) return lp.getProducto().getPrecio() + " €";
+                    return "-";
+                })
                 .setHeader("Precio Unit.")
                 .setAutoWidth(true);
 
-        grid.addColumn(lp -> lp.calcularPrecio() + " €")
+        grid.addColumn(lp -> pedidoCalculoService.calcularPrecioLinea(lp) + " €")
                 .setHeader("Subtotal")
                 .setAutoWidth(true);
     }
@@ -190,16 +199,20 @@ public class DetalleComandaView extends VerticalLayout implements HasUrlParamete
     }
 
     private void refrescar() {
-        if (pedidoActual != null) {
-            String numMesa = pedidoActual.getReservaMesa() != null ?
-                    String.valueOf(pedidoActual.getReservaMesa().getNumeroMesa()) : "N/A";
-            infoMesa.setText("Mesa: " + numMesa);
-            infoCodigo.setText("Código: " + pedidoActual.getCodigo());
-            infoTotal.setText("Total: " + pedidoActual.calcularPrecioTotal() + " €");
+        if (pedidoActual == null) return;
 
-            grid.setItems(pedidoActual.getLineaPedidos());
-            estadoSelect.setValue(pedidoActual.getEstadoCocina());
-        }
+        String numMesa = (pedidoActual.getReservaMesa() != null)
+                ? String.valueOf(pedidoActual.getReservaMesa().getNumeroMesa())
+                : "N/A";
+
+        infoMesa.setText("Mesa: " + numMesa);
+        infoCodigo.setText("Código: " + pedidoActual.getCodigo());
+
+        BigDecimal totalPedido = pedidoCalculoService.calcularTotalPedido(pedidoActual);
+        infoTotal.setText("Total: " + totalPedido + " €");
+
+        grid.setItems(pedidoActual.getLineaPedidos());
+        estadoSelect.setValue(pedidoActual.getEstadoCocina());
     }
 
     private VerticalLayout crearCard() {

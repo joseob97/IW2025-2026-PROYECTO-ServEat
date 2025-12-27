@@ -3,6 +3,8 @@ package com.serveat.view.cliente.pedido;
 import com.serveat.domain.pedido.TipoPedidoCliente;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
+import com.serveat.service.pedido.PedidoCalculoService;
+import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
@@ -23,9 +25,11 @@ public class CrearPedidoDomicilioCartaView extends CrearPedidoCartaBaseView {
     private final TextField direccion = new TextField("Dirección de entrega");
 
     public CrearPedidoDomicilioCartaView(PedidoService pedidoService,
+                                         PedidoCarritoService pedidoCarritoService,
+                                         PedidoCalculoService pedidoCalculoService,
                                          ProductoService productoService,
                                          CategoriaService categoriaService) {
-        super(pedidoService, productoService, categoriaService);
+        super(pedidoService, pedidoCarritoService, pedidoCalculoService, productoService, categoriaService);
         construirUI("Pedido a domicilio");
     }
 

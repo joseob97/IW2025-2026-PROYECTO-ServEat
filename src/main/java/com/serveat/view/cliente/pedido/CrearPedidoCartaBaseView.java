@@ -1,15 +1,24 @@
 package com.serveat.view.cliente.pedido;
 
 import com.serveat.domain.menu.Categoria;
+import com.serveat.domain.menu.Ingrediente;
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pedido.LineaPedido;
+import com.serveat.domain.pedido.LineaPedidoIngrediente;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
+import com.serveat.service.pedido.PedidoCalculoService;
+import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.H3;
@@ -19,7 +28,6 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -30,34 +38,40 @@ import java.util.stream.Collectors;
 public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
 
     protected final transient PedidoService pedidoService;
+
+    // ✅ carrito + cálculo
+    protected final transient PedidoCarritoService pedidoCarritoService;
+    protected final transient PedidoCalculoService pedidoCalculoService;
+
     protected final transient ProductoService productoService;
     protected final transient CategoriaService categoriaService;
 
     protected Pedido carrito = new Pedido();
 
-    /* Filtros */
+    private final Map<String, Boolean> cacheTieneIngredientes = new HashMap<>();
+
     protected final ComboBox<String> categoriaFiltro = new ComboBox<>("Categoría");
     protected final TextField buscador = new TextField("Buscar");
 
-    /* Zona productos */
     protected final VerticalLayout contenido = new VerticalLayout();
 
-    /* Carrito */
     protected final Grid<LineaPedido> gridCarrito = new Grid<>(LineaPedido.class, false);
     protected final Span total = new Span("Total: 0 €");
 
-    /* Acción principal */
     protected final Button continuar = new Button("➡ Continuar");
 
-    /* Modo edición del carrito */
     private boolean editarCarrito = false;
     private Grid.Column<LineaPedido> colAcciones;
     private final Button btnEditarCarrito = new Button("✏️ Editar carrito");
 
     protected CrearPedidoCartaBaseView(PedidoService pedidoService,
+                                       PedidoCarritoService pedidoCarritoService,
+                                       PedidoCalculoService pedidoCalculoService,
                                        ProductoService productoService,
                                        CategoriaService categoriaService) {
         this.pedidoService = pedidoService;
+        this.pedidoCarritoService = pedidoCarritoService;
+        this.pedidoCalculoService = pedidoCalculoService;
         this.productoService = productoService;
         this.categoriaService = categoriaService;
 
@@ -68,9 +82,10 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         getStyle().set("max-width", "1280px");
         getStyle().set("margin", "0 auto");
 
-        /* Inicialización defensiva del carrito en memoria */
+        // ✅ CAMBIO: ahora lineaPedidos es Set (no List)
+        // Antes: carrito.setLineaPedidos(new ArrayList<>());
         if (carrito.getLineaPedidos() == null) {
-            carrito.setLineaPedidos(new ArrayList<>());
+            carrito.setLineaPedidos(new LinkedHashSet<>());
         }
     }
 
@@ -130,15 +145,11 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         btnEditarCarrito.addClickListener(e -> {
             editarCarrito = !editarCarrito;
             btnEditarCarrito.setText(editarCarrito ? "✅ Listo" : "✏️ Editar carrito");
-
-            if (colAcciones != null) {
-                colAcciones.setVisible(editarCarrito);
-            }
+            if (colAcciones != null) colAcciones.setVisible(editarCarrito);
             gridCarrito.getDataProvider().refreshAll();
         });
 
         configurarGridCarrito();
-
         cardCarrito.add(filaTopCarrito, filaBotonEditar, gridCarrito, total);
 
         VerticalLayout cardDetalles = crearCard();
@@ -149,7 +160,6 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         continuar.setWidthFull();
         continuar.getStyle().set("font-weight", "700");
         continuar.addClickListener(e -> onContinuar());
-
         cardDetalles.add(continuar);
 
         derecha.add(cardCarrito, cardDetalles);
@@ -183,10 +193,9 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
 
     protected void cargarProductos() {
         String categoria = categoriaFiltro.getValue();
-        String texto = buscador.getValue() != null ? buscador.getValue().trim() : "";
+        String texto = (buscador.getValue() != null) ? buscador.getValue().trim() : "";
 
         List<Producto> productos;
-
         if (categoria != null && !categoria.isBlank()) {
             productos = productoService.buscarPorCategoria(categoria);
             if (!texto.isBlank()) {
@@ -197,6 +206,14 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
             }
         } else {
             productos = productoService.buscarPorNombreParcial(texto);
+        }
+
+        cacheTieneIngredientes.clear();
+        for (Producto p : productos) {
+            String cod = p.getCodigo();
+            if (cod != null && !cod.isBlank()) {
+                cacheTieneIngredientes.put(cod, productoService.productoTieneIngredientes(cod));
+            }
         }
 
         renderizarPorCategorias(productos);
@@ -231,11 +248,9 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
 
             for (Producto p : lista) {
                 Component card = crearCardProducto(p);
-
                 card.getElement().getStyle().set("flex", "1 1 320px");
                 card.getElement().getStyle().set("max-width", "380px");
                 card.getElement().getStyle().set("box-sizing", "border-box");
-
                 grid.add(card);
             }
 
@@ -257,8 +272,6 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         );
         img.setWidthFull();
         img.setHeight("250px");
-
-
         img.getStyle().set("object-fit", "contain");
         img.getStyle().set("background", "var(--lumo-contrast-5pct)");
         img.getStyle().set("border-radius", "12px");
@@ -279,12 +292,12 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         qty.setMin(1);
         qty.setValue(1);
         qty.setStepButtonsVisible(true);
-        qty.setWidth("120px");
+        qty.setWidth("110px");
 
         Button add = new Button("➕ Añadir", e -> {
             try {
-                int cantidad = qty.getValue() != null ? qty.getValue() : 1;
-                carrito = pedidoService.agregarProductoEnMemoria(carrito, p, cantidad);
+                int cantidad = (qty.getValue() != null) ? qty.getValue() : 1;
+                carrito = pedidoCarritoService.agregarProducto(carrito, p, cantidad);
                 refrescarCarrito();
                 Notification.show("Añadido: " + (p.getNombre() != null ? p.getNombre() : p.getCodigo()),
                         1500, Notification.Position.BOTTOM_START);
@@ -293,49 +306,163 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
             }
         });
 
-
         add.getElement().getStyle().set("height", "32px");
-        add.getElement().getStyle().set("min-height", "32px");
-        add.getElement().getStyle().set("padding", "0 12px");
         add.getElement().getStyle().set("border-radius", "8px");
-
+        add.getElement().getStyle().set("font-weight", "700");
         add.getElement().getStyle().set("background", "var(--lumo-success-color)");
         add.getElement().getStyle().set("color", "var(--lumo-success-contrast-color)");
         add.getElement().getStyle().set("border", "1px solid var(--lumo-success-color)");
-
-        add.getElement().getStyle().set("font-weight", "700");
-        add.getElement().getStyle().set("font-size", "var(--lumo-font-size-s)");
-        add.getElement().getStyle().set("white-space", "nowrap");
-        add.getElement().getStyle().set("cursor", "pointer");
-
         add.setWidth("120px");
+
+        boolean tieneIng = p.getCodigo() != null && cacheTieneIngredientes.getOrDefault(p.getCodigo(), false);
+
+        Button personalizar = new Button("⚙ Personalizar");
+        personalizar.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        personalizar.getElement().getStyle().set("height", "26px");
+        personalizar.getElement().getStyle().set("min-height", "26px");
+        personalizar.getElement().getStyle().set("padding", "0 10px");
+        personalizar.getElement().getStyle().set("border-radius", "8px");
+        personalizar.getElement().getStyle().set("font-size", "var(--lumo-font-size-xs)");
+        personalizar.getElement().getStyle().set("font-weight", "700");
+
+        personalizar.setEnabled(tieneIng);
+        if (!tieneIng) personalizar.getElement().setProperty("title", "Este producto no tiene ingredientes configurados");
+
+        personalizar.addClickListener(e -> abrirDialogoPersonalizar(p.getCodigo(), qty));
+
+        HorizontalLayout filaPersonalizar = new HorizontalLayout(personalizar);
+        filaPersonalizar.setWidthFull();
+        filaPersonalizar.setJustifyContentMode(JustifyContentMode.END);
 
         HorizontalLayout acciones = new HorizontalLayout(qty, add);
         acciones.setWidthFull();
         acciones.setSpacing(false);
         acciones.getStyle().set("gap", "10px");
         acciones.setAlignItems(Alignment.END);
-        acciones.setFlexGrow(0, qty);
-        acciones.setFlexGrow(1, add);
-        acciones.getElement().getStyle().set("min-width", "0");
 
-        VerticalLayout card = new VerticalLayout(img, nombre, desc, precio, acciones);
+        VerticalLayout card = new VerticalLayout(img, nombre, desc, precio, filaPersonalizar, acciones);
         card.setPadding(true);
         card.setSpacing(false);
         card.getStyle().set("gap", "8px");
-
         card.setWidthFull();
-        card.getStyle().set("min-height", "320px");
-
+        card.getStyle().set("min-height", "340px");
         card.getStyle().set("overflow", "hidden");
-        card.getStyle().set("box-sizing", "border-box");
-
         card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
         card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
 
         return card;
+    }
+
+    private void abrirDialogoPersonalizar(String codigoProducto, IntegerField qtyField) {
+        if (codigoProducto == null || codigoProducto.isBlank()) return;
+
+        try {
+            Producto producto = productoService.obtenerConIngredientesPorCodigo(codigoProducto);
+            List<ProductoIngrediente> receta = (producto.getIngredientes() == null) ? List.of() : producto.getIngredientes();
+
+            if (receta.isEmpty()) {
+                Notification.show("Este producto no tiene ingredientes configurados", 2500, Notification.Position.MIDDLE);
+                return;
+            }
+
+            Dialog dialog = new Dialog();
+            dialog.setHeaderTitle("Personalizar: " + (producto.getNombre() != null ? producto.getNombre() : producto.getCodigo()));
+
+            FormLayout form = new FormLayout();
+            form.setWidth("520px");
+
+            Map<UUID, Checkbox> checks = new LinkedHashMap<>();
+            Map<UUID, IntegerField> extras = new LinkedHashMap<>();
+
+            for (ProductoIngrediente pi : receta) {
+                Ingrediente ing = pi.getIngrediente();
+                UUID ingId = (ing != null) ? ing.getId() : null;
+                if (ingId == null) continue;
+
+                String nombreIng = (ing.getNombre() != null) ? ing.getNombre() : "Ingrediente";
+                BigDecimal extra = (pi.getPrecioExtra() != null) ? pi.getPrecioExtra() : BigDecimal.ZERO;
+
+                Checkbox incluido = new Checkbox(nombreIng);
+                incluido.setValue(pi.isPorDefecto());
+
+                IntegerField extraQty = new IntegerField("Extra");
+                extraQty.setMin(0);
+                extraQty.setValue(0);
+                extraQty.setStepButtonsVisible(true);
+                extraQty.setWidth("140px");
+
+                Span precioExtra = new Span("+ " + extra + " € / extra");
+                precioExtra.getStyle().set("color", "var(--lumo-secondary-text-color)");
+                precioExtra.getStyle().set("font-size", "var(--lumo-font-size-s)");
+
+                if (!pi.isOpcional()) {
+                    incluido.setEnabled(false);
+                    extraQty.setEnabled(false);
+                }
+
+                checks.put(ingId, incluido);
+                extras.put(ingId, extraQty);
+
+                HorizontalLayout row = new HorizontalLayout(incluido, extraQty, precioExtra);
+                row.setWidthFull();
+                row.setAlignItems(Alignment.CENTER);
+                row.setSpacing(false);
+                row.getStyle().set("gap", "12px");
+
+                form.add(row);
+            }
+
+            Button cancelar = new Button("Cancelar", e -> dialog.close());
+            Button anadir = new Button("✅ Añadir personalizado");
+            anadir.getStyle().set("font-weight", "700");
+
+            anadir.addClickListener(e -> {
+                try {
+                    int cantidad = (qtyField.getValue() != null) ? qtyField.getValue() : 1;
+
+                    Map<UUID, Boolean> incluidoMap = new HashMap<>();
+                    Map<UUID, Integer> extraMap = new HashMap<>();
+
+                    for (var entry : checks.entrySet()) {
+                        incluidoMap.put(entry.getKey(), Boolean.TRUE.equals(entry.getValue().getValue()));
+                    }
+                    for (var entry : extras.entrySet()) {
+                        Integer v = entry.getValue().getValue();
+                        extraMap.put(entry.getKey(), (v == null) ? 0 : Math.max(v, 0));
+                    }
+
+                    carrito = pedidoCarritoService.agregarProductoPersonalizado(
+                            carrito,
+                            codigoProducto,
+                            cantidad,
+                            incluidoMap,
+                            extraMap
+                    );
+
+                    refrescarCarrito();
+                    dialog.close();
+
+                } catch (Exception ex) {
+                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                }
+            });
+
+            HorizontalLayout acciones = new HorizontalLayout(cancelar, anadir);
+            acciones.setWidthFull();
+            acciones.setJustifyContentMode(JustifyContentMode.END);
+
+            VerticalLayout content = new VerticalLayout(form, acciones);
+            content.setPadding(false);
+            content.setSpacing(true);
+
+            dialog.add(content);
+            dialog.open();
+
+        } catch (Exception ex) {
+            Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+        }
     }
 
     private void configurarGridCarrito() {
@@ -345,7 +472,7 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         gridCarrito.getStyle().set("overflow", "hidden");
         gridCarrito.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
 
-        gridCarrito.addColumn(lp -> lp.getProducto() != null ? lp.getProducto().getNombre() : "-")
+        gridCarrito.addComponentColumn(this::celdaProductoConPersonalizacion)
                 .setHeader("Producto")
                 .setFlexGrow(1);
 
@@ -354,7 +481,7 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setFlexGrow(0);
 
-        gridCarrito.addColumn(lp -> lp.calcularPrecio() + " €")
+        gridCarrito.addColumn(lp -> pedidoCalculoService.calcularPrecioLinea(lp) + " €")
                 .setHeader("Subtotal")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -365,46 +492,98 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
                 .setFlexGrow(0);
 
         colAcciones.setVisible(editarCarrito);
-
         total.getStyle().set("font-weight", "800");
     }
 
-    private Component accionesCarritoPorFila(LineaPedido lp) {
-        if (!editarCarrito) {
-            return new Span("");
+    private Component celdaProductoConPersonalizacion(LineaPedido lp) {
+        String nombre = (lp.getProducto() != null && lp.getProducto().getNombre() != null)
+                ? lp.getProducto().getNombre()
+                : "-";
+
+        Span titulo = new Span(nombre);
+        titulo.getStyle().set("font-weight", "800");
+
+        VerticalLayout box = new VerticalLayout(titulo);
+        box.setPadding(false);
+        box.setSpacing(false);
+        box.getStyle().set("gap", "4px");
+
+        List<String> detalles = construirDetallePersonalizacion(lp);
+        for (String d : detalles) {
+            Span chip = new Span(d);
+            chip.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+            chip.getStyle().set("color", "var(--lumo-secondary-text-color)");
+            box.add(chip);
         }
 
-        Button minus = new Button("–", e -> cambiarCantidad(lp, -1));
-        Button plus = new Button("+", e -> cambiarCantidad(lp, +1));
+        return box;
+    }
+
+    // ✅ CAMBIO: ingredientes ahora es Set -> tratamos como Collection y copiamos a List para iterar cómodo
+    private List<String> construirDetallePersonalizacion(LineaPedido lp) {
+        Collection<LineaPedidoIngrediente> ingsCol =
+                (lp.getIngredientes() == null) ? List.of() : lp.getIngredientes();
+
+        if (ingsCol.isEmpty()) return List.of();
+
+        List<LineaPedidoIngrediente> ings = new ArrayList<>(ingsCol);
+
+        List<String> res = new ArrayList<>();
+
+        for (LineaPedidoIngrediente li : ings) {
+            if (li == null || li.getIngrediente() == null) continue;
+            String n = li.getIngrediente().getNombre();
+            if (n == null || n.isBlank()) continue;
+
+            if (!li.isIncluido()) {
+                res.add("Sin " + n);
+            }
+        }
+
+        for (LineaPedidoIngrediente li : ings) {
+            if (li == null || li.getIngrediente() == null) continue;
+
+            int nExtra = Math.max(li.getExtraCantidad(), 0);
+            if (nExtra <= 0) continue;
+
+            String n = li.getIngrediente().getNombre();
+            if (n == null || n.isBlank()) n = "Ingrediente";
+
+            BigDecimal unit = (li.getPrecioExtra() == null) ? BigDecimal.ZERO : li.getPrecioExtra();
+            BigDecimal plus = unit.multiply(BigDecimal.valueOf(nExtra));
+
+            res.add("Extra " + n + " x" + nExtra + " (+" + plus + " €)");
+        }
+
+        return res;
+    }
+
+    private Component accionesCarritoPorFila(LineaPedido lp) {
+        if (!editarCarrito) return new Span("");
+
+        Button minus = new Button("–", e -> cambiarCantidadLinea(lp, -1));
+        Button plus = new Button("+", e -> cambiarCantidadLinea(lp, +1));
         Button trash = new Button("🗑", e -> eliminarLinea(lp));
 
         minus.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         plus.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         trash.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
 
-        minus.getStyle().set("padding", "0 10px");
-        plus.getStyle().set("padding", "0 10px");
-        trash.getStyle().set("padding", "0 10px");
-
         HorizontalLayout acciones = new HorizontalLayout(minus, plus, trash);
         acciones.setSpacing(false);
         acciones.getStyle().set("gap", "8px");
         acciones.setAlignItems(Alignment.CENTER);
-
         return acciones;
     }
 
-    private void cambiarCantidad(LineaPedido lp, int delta) {
+    private void cambiarCantidadLinea(LineaPedido lp, int delta) {
         try {
-            int actual = lp.getCantidad();
-            int nueva = actual + delta;
+            if (lp == null || lp.getCodigo() == null || lp.getCodigo() == null || lp.getCodigo().isBlank()) {
+                throw new IllegalArgumentException("Línea inválida");
+            }
 
-            carrito = pedidoService.actualizarCantidadEnMemoria(
-                    carrito,
-                    lp.getProducto().getCodigo(),
-                    nueva
-            );
-
+            int nueva = lp.getCantidad() + delta;
+            carrito = pedidoCarritoService.actualizarCantidadLinea(carrito, lp.getCodigo(), nueva);
             refrescarCarrito();
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 3500, Notification.Position.MIDDLE);
@@ -413,10 +592,11 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
 
     private void eliminarLinea(LineaPedido lp) {
         try {
-            carrito = pedidoService.eliminarProductoEnMemoria(
-                    carrito,
-                    lp.getProducto().getCodigo()
-            );
+            if (lp == null || lp.getCodigo() == null || lp.getCodigo().isBlank()) {
+                throw new IllegalArgumentException("Línea inválida");
+            }
+
+            carrito = pedidoCarritoService.eliminarLinea(carrito, lp.getCodigo());
             refrescarCarrito();
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 3500, Notification.Position.MIDDLE);
@@ -424,17 +604,19 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
     }
 
     protected void refrescarCarrito() {
+        // ✅ CAMBIO: carrito.getLineaPedidos() ahora es Set -> lo convertimos a List para Vaadin Grid
         List<LineaPedido> items =
-                carrito != null && carrito.getLineaPedidos() != null ? carrito.getLineaPedidos() : List.of();
+                (carrito != null && carrito.getLineaPedidos() != null)
+                        ? new ArrayList<>(carrito.getLineaPedidos())
+                        : List.of();
 
         gridCarrito.setItems(items);
 
-        BigDecimal totalCalc = BigDecimal.ZERO;
-        if (!items.isEmpty()) {
-            totalCalc = carrito.calcularPrecioTotal();
-        }
-        total.setText("Total: " + totalCalc + " €");
+        BigDecimal totalCalc = items.isEmpty()
+                ? BigDecimal.ZERO
+                : pedidoCalculoService.calcularTotalPedido(carrito);
 
+        total.setText("Total: " + totalCalc + " €");
         continuar.setEnabled(puedeContinuar());
     }
 
