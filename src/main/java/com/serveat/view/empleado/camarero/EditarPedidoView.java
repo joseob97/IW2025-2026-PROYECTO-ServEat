@@ -6,6 +6,7 @@ import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
+import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -23,6 +24,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
+
 import java.util.List;
 
 @PageTitle("Editar Pedido | Camarero")
@@ -32,12 +34,13 @@ public class EditarPedidoView extends VerticalLayout {
 
     // Servicios
     private final transient PedidoService pedidoService;
+    private final transient PedidoCarritoService carritoService;
     private final transient ProductoService productoService;
     private final transient CategoriaService categoriaService;
 
     // Estado
-    private Pedido pedidoOriginal;
-    private Pedido pedidoEditable;
+    private transient Pedido pedidoOriginal;
+    private transient Pedido pedidoEditable;
     private boolean hayCambios = false;
 
     // UI pedido
@@ -57,10 +60,12 @@ public class EditarPedidoView extends VerticalLayout {
     private final Button confirmarCambios = new Button("✅ Confirmar cambios");
 
     public EditarPedidoView(PedidoService pedidoService,
+                            PedidoCarritoService carritoService,
                             ProductoService productoService,
                             CategoriaService categoriaService) {
 
         this.pedidoService = pedidoService;
+        this.carritoService = carritoService;
         this.productoService = productoService;
         this.categoriaService = categoriaService;
 
@@ -89,29 +94,39 @@ public class EditarPedidoView extends VerticalLayout {
 
         filtroMesa.setMin(1);
         filtroMesa.setClearButtonVisible(true);
+        filtroMesa.setValueChangeMode(ValueChangeMode.LAZY);
         filtroMesa.addValueChangeListener(e -> cargarPedidos());
 
-        gridPedidos.addColumn(Pedido::getCodigo).setHeader("Código");
-        gridPedidos.addColumn(p -> p.getReservaMesa() != null
-                ? p.getReservaMesa().getNumeroMesa() : "-").setHeader("Mesa");
-        gridPedidos.addColumn(p -> p.getEstado().name()).setHeader("Estado");
+        gridPedidos.addColumn(Pedido::getCodigo).setHeader("Código").setAutoWidth(true);
+        gridPedidos.addColumn(p -> p.getReservaMesa() != null ? p.getReservaMesa().getNumeroMesa() : "-")
+                .setHeader("Mesa").setAutoWidth(true);
+        gridPedidos.addColumn(p -> p.getEstado() != null ? p.getEstado().name() : "-")
+                .setHeader("Estado").setAutoWidth(true);
 
         gridPedidos.addSelectionListener(e -> {
             pedidoOriginal = e.getFirstSelectedItem().orElse(null);
 
             if (pedidoOriginal == null) {
+                pedidoEditable = null;
+                codigoPedido.clear();
+                refrescarLineas();
                 bloquearEdicion();
                 return;
             }
 
-            // Pedido editable en memoria
-            pedidoEditable = pedidoService.obtenerPorCodigo(pedidoOriginal.getCodigo());
-            codigoPedido.setValue(pedidoEditable.getCodigo());
-            refrescarLineas();
+            try {
+                // Cargamos detalle real
+                pedidoEditable = pedidoService.obtenerPorCodigo(pedidoOriginal.getCodigo());
+                codigoPedido.setValue(pedidoEditable.getCodigo());
+                refrescarLineas();
 
-            hayCambios = false;
-            confirmarCambios.setEnabled(false);
-            desbloquearEdicion();
+                hayCambios = false;
+                confirmarCambios.setEnabled(false);
+                desbloquearEdicion();
+            } catch (Exception ex) {
+                Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                bloquearEdicion();
+            }
         });
 
         gridPedidos.setWidthFull();
@@ -124,7 +139,7 @@ public class EditarPedidoView extends VerticalLayout {
     private void cargarPedidos() {
         Integer mesa = filtroMesa.getValue();
 
-        if (mesa == null) {
+        if (mesa == null || mesa <= 0) {
             gridPedidos.setItems(pedidoService.listarPedidosModificables());
         } else {
             gridPedidos.setItems(pedidoService.listarPedidosModificablesPorMesa(mesa));
@@ -146,6 +161,7 @@ public class EditarPedidoView extends VerticalLayout {
         cantidad.setMin(1);
         cantidad.setValue(1);
         cantidad.setStepButtonsVisible(true);
+        cantidad.setWidth("160px");
 
         anadir.addClickListener(e -> anadirProducto());
 
@@ -159,10 +175,19 @@ public class EditarPedidoView extends VerticalLayout {
         filaConfirmar.setWidthFull();
         filaConfirmar.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
 
+        HorizontalLayout filaFiltros = new HorizontalLayout(buscarProducto, filtroCategoria);
+        filaFiltros.setWidthFull();
+        filaFiltros.getStyle().set("gap", "12px");
+
+        HorizontalLayout filaAdd = new HorizontalLayout(comboProducto, cantidad, anadir);
+        filaAdd.setWidthFull();
+        filaAdd.getStyle().set("gap", "12px");
+        filaAdd.setAlignItems(FlexComponent.Alignment.END);
+
         card.add(
                 codigoPedido,
-                new HorizontalLayout(buscarProducto, filtroCategoria),
-                new HorizontalLayout(comboProducto, cantidad, anadir),
+                filaFiltros,
+                filaAdd,
                 gridLineas,
                 filaConfirmar
         );
@@ -177,19 +202,24 @@ public class EditarPedidoView extends VerticalLayout {
         buscarProducto.setPlaceholder("Buscar por nombre");
         buscarProducto.setClearButtonVisible(true);
         buscarProducto.setValueChangeMode(ValueChangeMode.EAGER);
+        buscarProducto.setWidth("360px");
 
         filtroCategoria.setItems(
                 categoriaService.listarCategorias().stream()
                         .map(Categoria::getNombre)
                         .toList()
         );
+        filtroCategoria.setClearButtonVisible(true);
+        filtroCategoria.setWidth("260px");
 
         buscarProducto.addValueChangeListener(e -> {
+            if (!e.isFromClient()) return;
             filtroCategoria.clear();
             recargarProductos();
         });
 
         filtroCategoria.addValueChangeListener(e -> {
+            if (!e.isFromClient()) return;
             buscarProducto.clear();
             recargarProductos();
         });
@@ -197,53 +227,67 @@ public class EditarPedidoView extends VerticalLayout {
 
     private void configurarComboProducto() {
         comboProducto.setItemLabelGenerator(
-                p -> p.getNombre() + " - " + p.getPrecio() + "€"
+                p -> (p.getNombre() != null ? p.getNombre() : p.getCodigo()) + " - " + p.getPrecio() + "€"
         );
+        comboProducto.setWidth("420px");
     }
 
     private void recargarProductos() {
+        String texto = buscarProducto.getValue() != null ? buscarProducto.getValue().trim() : "";
+        String cat = filtroCategoria.getValue();
 
-        if (!buscarProducto.getValue().isBlank()) {
-            comboProducto.setItems(
-                    productoService.buscarPorNombreParcial(buscarProducto.getValue())
-            );
+        if (!texto.isBlank()) {
+            comboProducto.setItems(productoService.buscarPorNombreParcial(texto));
             return;
         }
 
-        if (filtroCategoria.getValue() != null) {
-            comboProducto.setItems(
-                    productoService.buscarPorCategoria(filtroCategoria.getValue())
-            );
+        if (cat != null && !cat.isBlank()) {
+            comboProducto.setItems(productoService.buscarPorCategoria(cat));
             return;
         }
 
-        comboProducto.setItems(
-                productoService.buscarPorNombreParcial("")
-        );
+        comboProducto.setItems(productoService.buscarPorNombreParcial(""));
     }
 
-    // GRID LINEAS
+    // GRID LÍNEAS
 
     private void configurarGridLineas() {
 
-        gridLineas.addColumn(lp -> lp.getProducto().getNombre())
-                .setHeader("Producto");
+        gridLineas.addColumn(lp -> lp.getProducto() != null ? lp.getProducto().getNombre() : "-")
+                .setHeader("Producto")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
 
         gridLineas.addColumn(LineaPedido::getCantidad)
-                .setHeader("Cantidad");
+                .setHeader("Cantidad")
+                .setAutoWidth(true);
 
         gridLineas.addComponentColumn(lp -> {
             IntegerField qty = new IntegerField();
             qty.setValue(lp.getCantidad());
             qty.setMin(1);
+            qty.setStepButtonsVisible(true);
+            qty.setWidth("160px");
+            qty.setValueChangeMode(ValueChangeMode.ON_CHANGE);
 
-            qty.addValueChangeListener(e -> {
-                pedidoEditable = pedidoService.actualizarCantidadEnMemoria(
-                        pedidoEditable,
-                        lp.getProducto().getCodigo(),
-                        e.getValue()
-                );
-                marcarCambio();
+            qty.addValueChangeListener(ev -> {
+                if (!ev.isFromClient()) return;
+                if (pedidoEditable == null) return;
+
+                Integer nueva = ev.getValue();
+                if (nueva == null || nueva <= 0) {
+                    qty.setValue(lp.getCantidad());
+                    Notification.show("Cantidad inválida", 2500, Notification.Position.MIDDLE);
+                    return;
+                }
+
+                try {
+                    carritoService.actualizarCantidadLinea(pedidoEditable, lp.getCodigo(), nueva);
+                    marcarCambio();
+                } catch (Exception ex) {
+                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                    refrescarLineas();
+                }
             });
 
             return qty;
@@ -252,51 +296,76 @@ public class EditarPedidoView extends VerticalLayout {
         gridLineas.addComponentColumn(lp -> {
             Button borrar = new Button("❌");
             borrar.addClickListener(e -> {
-                pedidoEditable = pedidoService.eliminarProductoEnMemoria(
-                        pedidoEditable,
-                        lp.getProducto().getCodigo()
-                );
-                marcarCambio();
+                if (pedidoEditable == null) return;
+
+                try {
+                    carritoService.eliminarLinea(pedidoEditable, lp.getCodigo());
+                    marcarCambio();
+                } catch (Exception ex) {
+                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                }
             });
             return borrar;
         }).setHeader("Eliminar");
+
+        gridLineas.setWidthFull();
+        gridLineas.setHeight("320px");
     }
 
     private void refrescarLineas() {
-        gridLineas.setItems(
-                pedidoEditable != null ? pedidoEditable.getLineaPedidos() : List.of()
-        );
+        gridLineas.setItems(pedidoEditable != null && pedidoEditable.getLineaPedidos() != null
+                ? pedidoEditable.getLineaPedidos()
+                : List.of());
     }
 
     // ACCIONES
 
     private void anadirProducto() {
 
-        if (comboProducto.getValue() == null) {
-            Notification.show("Selecciona un producto");
+        if (pedidoEditable == null) {
+            Notification.show("Selecciona un pedido", 2500, Notification.Position.MIDDLE);
             return;
         }
 
-        pedidoEditable = pedidoService.agregarProductoEnMemoria(
-                pedidoEditable,
-                comboProducto.getValue(),
-                cantidad.getValue()
-        );
+        Producto p = comboProducto.getValue();
+        Integer qty = cantidad.getValue();
 
-        marcarCambio();
+        if (p == null) {
+            Notification.show("Selecciona un producto", 2500, Notification.Position.MIDDLE);
+            return;
+        }
+        if (qty == null || qty <= 0) {
+            Notification.show("Cantidad inválida", 2500, Notification.Position.MIDDLE);
+            return;
+        }
+
+        try {
+            carritoService.agregarProducto(pedidoEditable, p, qty);
+
+            comboProducto.clear();
+            cantidad.setValue(1);
+
+            marcarCambio();
+        } catch (Exception ex) {
+            Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+        }
     }
 
     private void confirmarCambios() {
 
-        String usuario = SecurityContextHolder.getContext()
-                .getAuthentication().getName();
+        if (pedidoEditable == null) return;
 
-        pedidoService.confirmarCambiosPedido(pedidoEditable, usuario);
+        String usuario = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        Notification.show("Cambios guardados correctamente");
+        try {
+            pedidoService.confirmarCambiosPedido(pedidoEditable, usuario);
+            Notification.show("Cambios guardados correctamente", 3000, Notification.Position.MIDDLE);
 
-        cargarPedidos();
-        bloquearEdicion();
+            cargarPedidos();
+            bloquearEdicion();
+        } catch (Exception ex) {
+            Notification.show(ex.getMessage(), 4500, Notification.Position.MIDDLE);
+        }
     }
 
     private void marcarCambio() {
@@ -308,6 +377,8 @@ public class EditarPedidoView extends VerticalLayout {
     // UI
 
     private void bloquearEdicion() {
+        buscarProducto.setEnabled(false);
+        filtroCategoria.setEnabled(false);
         comboProducto.setEnabled(false);
         cantidad.setEnabled(false);
         anadir.setEnabled(false);
@@ -316,6 +387,8 @@ public class EditarPedidoView extends VerticalLayout {
     }
 
     private void desbloquearEdicion() {
+        buscarProducto.setEnabled(true);
+        filtroCategoria.setEnabled(true);
         comboProducto.setEnabled(true);
         cantidad.setEnabled(true);
         anadir.setEnabled(true);
@@ -329,6 +402,7 @@ public class EditarPedidoView extends VerticalLayout {
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
         card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
+        card.getStyle().set("gap", "12px");
         return card;
     }
 }
