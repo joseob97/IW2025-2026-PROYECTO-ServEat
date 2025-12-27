@@ -7,8 +7,6 @@ import com.serveat.domain.pedido.Pedido;
 import com.serveat.domain.pedido.TipoPedidoCliente;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +24,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -36,6 +36,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -46,6 +48,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -56,6 +60,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -66,6 +72,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -76,6 +84,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -90,6 +100,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -106,6 +118,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -116,6 +130,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "cliente",
             "repartidor",
             "pago"
@@ -126,6 +142,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "repartidor",
             "pago"
     })
@@ -139,6 +157,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "repartidor",
             "pago"
     })
@@ -152,6 +172,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "repartidor",
             "pago"
     })
@@ -161,6 +183,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "pago"
     })
     List<Pedido> findByEstadoAndEstadoCocina(
@@ -172,6 +196,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "cliente",
             "lineaPedidos",
             "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
             "reservaMesa",
             "pago"
     })
