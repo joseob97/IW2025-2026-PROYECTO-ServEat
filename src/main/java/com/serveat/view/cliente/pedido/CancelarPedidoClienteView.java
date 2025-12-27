@@ -1,7 +1,7 @@
 package com.serveat.view.cliente.pedido;
 
-import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -28,6 +28,7 @@ import java.util.List;
 public class CancelarPedidoClienteView extends VerticalLayout {
 
     private final transient PedidoService pedidoService;
+    private final transient PedidoCalculoService pedidoCalculoService;
 
     private final Grid<Pedido> grid = new Grid<>(Pedido.class, false);
     private final TextArea motivo = new TextArea("Motivo (opcional)");
@@ -35,8 +36,10 @@ public class CancelarPedidoClienteView extends VerticalLayout {
 
     private transient Pedido seleccionado;
 
-    public CancelarPedidoClienteView(PedidoService pedidoService) {
+    public CancelarPedidoClienteView(PedidoService pedidoService,
+                                     PedidoCalculoService pedidoCalculoService) {
         this.pedidoService = pedidoService;
+        this.pedidoCalculoService = pedidoCalculoService;
 
         setPadding(true);
         setSpacing(false);
@@ -80,16 +83,24 @@ public class CancelarPedidoClienteView extends VerticalLayout {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
         grid.addColumn(Pedido::getCodigo).setHeader("Nº Pedido").setAutoWidth(true);
+
         grid.addColumn(p -> p.getFechaCreacion() != null ? p.getFechaCreacion().format(fmt) : "-")
                 .setHeader("Fecha").setAutoWidth(true);
+
         grid.addColumn(p -> p.getEstado() != null ? p.getEstado().name() : "-")
                 .setHeader("Estado pedido").setAutoWidth(true);
+
         grid.addColumn(p -> p.getEstadoCocina() != null ? p.getEstadoCocina().name() : "-")
                 .setHeader("Estado cocina").setAutoWidth(true);
+
         grid.addColumn(p -> {
-            try { return p.calcularPrecioTotal() + " €"; }
-            catch (Exception ex) { return "-"; }
-        }).setHeader("Total").setAutoWidth(true);
+                    try {
+                        return pedidoCalculoService.calcularTotalPedido(p) + " €";
+                    } catch (Exception ex) {
+                        return "-";
+                    }
+                })
+                .setHeader("Total").setAutoWidth(true);
 
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
         grid.setHeight("420px");
