@@ -1,5 +1,7 @@
 package com.serveat.service.repartidor.impl;
 
+import com.serveat.domain.pago.MetodoPago;
+import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.EstadoReparto;
@@ -8,6 +10,7 @@ import com.serveat.domain.pedido.TipoPedidoCliente;
 import com.serveat.domain.usuario.Empleado;
 import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.usuario.EmpleadoRepository;
+import com.serveat.service.pago.PagoService;
 import com.serveat.service.repartidor.RepartidorService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,16 +24,17 @@ public class RepartidorServiceImpl implements RepartidorService {
 
     private final PedidoRepository pedidoRepo;
     private final EmpleadoRepository empleadoRepo;
+    private final PagoService pagoService;
 
-    public RepartidorServiceImpl(PedidoRepository pedidoRepo, EmpleadoRepository empleadoRepo) {
+    public RepartidorServiceImpl(PedidoRepository pedidoRepo, EmpleadoRepository empleadoRepo, PagoService pagoService) {
         this.pedidoRepo = pedidoRepo;
         this.empleadoRepo = empleadoRepo;
+        this.pagoService = pagoService;
     }
 
     // Pedidos a domicilio listos para asignación
     @Override
     public List<Pedido> listarPedidosPendientes() {
-        // CORRECCIÓN: Ahora filtramos también por EstadoCocina.LISTO
         return pedidoRepo.findByTipoPedidoAndEstadoRepartoAndEstadoCocina(
                 TipoPedidoCliente.DOMICILIO,
                 EstadoReparto.PENDIENTE_ASIGNACION,
@@ -125,6 +129,11 @@ public class RepartidorServiceImpl implements RepartidorService {
         pedido.setEstadoReparto(EstadoReparto.ENTREGADO);
         pedido.setFechaEntrega(LocalDateTime.now());
 
+        // Lógica para pagos en efectivo
+        if (pedido.getPago() != null && pedido.getPago().getMetodo() == MetodoPago.EFECTIVO) {
+            pagoService.confirmarPago(pedido.getPago().getId(), "Efectivo cobrado por repartidor");
+        }
+
         return pedidoRepo.save(pedido);
     }
 
@@ -148,6 +157,11 @@ public class RepartidorServiceImpl implements RepartidorService {
 
         pedido.setEstadoReparto(EstadoReparto.INCIDENCIA);
         pedido.setIncidenciaReparto(motivoFinal);
+
+        // Lógica para pagos en efectivo
+        if (pedido.getPago() != null && pedido.getPago().getMetodo() == MetodoPago.EFECTIVO) {
+            pagoService.marcarPagoFallido(pedido.getPago().getId(), "Incidencia en entrega: " + motivoFinal);
+        }
 
         return pedidoRepo.save(pedido);
     }
