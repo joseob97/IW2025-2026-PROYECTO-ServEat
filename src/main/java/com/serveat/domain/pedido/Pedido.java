@@ -1,6 +1,5 @@
 package com.serveat.domain.pedido;
 
-import com.serveat.domain.menu.Producto;
 import com.serveat.domain.pago.Pago;
 import com.serveat.domain.reserva.ReservaMesa;
 import com.serveat.domain.usuario.Cliente;
@@ -9,17 +8,15 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
 @Table(name = "PEDIDOS")
 public class Pedido {
-
-    // IDENTIDAD
 
     @Id
     @GeneratedValue
@@ -29,8 +26,6 @@ public class Pedido {
     @Column(unique = true, nullable = false, updatable = false)
     private String codigo;
 
-    // ESTADOS
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoPedido estado;
@@ -39,16 +34,12 @@ public class Pedido {
     @Column(nullable = false)
     private EstadoCocina estadoCocina = EstadoCocina.PENDIENTE_ACEPTACION;
 
-    // TIPO CLIENTE
-
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_pedido", nullable = false)
     private TipoPedidoCliente tipoPedido;
 
     @Column(name = "direccion_entrega", length = 255)
     private String direccionEntrega;
-
-    // REPARTO
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_reparto", nullable = false)
@@ -70,8 +61,6 @@ public class Pedido {
     @Column(name = "incidencia_reparto", length = 255)
     private String incidenciaReparto;
 
-    // FECHAS
-
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCreacion = LocalDateTime.now();
 
@@ -81,55 +70,32 @@ public class Pedido {
     @Column(name = "modificado_por")
     private String modificadoPor;
 
-    // CANCELACIÓN
-
     private String canceladoPor;
     private String motivoCancelacion;
     private LocalDateTime fechaCancelacion;
-
-    // RELACIONES
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reserva_mesa_id")
     private ReservaMesa reservaMesa;
 
     @OneToMany(mappedBy = "pedidos", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LineaPedido> lineaPedidos = new ArrayList<>();
+    private Set<LineaPedido> lineaPedidos = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
-    // NUEVO: Relación inversa con Pago para facilitar acceso desde Repartidor
     @OneToOne(mappedBy = "pedido", fetch = FetchType.LAZY)
     private Pago pago;
 
     public Pedido() {
     }
 
-    // LÓGICA DE DOMINIO
-
-    public void marcarModificado(String username) {
-        this.modificadoPor = username;
-        this.fechaUltimaModificacion = LocalDateTime.now();
-    }
-
-    public void crearLineaPedido(Producto producto, int cantidad) {
-        LineaPedido lineaPedido = new LineaPedido(this, producto, cantidad);
-        lineaPedidos.add(lineaPedido);
-    }
-
-    public BigDecimal calcularPrecioTotal() {
-        return lineaPedidos.stream()
-                .map(LineaPedido::calcularPrecio)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    // GETTERS Y SETTERS
 
     public UUID getId() {
         return id;
     }
+
 
     public String getCodigo() {
         return codigo;
@@ -153,66 +119,6 @@ public class Pedido {
 
     public void setEstadoCocina(EstadoCocina estadoCocina) {
         this.estadoCocina = estadoCocina;
-    }
-
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public LocalDateTime getFechaUltimaModificacion() {
-        return fechaUltimaModificacion;
-    }
-
-    public String getModificadoPor() {
-        return modificadoPor;
-    }
-
-    public String getCanceladoPor() {
-        return canceladoPor;
-    }
-
-    public void setCanceladoPor(String canceladoPor) {
-        this.canceladoPor = canceladoPor;
-    }
-
-    public String getMotivoCancelacion() {
-        return motivoCancelacion;
-    }
-
-    public void setMotivoCancelacion(String motivoCancelacion) {
-        this.motivoCancelacion = motivoCancelacion;
-    }
-
-    public LocalDateTime getFechaCancelacion() {
-        return fechaCancelacion;
-    }
-
-    public void setFechaCancelacion(LocalDateTime fechaCancelacion) {
-        this.fechaCancelacion = fechaCancelacion;
-    }
-
-    public ReservaMesa getReservaMesa() {
-        return reservaMesa;
-    }
-
-    public void setReservaMesa(ReservaMesa reservaMesa) {
-        this.reservaMesa = reservaMesa;
-    }
-
-    public List<LineaPedido> getLineaPedidos() {
-        return lineaPedidos;
-    }
-
-    public void setLineaPedidos(List<LineaPedido> lineaPedidos) {
-        this.lineaPedidos = lineaPedidos;
-    }
-
-    public Cliente getCliente() {
-        return cliente;
-    }
-
-    public void setCliente(Cliente cliente) {
-        this.cliente = cliente;
     }
 
     public TipoPedidoCliente getTipoPedido() {
@@ -279,11 +185,95 @@ public class Pedido {
         this.incidenciaReparto = incidenciaReparto;
     }
 
+    public LocalDateTime getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    public LocalDateTime getFechaUltimaModificacion() {
+        return fechaUltimaModificacion;
+    }
+
+    public void setFechaUltimaModificacion(LocalDateTime fechaUltimaModificacion) {
+        this.fechaUltimaModificacion = fechaUltimaModificacion;
+    }
+
+    public String getModificadoPor() {
+        return modificadoPor;
+    }
+
+    public void setModificadoPor(String modificadoPor) {
+        this.modificadoPor = modificadoPor;
+    }
+
+    public String getCanceladoPor() {
+        return canceladoPor;
+    }
+
+    public void setCanceladoPor(String canceladoPor) {
+        this.canceladoPor = canceladoPor;
+    }
+
+    public String getMotivoCancelacion() {
+        return motivoCancelacion;
+    }
+
+    public void setMotivoCancelacion(String motivoCancelacion) {
+        this.motivoCancelacion = motivoCancelacion;
+    }
+
+    public LocalDateTime getFechaCancelacion() {
+        return fechaCancelacion;
+    }
+
+    public void setFechaCancelacion(LocalDateTime fechaCancelacion) {
+        this.fechaCancelacion = fechaCancelacion;
+    }
+
+    public ReservaMesa getReservaMesa() {
+        return reservaMesa;
+    }
+
+    public void setReservaMesa(ReservaMesa reservaMesa) {
+        this.reservaMesa = reservaMesa;
+    }
+
+    public Set<LineaPedido> getLineaPedidos() {
+        return lineaPedidos;
+    }
+
+    public void setLineaPedidos(Set<LineaPedido> lineaPedidos) {
+        this.lineaPedidos = (lineaPedidos == null) ? new LinkedHashSet<>() : lineaPedidos;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
+    }
+
     public Pago getPago() {
         return pago;
     }
 
     public void setPago(Pago pago) {
         this.pago = pago;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Pedido other)) return false;
+        return codigo != null && codigo.equals(other.codigo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(codigo);
     }
 }
