@@ -2,6 +2,7 @@ package com.serveat.view.cliente.pedido;
 
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -23,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 public class ConsultaPedidosView extends VerticalLayout {
 
     private final transient PedidoService pedidoService;
+    private final transient PedidoCalculoService pedidoCalculoService;
 
     private final Grid<Pedido> gridPedidos = new Grid<>(Pedido.class, false);
     private final Grid<LineaPedido> gridLineas = new Grid<>(LineaPedido.class, false);
@@ -31,8 +33,10 @@ public class ConsultaPedidosView extends VerticalLayout {
 
     private transient Pedido pedidoSeleccionado;
 
-    public ConsultaPedidosView(PedidoService pedidoService) {
+    public ConsultaPedidosView(PedidoService pedidoService,
+                               PedidoCalculoService pedidoCalculoService) {
         this.pedidoService = pedidoService;
+        this.pedidoCalculoService = pedidoCalculoService;
 
         setPadding(true);
         setSpacing(false);
@@ -93,7 +97,7 @@ public class ConsultaPedidosView extends VerticalLayout {
 
         gridPedidos.addColumn(p -> {
                     try {
-                        return p.calcularPrecioTotal() + " €";
+                        return pedidoCalculoService.calcularTotalPedido(p) + " €";
                     } catch (Exception e) {
                         return "-";
                     }
@@ -163,7 +167,7 @@ public class ConsultaPedidosView extends VerticalLayout {
                 .setHeader("Precio ud.")
                 .setAutoWidth(true);
 
-        gridLineas.addColumn(lp -> lp.calcularPrecio() + " €")
+        gridLineas.addColumn(lp -> pedidoCalculoService.calcularPrecioLinea(lp) + " €")
                 .setHeader("Subtotal")
                 .setAutoWidth(true);
     }
