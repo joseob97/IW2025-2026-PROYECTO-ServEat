@@ -1,4 +1,4 @@
-package com.serveat.service.estadisticas;
+package com.serveat.service.administrador.estadisticas;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package com.serveat.service.estadisticas;
+package com.serveat.service.administrador.estadisticas;
 
 import java.io.Serializable;
 import java.math.BigDecimal;

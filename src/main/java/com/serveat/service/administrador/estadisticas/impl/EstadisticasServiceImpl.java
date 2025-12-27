@@ -1,4 +1,4 @@
-package com.serveat.service.estadisticas.impl;
+package com.serveat.service.administrador.estadisticas.impl;
 
 import com.serveat.domain.menu.Producto;
 import com.serveat.domain.pago.EstadoPago;
@@ -8,8 +8,8 @@ import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.repository.pago.PagoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
-import com.serveat.service.estadisticas.EstadisticasService;
-import com.serveat.service.estadisticas.EstadisticasSnapshot;
+import com.serveat.service.administrador.estadisticas.EstadisticasService;
+import com.serveat.service.administrador.estadisticas.EstadisticasSnapshot;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
@@ -168,12 +168,14 @@ public class EstadisticasServiceImpl implements EstadisticasService {
             if (p.getFechaCreacion() == null) continue;
 
             YearMonth ym = YearMonth.from(p.getFechaCreacion().toLocalDate());
-            List<LineaPedido> lineas = p.getLineaPedidos();
-            if (lineas == null) continue;
+
+            // ✅ CAMBIO: ahora es Set (o Collection), no List
+            Collection<LineaPedido> lineasCol = p.getLineaPedidos();
+            if (lineasCol == null || lineasCol.isEmpty()) continue;
 
             BigDecimal totalMes = BigDecimal.ZERO;
 
-            for (LineaPedido lp : lineas) {
+            for (LineaPedido lp : lineasCol) {
                 if (lp == null) continue;
 
                 Producto prod = lp.getProducto();
@@ -210,11 +212,13 @@ public class EstadisticasServiceImpl implements EstadisticasService {
             if (p.getFechaCreacion() == null) continue;
 
             YearMonth ym = YearMonth.from(p.getFechaCreacion().toLocalDate());
-            List<LineaPedido> lineas = p.getLineaPedidos();
-            if (lineas == null) continue;
+
+            // ✅ CAMBIO: ahora es Set (o Collection), no List
+            Collection<LineaPedido> lineasCol = p.getLineaPedidos();
+            if (lineasCol == null || lineasCol.isEmpty()) continue;
 
             long unidadesMes = 0L;
-            for (LineaPedido lp : lineas) {
+            for (LineaPedido lp : lineasCol) {
                 if (lp == null) continue;
                 long qty = lp.getCantidad();
                 if (qty <= 0) continue;
@@ -365,10 +369,11 @@ public class EstadisticasServiceImpl implements EstadisticasService {
         Map<String, Long> res = new HashMap<>();
 
         for (Pedido p : pedidos) {
-            List<LineaPedido> lineas = p.getLineaPedidos();
-            if (lineas == null) continue;
+            // ✅ CAMBIO: Set/Collection
+            Collection<LineaPedido> lineasCol = p.getLineaPedidos();
+            if (lineasCol == null || lineasCol.isEmpty()) continue;
 
-            for (LineaPedido lp : lineas) {
+            for (LineaPedido lp : lineasCol) {
                 if (lp == null) continue;
 
                 Producto prod = lp.getProducto();
@@ -391,10 +396,11 @@ public class EstadisticasServiceImpl implements EstadisticasService {
         Map<String, BigDecimal> res = new HashMap<>();
 
         for (Pedido p : pedidos) {
-            List<LineaPedido> lineas = p.getLineaPedidos();
-            if (lineas == null) continue;
+            // ✅ CAMBIO: Set/Collection
+            Collection<LineaPedido> lineasCol = p.getLineaPedidos();
+            if (lineasCol == null || lineasCol.isEmpty()) continue;
 
-            for (LineaPedido lp : lineas) {
+            for (LineaPedido lp : lineasCol) {
                 if (lp == null) continue;
 
                 Producto prod = lp.getProducto();
