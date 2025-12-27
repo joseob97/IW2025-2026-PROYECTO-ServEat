@@ -1,16 +1,19 @@
 package com.serveat.service.pedido;
 
-import com.serveat.domain.menu.Producto;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
-import com.serveat.domain.pedido.*;
+import com.serveat.domain.pedido.EstadoCocina;
+import com.serveat.domain.pedido.EstadoPedido;
+import com.serveat.domain.pedido.LineaPedido;
+import com.serveat.domain.pedido.Pedido;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface PedidoService {
 
-    // --- Backoffice / empleados ---
+    /* Empleados / backoffice */
+
     Pedido crearPedidoMesa(Integer numeroMesa);
 
     Pedido obtenerPorCodigo(String codigo);
@@ -27,27 +30,22 @@ public interface PedidoService {
 
     List<Pedido> obtenerPedidosPorEstadoYMesa(EstadoCocina estado, Integer numeroMesa);
 
+    /* Persistencia simple (por producto). Para personalizaciones, usar PedidoCarritoService por codigoLinea. */
+
     Pedido agregarProducto(String codigoPedido, String codigoProducto, int cantidad);
 
     Pedido actualizarCantidadProducto(String codigoPedido, String codigoProducto, int nuevaCantidad);
 
     Pedido eliminarProducto(String codigoPedido, String codigoProducto);
 
-    // --- Carrito (memoria) ---
-    Pedido agregarProductoEnMemoria(Pedido pedido, Producto producto, int cantidad);
+    /* Confirmaciones / edición */
 
-    Pedido actualizarCantidadEnMemoria(Pedido pedido, String codigoProducto, int nuevaCantidad);
-
-    Pedido eliminarProductoEnMemoria(Pedido pedido, String codigoProducto);
-
-    // --- Confirmaciones ---
     Pedido confirmarPedido(String codigoPedido);
 
     Pedido confirmarCambiosPedido(Pedido pedidoEditado, String usuario);
 
     Pedido confirmarCambiosPedidoCliente(Pedido pedidoEditado, String username);
 
-    // --- Cliente ---
     Pedido cargarDetalleCliente(String codigo, String username);
 
     Pedido cancelarPedido(String codigoPedido, String motivo, String camareroUsername);
@@ -60,14 +58,22 @@ public interface PedidoService {
 
     List<Pedido> listarPedidosCliente(String username);
 
-    // Crear Pedidos
+    /* Cliente: creación */
+
     Pedido crearPedidoClienteRecoger(Pedido carrito, String username);
 
     Pedido crearPedidoClienteDomicilio(Pedido carrito, String username, String direccionEntrega);
 
     Pedido crearPedidoClienteMesa(Pedido carrito, String username, Integer numeroMesa);
 
-    // --- Pago online ---
+    /* Carrito, pedido persistido (respetando personalización) */
+
+    void volcarCarritoEnPedido(String codigoPedido, Pedido carrito);
+
+    Pedido agregarLineaPersonalizada(String codigoPedido, LineaPedido lineaPersonalizada);
+
+    /* Pago online */
+
     Pago iniciarPagoOnline(Pedido carrito, String username, MetodoPago metodo);
 
     Pago obtenerPagoCliente(Long pagoId, String username);
@@ -76,7 +82,8 @@ public interface PedidoService {
 
     Pedido marcarPagoOnlineFallido(Long pagoId, String username, String motivo);
 
-    // --- Cocina ---
+    /* Cocina */
+
     Pedido obtenerPedidoPorId(UUID id);
 
     Pedido cambiarEstadoCocina(UUID id, EstadoCocina nuevoEstado);
