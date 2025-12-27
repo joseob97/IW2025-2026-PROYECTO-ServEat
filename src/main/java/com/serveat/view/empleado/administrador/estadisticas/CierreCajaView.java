@@ -1,6 +1,6 @@
 package com.serveat.view.empleado.administrador.estadisticas;
 
-import com.serveat.service.estadisticas.EstadisticasService;
+import com.serveat.service.administrador.estadisticas.EstadisticasService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
