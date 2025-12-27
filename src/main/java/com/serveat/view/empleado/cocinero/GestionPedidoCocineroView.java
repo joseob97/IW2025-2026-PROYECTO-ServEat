@@ -2,6 +2,7 @@ package com.serveat.view.empleado.cocinero;
 
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.domain.pedido.EstadoCocina;
+import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.AttachEvent;
@@ -20,6 +21,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @PageTitle("Gestión de Preparación | Cocinero")
@@ -27,16 +29,17 @@ import java.util.List;
 @Secured("ROLE_COCINERO")
 public class GestionPedidoCocineroView extends VerticalLayout {
 
-    // SERVICIOS
     private final transient PedidoService pedidoService;
+    private final transient PedidoCalculoService pedidoCalculoService;
 
-    // COMPONENTES UI
     private final Grid<Pedido> grid = new Grid<>(Pedido.class, false);
     private final ComboBox<EstadoCocina> filtroEstado = new ComboBox<>("Filtrar por estado");
     private final IntegerField filtroMesa = new IntegerField("Filtrar por mesa");
 
-    public GestionPedidoCocineroView(PedidoService pedidoService) {
+    public GestionPedidoCocineroView(PedidoService pedidoService,
+                                     PedidoCalculoService pedidoCalculoService) {
         this.pedidoService = pedidoService;
+        this.pedidoCalculoService = pedidoCalculoService;
 
         setSpacing(false);
         setPadding(true);
@@ -107,10 +110,13 @@ public class GestionPedidoCocineroView extends VerticalLayout {
         filtroMesa.setMin(1);
         filtroMesa.setPlaceholder("Todas las mesas");
         filtroMesa.setValueChangeMode(ValueChangeMode.LAZY);
+        filtroMesa.setClearButtonVisible(true);
         filtroMesa.addValueChangeListener(e -> recargarPedidos());
     }
 
     private void configurarGrid() {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
         grid.addColumn(p -> "Mesa " + (p.getReservaMesa() != null ? p.getReservaMesa().getNumeroMesa() : "N/A"))
                 .setHeader("Mesa")
                 .setAutoWidth(true);
@@ -119,22 +125,22 @@ public class GestionPedidoCocineroView extends VerticalLayout {
                 .setHeader("Código")
                 .setAutoWidth(true);
 
-        grid.addColumn(Pedido::getEstadoCocina)
+        grid.addColumn(p -> p.getEstadoCocina() != null ? p.getEstadoCocina().name() : "-")
                 .setHeader("Estado")
                 .setAutoWidth(true);
 
-        grid.addColumn(p -> p.getFechaCreacion() != null ? p.getFechaCreacion().toString() : "N/A")
+        grid.addColumn(p -> p.getFechaCreacion() != null ? p.getFechaCreacion().format(fmt) : "N/A")
                 .setHeader("Hora")
                 .setAutoWidth(true);
 
-        grid.addColumn(p -> p.calcularPrecioTotal() + " €")
+        grid.addColumn(p -> pedidoCalculoService.calcularTotalPedido(p) + " €")
                 .setHeader("Total")
                 .setAutoWidth(true);
 
         grid.addComponentColumn(pedido -> {
             Button verDetalle = new Button("✏️ Actualizar");
             verDetalle.addClickListener(e ->
-                UI.getCurrent().navigate(DetalleComandaView.class, pedido.getId().toString())
+                    UI.getCurrent().navigate(DetalleComandaView.class, pedido.getId().toString())
             );
             return verDetalle;
         }).setHeader("Acciones");
@@ -147,22 +153,18 @@ public class GestionPedidoCocineroView extends VerticalLayout {
             Integer mesa = filtroMesa.getValue();
 
             if (estado != null && mesa != null && mesa > 0) {
-                // Filtrar por Estado y Mesa
                 pedidos = pedidoService.obtenerPedidosPorEstadoYMesa(estado, mesa);
             } else if (estado != null) {
-
                 pedidos = pedidoService.obtenerPedidosPorEstado(estado);
             } else if (mesa != null && mesa > 0) {
-                // Filtrar solo por Mesa
                 pedidos = pedidoService.obtenerPedidosPorMesa(mesa);
             } else {
-                // Sin filtros: Todos ordenados por fecha
                 pedidos = pedidoService.listarTodosOrdenadosPorFecha();
             }
 
             grid.setItems(pedidos);
 
-            if (pedidos.isEmpty() && (estado != null || mesa != null)) {
+            if (pedidos.isEmpty() && (estado != null || (mesa != null && mesa > 0))) {
                 Notification.show("ℹ️ No hay comandas con los filtros seleccionados", 3000, Notification.Position.MIDDLE);
             }
         } catch (Exception e) {

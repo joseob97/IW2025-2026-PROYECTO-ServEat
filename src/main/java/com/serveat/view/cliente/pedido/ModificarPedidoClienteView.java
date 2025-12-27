@@ -6,6 +6,8 @@ import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
+import com.serveat.service.pedido.PedidoCalculoService;
+import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -30,6 +32,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @PageTitle("Modificar pedido | Cliente")
@@ -38,6 +42,9 @@ import java.util.List;
 public class ModificarPedidoClienteView extends VerticalLayout implements HasUrlParameter<String> {
 
     private final transient PedidoService pedidoService;
+    private final transient PedidoCarritoService pedidoCarritoService;
+    private final transient PedidoCalculoService pedidoCalculoService;
+
     private final transient ProductoService productoService;
     private final transient CategoriaService categoriaService;
 
@@ -60,9 +67,13 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
     private final Button volver = new Button("⬅ Volver a mis pedidos");
 
     public ModificarPedidoClienteView(PedidoService pedidoService,
+                                      PedidoCarritoService pedidoCarritoService,
+                                      PedidoCalculoService pedidoCalculoService,
                                       ProductoService productoService,
                                       CategoriaService categoriaService) {
         this.pedidoService = pedidoService;
+        this.pedidoCarritoService = pedidoCarritoService;
+        this.pedidoCalculoService = pedidoCalculoService;
         this.productoService = productoService;
         this.categoriaService = categoriaService;
 
@@ -209,13 +220,18 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
                 .setHeader("Cantidad")
                 .setAutoWidth(true);
 
-        gridLineas.addColumn(lp -> lp.getPrecioUnitario() != null ? lp.getPrecioUnitario() + " €" : "-")
+        gridLineas.addColumn(lp -> {
+                    if (lp.getPrecioUnitario() != null) return lp.getPrecioUnitario() + " €";
+                    if (lp.getProducto() != null && lp.getProducto().getPrecio() != null) return lp.getProducto().getPrecio() + " €";
+                    return "-";
+                })
                 .setHeader("Precio ud.")
                 .setAutoWidth(true);
 
-        gridLineas.addColumn(lp -> lp.calcularPrecio() + " €")
+        gridLineas.addColumn(lp -> pedidoCalculoService.calcularPrecioLinea(lp) + " €")
                 .setHeader("Subtotal")
                 .setAutoWidth(true);
+
 
         gridLineas.addComponentColumn(lp -> {
             IntegerField qty = new IntegerField();
@@ -237,9 +253,9 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
                 }
 
                 try {
-                    pedidoEditable = pedidoService.actualizarCantidadEnMemoria(
+                    pedidoEditable = pedidoCarritoService.actualizarCantidadLinea(
                             pedidoEditable,
-                            lp.getProducto().getCodigo(),
+                            lp.getCodigo(),
                             nueva
                     );
                     refrescar();
@@ -253,6 +269,7 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
             return qty;
         }).setHeader("Modificar");
 
+
         gridLineas.addComponentColumn(lp -> {
             Button borrar = new Button("❌");
 
@@ -260,9 +277,9 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
                 if (!pedidoService.puedeModificarCliente(pedidoActual)) return;
 
                 try {
-                    pedidoEditable = pedidoService.eliminarProductoEnMemoria(
+                    pedidoEditable = pedidoCarritoService.eliminarLinea(
                             pedidoEditable,
-                            lp.getProducto().getCodigo()
+                            lp.getCodigo()
                     );
                     refrescar();
                 } catch (Exception ex) {
@@ -341,7 +358,8 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
         }
 
         try {
-            pedidoEditable = pedidoService.agregarProductoEnMemoria(pedidoEditable, prod, qty);
+            pedidoEditable = pedidoCarritoService.agregarProducto(pedidoEditable, prod, qty);
+
             cantidad.setValue(1);
             comboProducto.clear();
             refrescar();
@@ -386,16 +404,16 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
     }
 
     private void refrescar() {
-        List<LineaPedido> items = (pedidoEditable != null && pedidoEditable.getLineaPedidos() != null)
-                ? pedidoEditable.getLineaPedidos()
-                : List.of();
+        Collection<LineaPedido> col =
+                (pedidoEditable != null && pedidoEditable.getLineaPedidos() != null)
+                        ? pedidoEditable.getLineaPedidos()
+                        : List.of();
+
+        List<LineaPedido> items = new ArrayList<>(col);
 
         gridLineas.setItems(items);
 
-        BigDecimal totalCalc = BigDecimal.ZERO;
-        if (pedidoEditable != null && pedidoEditable.getLineaPedidos() != null) {
-            totalCalc = pedidoEditable.calcularPrecioTotal();
-        }
+        BigDecimal totalCalc = pedidoCalculoService.calcularTotalPedido(pedidoEditable);
         total.setText("Total: " + totalCalc + " €");
 
         boolean editable = pedidoService.puedeModificarCliente(pedidoActual);

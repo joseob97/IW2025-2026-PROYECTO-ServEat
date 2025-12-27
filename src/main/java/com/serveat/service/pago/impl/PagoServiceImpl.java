@@ -1,11 +1,11 @@
 package com.serveat.service.pago.impl;
 
-import com.serveat.domain.pago.EstadoPago;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.repository.pago.PagoRepository;
 import com.serveat.service.pago.PagoService;
+import com.serveat.service.pedido.PedidoCalculoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +18,12 @@ import java.util.UUID;
 public class PagoServiceImpl implements PagoService {
 
     private final PagoRepository pagoRepo;
+    private final PedidoCalculoService pedidoCalculoService;
 
-    public PagoServiceImpl(PagoRepository pagoRepo) {
+    public PagoServiceImpl(PagoRepository pagoRepo,
+                           PedidoCalculoService pedidoCalculoService) {
         this.pagoRepo = pagoRepo;
+        this.pedidoCalculoService = pedidoCalculoService;
     }
 
     // Crea un pago en estado PENDIENTE asociado a un pedido y método.
@@ -37,7 +40,7 @@ public class PagoServiceImpl implements PagoService {
             throw new IllegalArgumentException("Método de pago inválido");
         }
 
-        BigDecimal total = pedido.calcularPrecioTotal();
+        BigDecimal total = pedidoCalculoService.calcularTotalPedido(pedido);
         if (total == null || total.signum() <= 0) {
             throw new IllegalArgumentException("Importe inválido");
         }
@@ -178,7 +181,7 @@ public class PagoServiceImpl implements PagoService {
                 throw new IllegalArgumentException("Importe de efectivo inválido");
             }
             if (efectivoPagaCon != null) {
-                BigDecimal total = pedidoCreado.calcularPrecioTotal();
+                BigDecimal total = pedidoCalculoService.calcularTotalPedido(pedidoCreado);
                 if (efectivoPagaCon.compareTo(total) < 0) {
                     throw new IllegalArgumentException("El efectivo indicado es menor que el total");
                 }
