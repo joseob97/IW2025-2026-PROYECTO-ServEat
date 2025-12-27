@@ -220,4 +220,11 @@ public class ProductoServiceImpl implements ProductoService {
         if (dot < 0) return "";
         return nombreArchivo.substring(dot).toLowerCase(Locale.ROOT);
     }
+
+
+    @Override
+    public boolean productoTieneIngredientes(String codigoProducto) {
+        if (codigoProducto == null || codigoProducto.isBlank()) return false;
+        return productoRepo.productoTieneIngredientes(codigoProducto);
+    }
 }
