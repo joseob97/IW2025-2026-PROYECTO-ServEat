@@ -2,6 +2,7 @@ package com.serveat.view.empleado.administrador;
 
 import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.seguridad.FeatureService;
+import com.serveat.view.empleado.administrador.estadisticas.CierreCajaView;
 import com.serveat.view.empleado.administrador.estadisticas.EstadisticasAdminView;
 import com.serveat.view.empleado.administrador.productos.GestionProductosView;
 import com.serveat.view.empleado.administrador.productos.GestionIngredientesView;
@@ -60,6 +61,13 @@ public class PanelAdminView extends VerticalLayout {
             add(new RouterLink("Estadísticas", EstadisticasAdminView.class));
         } else {
             add(botonBloqueado("Estadísticas (requiere PRO)"));
+        }
+        
+        /* Cierre de Caja */
+        if (featureService.tieneFeature(Feature.CIERRE_CAJA)) {
+            add(new RouterLink("Cierre de Caja", CierreCajaView.class));
+        } else {
+            add(botonBloqueado("Cierre de Caja (requiere PRO)"));
         }
 
         /* Exportar datos */

@@ -34,4 +34,7 @@ public interface EstadisticasService {
 
     /* Invalida cachés de estadísticas para forzar recálculo bajo demanda. */
     void recalcularEstadisticasAsync();
+
+    /* Genera un resumen de caja para el día actual */
+    Map<String, Object> generarCierreCajaDiario();
 }

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.*;
@@ -266,6 +267,54 @@ public class EstadisticasServiceImpl implements EstadisticasService {
     )
     public void recalcularEstadisticasAsync() {
         /* Evicción asíncrona de caché. */
+    }
+
+    /* Genera un informe diario de la caja diaria */
+    @Override
+    public Map<String, Object> generarCierreCajaDiario() {
+
+        LocalDate hoy = LocalDate.now();
+        LocalDateTime inicioDelDia = hoy.atStartOfDay();
+        LocalDateTime finDelDia = hoy.plusDays(1).atStartOfDay();
+
+
+        List<Pago> pagosDeHoy = pagoRepository.findByEstadoAndFechaConfirmacionBetween(
+                EstadoPago.CONFIRMADO,
+                inicioDelDia,
+                finDelDia
+        );
+
+
+        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal totalPaypal = BigDecimal.ZERO;
+        BigDecimal totalEfectivo = BigDecimal.ZERO;
+        BigDecimal totalTarjeta = BigDecimal.ZERO;
+
+        for (Pago pago : pagosDeHoy) {
+            BigDecimal importe = pago.getImporte();
+            total = total.add(importe);
+
+            switch (pago.getMetodo()) {
+                case PAYPAL:
+                    totalPaypal = totalPaypal.add(importe);
+                    break;
+                case EFECTIVO:
+                    totalEfectivo = totalEfectivo.add(importe);
+                    break;
+                case TARJETA:
+                    totalTarjeta = totalTarjeta.add(importe);
+                    break;
+            }
+        }
+
+
+        Map<String, Object> resultado = new LinkedHashMap<>();
+        resultado.put("total", total.setScale(2, RoundingMode.HALF_UP));
+        resultado.put("paypal", totalPaypal.setScale(2, RoundingMode.HALF_UP));
+        resultado.put("efectivo", totalEfectivo.setScale(2, RoundingMode.HALF_UP));
+        resultado.put("tarjeta", totalTarjeta.setScale(2, RoundingMode.HALF_UP));
+
+        return resultado;
     }
 
     /* Valida la coherencia del rango de fechas. */
