@@ -103,9 +103,15 @@ public class PagoServiceImpl implements PagoService {
 
         Pago pago = iniciarPago(pedidoCreado, metodo);
 
+        validarDatosPago(pedidoCreado, metodo, cardNumber, cardHolder, cardExpiryMMYY, cardCvv,
+                paypalEmail, paypalPassword, efectivoPagaCon);
+
+        if (metodo == MetodoPago.EFECTIVO) {
+
+            return pago;
+        }
+        
         try {
-            validarDatosPago(pedidoCreado, metodo, cardNumber, cardHolder, cardExpiryMMYY, cardCvv,
-                    paypalEmail, paypalPassword, efectivoPagaCon);
 
             autorizarProveedorSimulado(metodo, cardNumber, paypalEmail);
 
