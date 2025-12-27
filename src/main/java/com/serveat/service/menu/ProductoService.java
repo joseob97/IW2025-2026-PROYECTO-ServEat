@@ -46,4 +46,6 @@ public interface ProductoService {
     void eliminarProducto(String codigo);
 
     List<String> listarNombresIngredientes();
+
+    boolean productoTieneIngredientes(String codigoProducto);
 }
