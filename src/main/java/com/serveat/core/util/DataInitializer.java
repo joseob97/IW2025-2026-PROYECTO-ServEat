@@ -1,7 +1,9 @@
 package com.serveat.core.util;
 
 import com.serveat.domain.menu.Categoria;
+import com.serveat.domain.menu.Ingrediente;
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pago.EstadoPago;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
@@ -9,12 +11,14 @@ import com.serveat.domain.pedido.*;
 import com.serveat.domain.usuario.Cliente;
 import com.serveat.domain.usuario.Empleado;
 import com.serveat.repository.menu.CategoriaRepository;
+import com.serveat.repository.menu.IngredienteRepository;
 import com.serveat.repository.menu.ProductoRepository;
 import com.serveat.repository.pago.PagoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.seguridad.FeatureActivaRepository;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.repository.usuario.EmpleadoRepository;
+import com.serveat.service.pedido.PedidoCalculoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -25,8 +29,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Profile("dev")
 @Configuration
@@ -39,9 +43,11 @@ public class DataInitializer {
                                    ClienteRepository clienteRepository,
                                    CategoriaRepository categoriaRepository,
                                    ProductoRepository productoRepository,
+                                   IngredienteRepository ingredienteRepository,
                                    FeatureActivaRepository featureActivaRepository,
                                    PedidoRepository pedidoRepository,
-                                   PagoRepository pagoRepository) {
+                                   PagoRepository pagoRepository,
+                                   PedidoCalculoService pedidoCalculoService) {
 
         return args -> {
 
@@ -111,7 +117,51 @@ public class DataInitializer {
                 log.info("Categorías iniciales creadas.");
             }
 
-            // PRODUCTOS
+            // INGREDIENTES
+            if (ingredienteRepository.count() == 0) {
+                log.info("Insertando ingredientes iniciales...");
+
+                ingredienteRepository.saveAll(List.of(
+                        ing("Pan Brioche", "0.00"),
+                        ing("Carne de ternera", "0.00"),
+                        ing("Pollo crispy", "0.00"),
+                        ing("Queso cheddar", "0.00"),
+                        ing("Lechuga", "0.00"),
+                        ing("Tomate", "0.00"),
+                        ing("Cebolla", "0.00"),
+                        ing("Pepinillo", "0.00"),
+                        ing("Mayonesa", "0.00"),
+                        ing("Salsa BBQ", "0.00"),
+                        ing("Jalapeños", "0.00"),
+                        ing("Bacon", "0.00"),
+                        ing("Setas", "0.00"),
+                        ing("Mayo de trufa", "0.00"),
+                        ing("Tomate (pizza)", "0.00"),
+                        ing("Mozzarella", "0.00"),
+                        ing("Pepperoni", "0.00"),
+                        ing("Salami picante", "0.00"),
+                        ing("Jamón", "0.00"),
+                        ing("Piña", "0.00"),
+                        ing("Atún", "0.00"),
+                        ing("Champiñones", "0.00"),
+                        ing("Aceitunas", "0.00"),
+                        ing("Rúcula", "0.00"),
+                        ing("Parmesano", "0.00"),
+                        ing("Gorgonzola", "0.00"),
+                        ing("Cheddar (pizza)", "0.00"),
+                        ing("Bacon (pizza)", "0.00"),
+
+                        ing("Extra queso", "0.80"),
+                        ing("Extra bacon", "1.20"),
+                        ing("Extra jalapeños", "0.50"),
+                        ing("Extra pepperoni", "0.90"),
+                        ing("Extra champiñones", "0.70")
+                ));
+
+                log.info("Ingredientes iniciales creados.");
+            }
+
+            // PRODUCTOS + RECETAS
             if (productoRepository.count() == 0) {
                 log.info("Insertando productos iniciales...");
 
@@ -161,7 +211,91 @@ public class DataInitializer {
                         d1,d2,d3,d4,d5
                 ));
 
-                log.info("25 productos iniciales creados.");
+                Map<String, Ingrediente> ing = ingredienteRepository.findAll().stream()
+                        .filter(x -> x.getNombre() != null)
+                        .collect(Collectors.toMap(Ingrediente::getNombre, x -> x, (a, b) -> a));
+
+                recetaBurgerBase(b1, ing);
+                recetaBurgerBase(b2, ing);
+                recetaBurgerBase(b3, ing);
+                recetaBurgerBase(b4, ing);
+                recetaBurgerBase(b6, ing);
+                recetaBurgerBase(b7, ing);
+                recetaBurgerBase(b8, ing);
+                recetaBurgerBase(b9, ing);
+                recetaBurgerBase(b10, ing);
+
+                recetaBurgerVeggie(b5, ing);
+
+                recetaPizzaBase(p1, ing);
+                recetaPizzaBase(p2, ing);
+                recetaPizzaBase(p3, ing);
+                recetaPizzaBase(p4, ing);
+                recetaPizzaBase(p5, ing);
+                recetaPizzaBase(p6, ing);
+                recetaPizzaBase(p7, ing);
+                recetaPizzaBase(p8, ing);
+                recetaPizzaBase(p9, ing);
+                recetaPizzaBase(p10, ing);
+
+                addNormal(b2, ing.get("Queso cheddar"));
+                addExtra(b2, ing.get("Extra queso"), "0.80");
+
+                addNormal(b3, ing.get("Salsa BBQ"));
+                addNormal(b3, ing.get("Bacon"));
+                addExtra(b3, ing.get("Extra bacon"), "1.20");
+
+                setOpcionalPorDefecto(b4, ing.get("Carne de ternera"), true);
+                addNormal(b4, ing.get("Pollo crispy"));
+                addNormal(b4, ing.get("Mayonesa"));
+
+                addNormal(b6, ing.get("Jalapeños"));
+                addExtra(b6, ing.get("Extra jalapeños"), "0.50");
+
+                addNormal(b7, ing.get("Setas"));
+                addNormal(b7, ing.get("Mayo de trufa"));
+
+                addNormal(p2, ing.get("Pepperoni"));
+                addExtra(p2, ing.get("Extra pepperoni"), "0.90");
+
+                addNormal(p3, ing.get("Gorgonzola"));
+                addNormal(p3, ing.get("Parmesano"));
+                addNormal(p3, ing.get("Cheddar (pizza)"));
+                addExtra(p3, ing.get("Extra queso"), "0.80");
+
+                addNormal(p4, ing.get("Salsa BBQ"));
+                addNormal(p4, ing.get("Cebolla"));
+                addNormal(p4, ing.get("Pollo crispy"));
+                addExtra(p4, ing.get("Extra bacon"), "1.20");
+
+                addNormal(p5, ing.get("Jamón"));
+                addNormal(p5, ing.get("Piña"));
+
+                addNormal(p6, ing.get("Champiñones"));
+                addNormal(p6, ing.get("Aceitunas"));
+                addNormal(p6, ing.get("Cebolla"));
+                addExtra(p6, ing.get("Extra champiñones"), "0.70");
+
+                addNormal(p7, ing.get("Salami picante"));
+                addExtra(p7, ing.get("Extra jalapeños"), "0.50");
+
+                addNormal(p8, ing.get("Jamón"));
+                addNormal(p8, ing.get("Rúcula"));
+                addNormal(p8, ing.get("Parmesano"));
+
+                addNormal(p9, ing.get("Bacon (pizza)"));
+                addNormal(p9, ing.get("Parmesano"));
+
+                addNormal(p10, ing.get("Atún"));
+                addNormal(p10, ing.get("Cebolla"));
+
+                productoRepository.saveAll(List.of(
+                        b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,
+                        p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,
+                        d1,d2,d3,d4,d5
+                ));
+
+                log.info("25 productos iniciales creados (con ingredientes).");
             }
 
             // PEDIDOS + PAGOS
@@ -192,14 +326,16 @@ public class DataInitializer {
                 recoger2.setEstado(EstadoPedido.EN_COCINA);
                 recoger2.setEstadoCocina(EstadoCocina.EN_PREPARACION);
                 recoger2.setEstadoReparto(EstadoReparto.NO_APLICA);
-                recoger2.marcarModificado("cocinero1");
+                recoger2.setModificadoPor("cocinero1");
+                recoger2.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(20));
                 addLinea(recoger2, pizz1, 1);
 
                 Pedido recoger3 = nuevoPedido(cliente, TipoPedidoCliente.RECOGER, null);
                 recoger3.setEstado(EstadoPedido.EN_COCINA);
                 recoger3.setEstadoCocina(EstadoCocina.LISTO);
                 recoger3.setEstadoReparto(EstadoReparto.NO_APLICA);
-                recoger3.marcarModificado("cocinero1");
+                recoger3.setModificadoPor("cocinero1");
+                recoger3.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(10));
                 addLinea(recoger3, burg1, 2);
 
                 Pedido dom1 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "Calle Falsa 123");
@@ -213,7 +349,8 @@ public class DataInitializer {
                 dom2.setEstado(EstadoPedido.EN_COCINA);
                 dom2.setEstadoCocina(EstadoCocina.LISTO);
                 dom2.setEstadoReparto(EstadoReparto.PENDIENTE_ASIGNACION);
-                dom2.marcarModificado("cocinero1");
+                dom2.setModificadoPor("cocinero1");
+                dom2.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(5));
                 addLinea(dom2, burg1, 1);
                 addLinea(dom2, beb1, 1);
 
@@ -223,7 +360,8 @@ public class DataInitializer {
                 dom3.setEstadoReparto(EstadoReparto.ASIGNADO);
                 dom3.setRepartidor(repartidor);
                 dom3.setFechaAsignacionReparto(LocalDateTime.now().minusMinutes(15));
-                dom3.marcarModificado("repartidor1");
+                dom3.setModificadoPor("repartidor1");
+                dom3.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(15));
                 addLinea(dom3, pizz1, 2);
 
                 Pedido dom4 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "Plaza España 1");
@@ -233,7 +371,8 @@ public class DataInitializer {
                 dom4.setRepartidor(repartidor);
                 dom4.setFechaAsignacionReparto(LocalDateTime.now().minusMinutes(30));
                 dom4.setFechaSalidaReparto(LocalDateTime.now().minusMinutes(10));
-                dom4.marcarModificado("repartidor1");
+                dom4.setModificadoPor("repartidor1");
+                dom4.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(10));
                 addLinea(dom4, burg1, 1);
                 addLinea(dom4, beb1, 1);
 
@@ -245,7 +384,8 @@ public class DataInitializer {
                 dom5.setFechaAsignacionReparto(LocalDateTime.now().minusHours(1));
                 dom5.setFechaSalidaReparto(LocalDateTime.now().minusMinutes(40));
                 dom5.setFechaEntrega(LocalDateTime.now().minusMinutes(15));
-                dom5.marcarModificado("repartidor1");
+                dom5.setModificadoPor("repartidor1");
+                dom5.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(15));
                 addLinea(dom5, pizz1, 1);
 
                 Pedido dom6 = nuevoPedido(cliente, TipoPedidoCliente.DOMICILIO, "C/ Luna 5");
@@ -255,7 +395,8 @@ public class DataInitializer {
                 dom6.setRepartidor(repartidor);
                 dom6.setIncidenciaReparto("No hay nadie en casa");
                 dom6.setFechaAsignacionReparto(LocalDateTime.now().minusHours(2));
-                dom6.marcarModificado("repartidor1");
+                dom6.setModificadoPor("repartidor1");
+                dom6.setFechaUltimaModificacion(LocalDateTime.now().minusHours(2));
                 addLinea(dom6, burg1, 1);
 
                 Pedido cancelado = nuevoPedido(cliente, TipoPedidoCliente.RECOGER, null);
@@ -273,16 +414,15 @@ public class DataInitializer {
                         cancelado
                 ));
 
-                // aseguramos IDs antes de crear pagos
                 pedidoRepository.flush();
 
-                crearPago(pagoRepository, dom2, MetodoPago.TARJETA, EstadoPago.CONFIRMADO);
-                crearPago(pagoRepository, dom3, MetodoPago.PAYPAL, EstadoPago.CONFIRMADO);
-                crearPago(pagoRepository, dom4, MetodoPago.TARJETA, EstadoPago.CONFIRMADO);
-                crearPago(pagoRepository, dom5, MetodoPago.EFECTIVO, EstadoPago.CONFIRMADO);
+                crearPago(pagoRepository, pedidoCalculoService, dom2, MetodoPago.TARJETA, EstadoPago.CONFIRMADO);
+                crearPago(pagoRepository, pedidoCalculoService, dom3, MetodoPago.PAYPAL, EstadoPago.CONFIRMADO);
+                crearPago(pagoRepository, pedidoCalculoService, dom4, MetodoPago.TARJETA, EstadoPago.CONFIRMADO);
+                crearPago(pagoRepository, pedidoCalculoService, dom5, MetodoPago.EFECTIVO, EstadoPago.CONFIRMADO);
 
-                crearPago(pagoRepository, dom1, MetodoPago.TARJETA, EstadoPago.PENDIENTE);
-                crearPago(pagoRepository, dom6, MetodoPago.PAYPAL, EstadoPago.FALLIDO);
+                crearPago(pagoRepository, pedidoCalculoService, dom1, MetodoPago.TARJETA, EstadoPago.PENDIENTE);
+                crearPago(pagoRepository, pedidoCalculoService, dom6, MetodoPago.PAYPAL, EstadoPago.FALLIDO);
 
                 log.info("Pedidos y pagos demo creados.");
             }
@@ -329,13 +469,19 @@ public class DataInitializer {
         return p;
     }
 
+    private static Ingrediente ing(String nombre, String precioExtra) {
+        Ingrediente i = new Ingrediente();
+        i.setNombre(nombre);
+        i.setPrecioExtra(new BigDecimal(precioExtra));
+        return i;
+    }
+
     private static Pedido nuevoPedido(Cliente cliente, TipoPedidoCliente tipo, String direccionEntrega) {
         Pedido p = new Pedido();
         p.setCodigo("PED-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         p.setCliente(cliente);
         p.setTipoPedido(tipo);
 
-        //  Solo domicilio lleva dirección
         p.setDireccionEntrega(tipo == TipoPedidoCliente.DOMICILIO ? direccionEntrega : null);
 
         p.setEstado(EstadoPedido.EN_CURSO);
@@ -350,11 +496,18 @@ public class DataInitializer {
     }
 
     private static void addLinea(Pedido pedido, Producto producto, int cantidad) {
+        if (pedido.getLineaPedidos() == null) {
+            pedido.setLineaPedidos(new LinkedHashSet<>());
+        }
         pedido.getLineaPedidos().add(new LineaPedido(pedido, producto, cantidad));
     }
 
-    private static void crearPago(PagoRepository pagoRepo, Pedido pedido, MetodoPago metodo, EstadoPago estado) {
-        BigDecimal total = pedido.calcularPrecioTotal();
+    private static void crearPago(PagoRepository pagoRepo,
+                                  PedidoCalculoService calculoService,
+                                  Pedido pedido,
+                                  MetodoPago metodo,
+                                  EstadoPago estado) {
+        BigDecimal total = calculoService.calcularTotalPedido(pedido);
         Pago pago = new Pago(pedido, metodo, total);
 
         if (estado == EstadoPago.CONFIRMADO) {
@@ -363,5 +516,83 @@ public class DataInitializer {
             pago.fallar("Pago fallido (demo)");
         }
         pagoRepo.save(pago);
+    }
+
+    // RECETAS (ProductoIngrediente)
+
+    private static void ensureRecetaList(Producto p) {
+        if (p.getIngredientes() == null) {
+            p.setIngredientes(new ArrayList<>());
+        }
+    }
+
+    private static void addNormal(Producto p, Ingrediente i) {
+        if (p == null || i == null) return;
+        ensureRecetaList(p);
+        p.getIngredientes().add(new ProductoIngrediente(p, i, true, true, BigDecimal.ZERO));
+    }
+
+    private static void addExtra(Producto p, Ingrediente i, String plus) {
+        if (p == null || i == null) return;
+        ensureRecetaList(p);
+        p.getIngredientes().add(new ProductoIngrediente(p, i, false, true, new BigDecimal(plus)));
+    }
+
+    private static void addObligatorio(Producto p, Ingrediente i) {
+        if (p == null || i == null) return;
+        ensureRecetaList(p);
+        p.getIngredientes().add(new ProductoIngrediente(p, i, true, false, BigDecimal.ZERO));
+    }
+
+    private static void recetaBurgerBase(Producto p, Map<String, Ingrediente> ing) {
+        addObligatorio(p, ing.get("Pan Brioche"));
+        addObligatorio(p, ing.get("Carne de ternera"));
+
+        addNormal(p, ing.get("Queso cheddar"));
+        addNormal(p, ing.get("Lechuga"));
+        addNormal(p, ing.get("Tomate"));
+        addNormal(p, ing.get("Cebolla"));
+        addNormal(p, ing.get("Pepinillo"));
+
+        addExtra(p, ing.get("Extra queso"), "0.80");
+        addExtra(p, ing.get("Extra bacon"), "1.20");
+        addExtra(p, ing.get("Extra jalapeños"), "0.50");
+    }
+
+    private static void recetaBurgerVeggie(Producto p, Map<String, Ingrediente> ing) {
+        addObligatorio(p, ing.get("Pan Brioche"));
+        addNormal(p, ing.get("Tomate"));
+        addNormal(p, ing.get("Lechuga"));
+        addNormal(p, ing.get("Cebolla"));
+        addNormal(p, ing.get("Pepinillo"));
+
+        addExtra(p, ing.get("Extra queso"), "0.80");
+        addExtra(p, ing.get("Extra jalapeños"), "0.50");
+    }
+
+    private static void recetaPizzaBase(Producto p, Map<String, Ingrediente> ing) {
+        addObligatorio(p, ing.get("Tomate (pizza)"));
+        addObligatorio(p, ing.get("Mozzarella"));
+
+        addNormal(p, ing.get("Cebolla"));
+        addNormal(p, ing.get("Champiñones"));
+        addNormal(p, ing.get("Aceitunas"));
+
+        addExtra(p, ing.get("Extra queso"), "0.80");
+        addExtra(p, ing.get("Extra pepperoni"), "0.90");
+        addExtra(p, ing.get("Extra champiñones"), "0.70");
+    }
+
+    private static void setOpcionalPorDefecto(Producto p, Ingrediente i, boolean porDefecto) {
+        if (p == null || i == null || p.getIngredientes() == null) return;
+        for (ProductoIngrediente pi : p.getIngredientes()) {
+            if (pi.getIngrediente() != null
+                    && pi.getIngrediente().getId() != null
+                    && i.getId() != null
+                    && pi.getIngrediente().getId().equals(i.getId())) {
+                pi.setOpcional(true);
+                pi.setPorDefecto(porDefecto);
+            }
+        }
     }
 }
