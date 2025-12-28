@@ -32,12 +32,16 @@ public class PanelAdminView extends VerticalLayout {
                 new RouterLink("Gestionar empleados", GestionEmpleadosView.class);
 
         /* Gestión de usuarios */
-        add(new RouterLink("Gestionar usuarios", GestionClientesView.class));
+        RouterLink gestionarClientesLink =
+                new RouterLink("Gestionar usuarios", GestionClientesView.class);
+
+        RouterLink gestionarDatosLocalLink =
+                new RouterLink("Gestionar información del local", GestionDatosLocalView.class);
 
         RouterLink suscripcionLink =
                 new RouterLink("Suscripción / Plan", SuscripcionAdminView.class);
 
-        add(titulo, gestionarEmpleadosLink, suscripcionLink);
+        add(titulo, gestionarEmpleadosLink, gestionarClientesLink, gestionarDatosLocalLink, suscripcionLink);
 
         /* Productos */
         add(new RouterLink("Gestión de Productos", GestionProductosView.class));
