@@ -1,274 +1,138 @@
 package com.serveat.view.empleado.camarero;
 
-import com.serveat.domain.menu.Categoria;
-import com.serveat.domain.menu.Producto;
+import com.serveat.domain.menu.Ingrediente;
 import com.serveat.domain.pedido.LineaPedido;
+import com.serveat.domain.pedido.LineaPedidoIngrediente;
 import com.serveat.domain.pedido.Pedido;
-import com.serveat.service.menu.CategoriaService;
-import com.serveat.service.menu.ProductoService;
-import com.serveat.service.pedido.PedidoCarritoService;
+import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.*;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 
 @PageTitle("Editar Pedido | Camarero")
 @Route(value = "empleado/camarero/pedidos/editar", layout = MainLayout.class)
 @Secured("ROLE_CAMARERO")
-public class EditarPedidoView extends VerticalLayout {
+public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<String> {
 
-    // Servicios
     private final transient PedidoService pedidoService;
-    private final transient PedidoCarritoService carritoService;
-    private final transient ProductoService productoService;
-    private final transient CategoriaService categoriaService;
+    private final transient PedidoCalculoService calculoService;
 
-    // Estado
-    private transient Pedido pedidoOriginal;
     private transient Pedido pedidoEditable;
     private boolean hayCambios = false;
 
-    // UI pedido
-    private final IntegerField filtroMesa = new IntegerField("Filtrar por mesa");
-    private final Grid<Pedido> gridPedidos = new Grid<>(Pedido.class, false);
-    private final TextField codigoPedido = new TextField("Código pedido");
-
-    // UI productos
-    private final TextField buscarProducto = new TextField("Buscar producto");
-    private final ComboBox<String> filtroCategoria = new ComboBox<>("Categoría");
-    private final ComboBox<Producto> comboProducto = new ComboBox<>("Producto");
-    private final IntegerField cantidad = new IntegerField("Cantidad");
-    private final Button anadir = new Button("Añadir");
-
-    // UI edición
+    // UI
+    private final Span info = new Span("");
     private final Grid<LineaPedido> gridLineas = new Grid<>(LineaPedido.class, false);
     private final Button confirmarCambios = new Button("✅ Confirmar cambios");
+    private final Button volver = new Button("← Volver a pedidos");
+
+    private static final DateTimeFormatter FECHA_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public EditarPedidoView(PedidoService pedidoService,
-                            PedidoCarritoService carritoService,
-                            ProductoService productoService,
-                            CategoriaService categoriaService) {
-
+                            PedidoCalculoService calculoService) {
         this.pedidoService = pedidoService;
-        this.carritoService = carritoService;
-        this.productoService = productoService;
-        this.categoriaService = categoriaService;
+        this.calculoService = calculoService;
 
         setPadding(true);
         setSpacing(false);
         setWidthFull();
-        getStyle().set("gap", "18px");
+        getStyle().set("gap", "16px");
         getStyle().set("max-width", "1100px");
         getStyle().set("margin", "0 auto");
 
-        add(new H3("Editar pedido en curso"));
+        H3 titulo = new H3("Editar pedido (Camarero)");
+        titulo.getStyle().set("margin", "0");
 
-        crearBloqueSeleccionPedido();
-        crearBloqueEdicion();
+        volver.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        volver.getStyle().set("font-weight", "700");
+        volver.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate(PedidosCamareroView.class)));
 
-        cargarPedidos();
-        recargarProductos();
-        bloquearEdicion();
-    }
-
-    // SELECCIÓN PEDIDO
-
-    private void crearBloqueSeleccionPedido() {
-
-        VerticalLayout card = crearCard();
-
-        filtroMesa.setMin(1);
-        filtroMesa.setClearButtonVisible(true);
-        filtroMesa.setValueChangeMode(ValueChangeMode.LAZY);
-        filtroMesa.addValueChangeListener(e -> cargarPedidos());
-
-        gridPedidos.addColumn(Pedido::getCodigo).setHeader("Código").setAutoWidth(true);
-        gridPedidos.addColumn(p -> p.getReservaMesa() != null ? p.getReservaMesa().getNumeroMesa() : "-")
-                .setHeader("Mesa").setAutoWidth(true);
-        gridPedidos.addColumn(p -> p.getEstado() != null ? p.getEstado().name() : "-")
-                .setHeader("Estado").setAutoWidth(true);
-
-        gridPedidos.addSelectionListener(e -> {
-            pedidoOriginal = e.getFirstSelectedItem().orElse(null);
-
-            if (pedidoOriginal == null) {
-                pedidoEditable = null;
-                codigoPedido.clear();
-                refrescarLineas();
-                bloquearEdicion();
-                return;
-            }
-
-            try {
-                // Cargamos detalle real
-                pedidoEditable = pedidoService.obtenerPorCodigo(pedidoOriginal.getCodigo());
-                codigoPedido.setValue(pedidoEditable.getCodigo());
-                refrescarLineas();
-
-                hayCambios = false;
-                confirmarCambios.setEnabled(false);
-                desbloquearEdicion();
-            } catch (Exception ex) {
-                Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
-                bloquearEdicion();
-            }
-        });
-
-        gridPedidos.setWidthFull();
-        gridPedidos.setHeight("300px");
-
-        card.add(filtroMesa, gridPedidos);
-        add(card);
-    }
-
-    private void cargarPedidos() {
-        Integer mesa = filtroMesa.getValue();
-
-        if (mesa == null || mesa <= 0) {
-            gridPedidos.setItems(pedidoService.listarPedidosModificables());
-        } else {
-            gridPedidos.setItems(pedidoService.listarPedidosModificablesPorMesa(mesa));
-        }
-    }
-
-    // EDICIÓN
-
-    private void crearBloqueEdicion() {
-
-        VerticalLayout card = crearCard();
-
-        codigoPedido.setReadOnly(true);
-        codigoPedido.setWidth("320px");
-
-        configurarFiltrosProducto();
-        configurarComboProducto();
-
-        cantidad.setMin(1);
-        cantidad.setValue(1);
-        cantidad.setStepButtonsVisible(true);
-        cantidad.setWidth("160px");
-
-        anadir.addClickListener(e -> anadirProducto());
+        info.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
         configurarGridLineas();
 
-        confirmarCambios.setWidth("360px");
+        confirmarCambios.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        confirmarCambios.getStyle().set("font-weight", "800");
         confirmarCambios.setEnabled(false);
-        confirmarCambios.addClickListener(e -> confirmarCambios());
+        confirmarCambios.addClickListener(e -> guardarCambios());
 
-        HorizontalLayout filaConfirmar = new HorizontalLayout(confirmarCambios);
-        filaConfirmar.setWidthFull();
-        filaConfirmar.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        HorizontalLayout barraTop = new HorizontalLayout(volver, confirmarCambios);
+        barraTop.setWidthFull();
+        barraTop.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        barraTop.setAlignItems(Alignment.CENTER);
 
-        HorizontalLayout filaFiltros = new HorizontalLayout(buscarProducto, filtroCategoria);
-        filaFiltros.setWidthFull();
-        filaFiltros.getStyle().set("gap", "12px");
-
-        HorizontalLayout filaAdd = new HorizontalLayout(comboProducto, cantidad, anadir);
-        filaAdd.setWidthFull();
-        filaAdd.getStyle().set("gap", "12px");
-        filaAdd.setAlignItems(FlexComponent.Alignment.END);
-
-        card.add(
-                codigoPedido,
-                filaFiltros,
-                filaAdd,
-                gridLineas,
-                filaConfirmar
-        );
-
-        add(card);
+        add(titulo, info, barraTop, crearCard(gridLineas));
+        bloquearEdicion();
     }
 
-    // PRODUCTOS
-
-    private void configurarFiltrosProducto() {
-
-        buscarProducto.setPlaceholder("Buscar por nombre");
-        buscarProducto.setClearButtonVisible(true);
-        buscarProducto.setValueChangeMode(ValueChangeMode.EAGER);
-        buscarProducto.setWidth("360px");
-
-        filtroCategoria.setItems(
-                categoriaService.listarCategorias().stream()
-                        .map(Categoria::getNombre)
-                        .toList()
-        );
-        filtroCategoria.setClearButtonVisible(true);
-        filtroCategoria.setWidth("260px");
-
-        buscarProducto.addValueChangeListener(e -> {
-            if (!e.isFromClient()) return;
-            filtroCategoria.clear();
-            recargarProductos();
-        });
-
-        filtroCategoria.addValueChangeListener(e -> {
-            if (!e.isFromClient()) return;
-            buscarProducto.clear();
-            recargarProductos();
-        });
-    }
-
-    private void configurarComboProducto() {
-        comboProducto.setItemLabelGenerator(
-                p -> (p.getNombre() != null ? p.getNombre() : p.getCodigo()) + " - " + p.getPrecio() + "€"
-        );
-        comboProducto.setWidth("420px");
-    }
-
-    private void recargarProductos() {
-        String texto = buscarProducto.getValue() != null ? buscarProducto.getValue().trim() : "";
-        String cat = filtroCategoria.getValue();
-
-        if (!texto.isBlank()) {
-            comboProducto.setItems(productoService.buscarPorNombreParcial(texto));
+    /**
+     * Recibe /empleado/camarero/pedidos/editar/{codigo}
+     */
+    @Override
+    public void setParameter(BeforeEvent event, @OptionalParameter String codigo) {
+        if (codigo == null || codigo.isBlank()) {
+            limpiarVista("No se ha indicado código de pedido.");
             return;
         }
 
-        if (cat != null && !cat.isBlank()) {
-            comboProducto.setItems(productoService.buscarPorCategoria(cat));
-            return;
-        }
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        comboProducto.setItems(productoService.buscarPorNombreParcial(""));
+            // Debe cargar detalle + receta para evitar LazyInitializationException
+            Pedido p = pedidoService.cargarPedidoEditableCamarero(codigo, username);
+
+            this.pedidoEditable = p;
+            this.hayCambios = false;
+            confirmarCambios.setEnabled(false);
+
+            String fecha = (p.getFechaCreacion() != null) ? p.getFechaCreacion().format(FECHA_FMT) : "-";
+            String mesa = (p.getReservaMesa() != null) ? String.valueOf(p.getReservaMesa().getNumeroMesa()) : "-";
+            info.setText("Pedido: " + safe(p.getCodigo()) + " | Fecha: " + fecha + " | Mesa: " + mesa);
+
+            refrescarLineas();
+            desbloquearEdicion();
+
+        } catch (Exception ex) {
+            limpiarVista("No se pudo cargar el pedido: " + ex.getMessage());
+        }
     }
 
-    // GRID LÍNEAS
+    // GRID
 
     private void configurarGridLineas() {
+        gridLineas.setWidthFull();
+        gridLineas.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
 
-        gridLineas.addColumn(lp -> lp.getProducto() != null ? lp.getProducto().getNombre() : "-")
+        gridLineas.addColumn(lp -> lp.getProducto() != null ? safe(lp.getProducto().getNombre()) : "-")
                 .setHeader("Producto")
-                .setAutoWidth(true)
                 .setFlexGrow(1);
-
-        gridLineas.addColumn(LineaPedido::getCantidad)
-                .setHeader("Cantidad")
-                .setAutoWidth(true);
 
         gridLineas.addComponentColumn(lp -> {
             IntegerField qty = new IntegerField();
-            qty.setValue(lp.getCantidad());
             qty.setMin(1);
             qty.setStepButtonsVisible(true);
-            qty.setWidth("160px");
-            qty.setValueChangeMode(ValueChangeMode.ON_CHANGE);
+            qty.setWidth("140px");
+            qty.setValue(Math.max(1, lp.getCantidad()));
 
             qty.addValueChangeListener(ev -> {
                 if (!ev.isFromClient()) return;
@@ -276,14 +140,18 @@ public class EditarPedidoView extends VerticalLayout {
 
                 Integer nueva = ev.getValue();
                 if (nueva == null || nueva <= 0) {
-                    qty.setValue(lp.getCantidad());
+                    qty.setValue(Math.max(1, lp.getCantidad()));
                     Notification.show("Cantidad inválida", 2500, Notification.Position.MIDDLE);
                     return;
                 }
 
                 try {
-                    carritoService.actualizarCantidadLinea(pedidoEditable, lp.getCodigo(), nueva);
+                    pedidoService.aplicarCantidadLinea(pedidoEditable, lp.getCodigo(), nueva);
                     marcarCambio();
+
+                    // Recalcula el Subtotal de ESTA línea
+                    gridLineas.getDataProvider().refreshItem(lp);
+
                 } catch (Exception ex) {
                     Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
                     refrescarLineas();
@@ -291,78 +159,214 @@ public class EditarPedidoView extends VerticalLayout {
             });
 
             return qty;
-        }).setHeader("Modificar");
+        }).setHeader("Cantidad").setAutoWidth(true).setFlexGrow(0);
+
+        gridLineas.addComponentColumn(lp -> {
+            boolean tieneIngredientes;
+            try {
+                tieneIngredientes = !pedidoService.obtenerIngredientesDisponiblesLinea(lp).isEmpty();
+            } catch (Exception ex) {
+                tieneIngredientes = false;
+            }
+
+            if (!tieneIngredientes) return new Span("");
+
+            Button ing = new Button("Ingredientes");
+            ing.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            ing.getStyle().set("font-weight", "700");
+            ing.addClickListener(e -> abrirEditorIngredientes(lp));
+            return ing;
+
+        }).setHeader("Editar").setAutoWidth(true).setFlexGrow(0);
+
+        gridLineas.addColumn(lp -> {
+            try {
+                return calculoService.calcularPrecioLinea(lp) + " €";
+            } catch (Exception ex) {
+                return "-";
+            }
+        }).setHeader("Subtotal").setAutoWidth(true).setFlexGrow(0);
 
         gridLineas.addComponentColumn(lp -> {
             Button borrar = new Button("❌");
+            borrar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
             borrar.addClickListener(e -> {
                 if (pedidoEditable == null) return;
 
                 try {
-                    carritoService.eliminarLinea(pedidoEditable, lp.getCodigo());
+                    pedidoService.eliminarLinea(pedidoEditable, lp.getCodigo());
                     marcarCambio();
+                    refrescarLineas(); // recargamos lista porque ya no existe esa fila
                 } catch (Exception ex) {
                     Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
                 }
             });
             return borrar;
-        }).setHeader("Eliminar");
-
-        gridLineas.setWidthFull();
-        gridLineas.setHeight("320px");
+        }).setHeader("Eliminar").setAutoWidth(true).setFlexGrow(0);
     }
 
     private void refrescarLineas() {
-        gridLineas.setItems(pedidoEditable != null && pedidoEditable.getLineaPedidos() != null
-                ? pedidoEditable.getLineaPedidos()
-                : List.of());
+        if (pedidoEditable == null) {
+            gridLineas.setItems(List.of());
+            return;
+        }
+        List<LineaPedido> items = pedidoService.ordenarLineasParaVista(pedidoEditable.getLineaPedidos());
+        gridLineas.setItems(items);
     }
 
-    // ACCIONES
+    // INGREDIENTES
 
-    private void anadirProducto() {
+    private void abrirEditorIngredientes(LineaPedido lp) {
+        if (lp == null || pedidoEditable == null) return;
 
-        if (pedidoEditable == null) {
-            Notification.show("Selecciona un pedido", 2500, Notification.Position.MIDDLE);
-            return;
-        }
+        Dialog dialog = new Dialog();
+        dialog.setWidth("820px");
+        dialog.setHeaderTitle("Ingredientes - " + (lp.getProducto() != null ? safe(lp.getProducto().getNombre()) : "-"));
 
-        Producto p = comboProducto.getValue();
-        Integer qty = cantidad.getValue();
+        VerticalLayout content = new VerticalLayout();
+        content.setPadding(false);
+        content.setSpacing(false);
+        content.getStyle().set("gap", "10px");
 
-        if (p == null) {
-            Notification.show("Selecciona un producto", 2500, Notification.Position.MIDDLE);
-            return;
-        }
-        if (qty == null || qty <= 0) {
-            Notification.show("Cantidad inválida", 2500, Notification.Position.MIDDLE);
-            return;
-        }
-
+        List<Ingrediente> disponibles;
         try {
-            carritoService.agregarProducto(pedidoEditable, p, qty);
-
-            comboProducto.clear();
-            cantidad.setValue(1);
-
-            marcarCambio();
+            disponibles = pedidoService.obtenerIngredientesDisponiblesLinea(lp);
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+            return;
         }
+
+        if (disponibles.isEmpty()) {
+            Span s = new Span("Este producto no tiene ingredientes configurados para editar.");
+            s.getStyle().set("color", "var(--lumo-secondary-text-color)");
+            content.add(s);
+
+        } else {
+            for (Ingrediente ing : disponibles) {
+                if (ing == null || ing.getId() == null) continue;
+
+                LineaPedidoIngrediente sel = pedidoService.obtenerSeleccionIngrediente(lp, ing.getId());
+                boolean incluidoInicial = (sel == null || sel.isIncluido());
+
+                Span nombre = new Span(safe(ing.getNombre()));
+                nombre.getStyle().set("font-weight", "800");
+
+                Span badge = new Span();
+                badge.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+                badge.getStyle().set("font-weight", "800");
+                badge.getStyle().set("padding", "4px 10px");
+                badge.getStyle().set("border-radius", "999px");
+
+                Checkbox quitar = new Checkbox("Quitar");
+                quitar.setValue(!incluidoInicial);
+
+                BigDecimal precioExtra = (ing.getPrecioExtra() == null) ? BigDecimal.ZERO : ing.getPrecioExtra();
+                String precioExtraTxt = precioExtra.setScale(2, RoundingMode.HALF_UP).toPlainString();
+
+                IntegerField extra = new IntegerField();
+                extra.setLabel("Extra\n+ " + precioExtraTxt + " € / extra");
+                extra.setMin(0);
+                extra.setStepButtonsVisible(true);
+                extra.setWidth("200px");
+                extra.setValue(sel != null ? Math.max(0, sel.getExtraCantidad()) : 0);
+
+                HorizontalLayout fila = new HorizontalLayout(nombre, badge, quitar, extra);
+                fila.setWidthFull();
+                fila.setAlignItems(Alignment.CENTER);
+                fila.expand(nombre);
+
+                Runnable aplicarEstilo = () -> {
+                    boolean incluido = !quitar.getValue();
+                    if (incluido) {
+                        fila.getStyle().set("background", "var(--lumo-success-10pct)");
+                        fila.getStyle().set("border", "1px solid var(--lumo-success-50pct)");
+                        badge.setText("INCLUIDO");
+                        badge.getStyle().set("background", "var(--lumo-success-50pct)");
+                        badge.getStyle().set("color", "var(--lumo-base-color)");
+                        nombre.getStyle().remove("text-decoration");
+                        nombre.getStyle().remove("opacity");
+                    } else {
+                        fila.getStyle().set("background", "var(--lumo-error-10pct)");
+                        fila.getStyle().set("border", "1px solid var(--lumo-error-50pct)");
+                        badge.setText("SIN");
+                        badge.getStyle().set("background", "var(--lumo-error-50pct)");
+                        badge.getStyle().set("color", "var(--lumo-base-color)");
+                        nombre.getStyle().set("text-decoration", "line-through");
+                        nombre.getStyle().set("opacity", "0.85");
+                    }
+                    fila.getStyle().set("border-radius", "10px");
+                    fila.getStyle().set("padding", "8px 10px");
+                };
+                aplicarEstilo.run();
+
+                quitar.addValueChangeListener(ev -> {
+                    if (!ev.isFromClient()) return;
+
+                    boolean incluido = !Boolean.TRUE.equals(ev.getValue());
+                    try {
+                        pedidoService.aplicarSeleccionIngrediente(lp, ing, incluido, valueOrZero(extra.getValue()));
+                        marcarCambio();
+                        aplicarEstilo.run();
+
+                        gridLineas.getDataProvider().refreshItem(lp);
+
+                    } catch (Exception ex) {
+                        Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                        // revertimos visual si falla
+                        quitar.setValue(!incluido);
+                        aplicarEstilo.run();
+                    }
+                });
+
+                extra.addValueChangeListener(ev -> {
+                    if (!ev.isFromClient()) return;
+                    int v = valueOrZero(ev.getValue());
+                    if (!Objects.equals(extra.getValue(), v)) extra.setValue(v);
+
+                    boolean incluido = !quitar.getValue();
+                    try {
+                        pedidoService.aplicarSeleccionIngrediente(lp, ing, incluido, v);
+                        marcarCambio();
+
+                        gridLineas.getDataProvider().refreshItem(lp);
+
+                    } catch (Exception ex) {
+                        Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                    }
+                });
+
+                content.add(fila);
+            }
+        }
+
+        Button cerrar = new Button("Cerrar");
+        cerrar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        cerrar.getStyle().set("font-weight", "800");
+        cerrar.addClickListener(e -> dialog.close());
+
+        dialog.add(content);
+        dialog.getFooter().add(cerrar);
+        dialog.open();
     }
 
-    private void confirmarCambios() {
+    // GUARDAR
 
+    private void guardarCambios() {
         if (pedidoEditable == null) return;
 
-        String usuario = SecurityContextHolder.getContext().getAuthentication().getName();
-
         try {
+            String usuario = SecurityContextHolder.getContext().getAuthentication().getName();
             pedidoService.confirmarCambiosPedido(pedidoEditable, usuario);
-            Notification.show("Cambios guardados correctamente", 3000, Notification.Position.MIDDLE);
 
-            cargarPedidos();
-            bloquearEdicion();
+            Notification.show("Cambios guardados", 2500, Notification.Position.BOTTOM_START);
+
+            hayCambios = false;
+            confirmarCambios.setEnabled(false);
+
+            // recarga desde BD por si hay merge
+            pedidoEditable = pedidoService.obtenerPorCodigo(pedidoEditable.getCodigo());
+            refrescarLineas();
+
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 4500, Notification.Position.MIDDLE);
         }
@@ -371,38 +375,46 @@ public class EditarPedidoView extends VerticalLayout {
     private void marcarCambio() {
         hayCambios = true;
         confirmarCambios.setEnabled(true);
-        refrescarLineas();
     }
 
-    // UI
+    // UI helpers
 
     private void bloquearEdicion() {
-        buscarProducto.setEnabled(false);
-        filtroCategoria.setEnabled(false);
-        comboProducto.setEnabled(false);
-        cantidad.setEnabled(false);
-        anadir.setEnabled(false);
         gridLineas.setEnabled(false);
         confirmarCambios.setEnabled(false);
     }
 
     private void desbloquearEdicion() {
-        buscarProducto.setEnabled(true);
-        filtroCategoria.setEnabled(true);
-        comboProducto.setEnabled(true);
-        cantidad.setEnabled(true);
-        anadir.setEnabled(true);
         gridLineas.setEnabled(true);
+        confirmarCambios.setEnabled(hayCambios);
     }
 
-    private VerticalLayout crearCard() {
-        VerticalLayout card = new VerticalLayout();
+    private void limpiarVista(String mensaje) {
+        this.pedidoEditable = null;
+        this.hayCambios = false;
+        info.setText(mensaje);
+        gridLineas.setItems(List.of());
+        bloquearEdicion();
+    }
+
+    private Component crearCard(Component inside) {
+        VerticalLayout card = new VerticalLayout(inside);
         card.setPadding(true);
+        card.setSpacing(false);
         card.setWidthFull();
+        card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
         card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
         card.getStyle().set("gap", "12px");
         return card;
+    }
+
+    private String safe(String s) {
+        return (s == null) ? "-" : s;
+    }
+
+    private int valueOrZero(Integer v) {
+        return v == null ? 0 : Math.max(0, v);
     }
 }

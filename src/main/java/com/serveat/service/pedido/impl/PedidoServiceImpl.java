@@ -1,6 +1,8 @@
 package com.serveat.service.pedido.impl;
 
+import com.serveat.domain.menu.Ingrediente;
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pago.EstadoPago;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
@@ -23,12 +25,15 @@ import com.serveat.service.caja.EstadoCajaService;
 import com.serveat.service.pago.PagoService;
 import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -551,7 +556,8 @@ public class PedidoServiceImpl implements PedidoService {
         Pago pago = obtenerPagoCliente(pagoId, username);
 
         if (pago.getEstado() == EstadoPago.CONFIRMADO) throw new IllegalArgumentException("El pago ya está confirmado");
-        if (pago.getEstado() == EstadoPago.FALLIDO) throw new IllegalArgumentException("El pago está marcado como fallido");
+        if (pago.getEstado() == EstadoPago.FALLIDO)
+            throw new IllegalArgumentException("El pago está marcado como fallido");
 
         Pago confirmado = pagoService.confirmarPago(pago.getId(), referencia);
 
@@ -597,7 +603,8 @@ public class PedidoServiceImpl implements PedidoService {
         Pedido pedido = obtenerPedidoPorId(id);
 
         if (nuevoEstado == null) throw new IllegalArgumentException("Estado de cocina inválido");
-        if (pedido.getEstado() == EstadoPedido.ANULADO) throw new IllegalArgumentException("No se puede modificar un pedido anulado");
+        if (pedido.getEstado() == EstadoPedido.ANULADO)
+            throw new IllegalArgumentException("No se puede modificar un pedido anulado");
         if (pedido.getEstadoCocina() == nuevoEstado) return pedido;
 
         if (pedido.getEstado() != EstadoPedido.EN_COCINA) {
@@ -621,5 +628,156 @@ public class PedidoServiceImpl implements PedidoService {
 
         marcarModificado(pedido, "COCINERO");
         return pedidoRepo.save(pedido);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Pedido> buscarPedidosFiltrados(LocalDateTime desde,
+                                               LocalDateTime hasta,
+                                               EstadoPedido estadoPedido,
+                                               EstadoCocina estadoCocina,
+                                               Integer mesa,
+                                               Pageable pageable) {
+        return pedidoRepo.buscarPedidosFiltrados(desde, hasta, estadoPedido, estadoCocina, mesa, pageable);
+    }
+
+    public boolean puedeEditarOCancelarCamarero(Pedido pedido) {
+        return pedido != null
+                && pedido.getEstado() != EstadoPedido.ANULADO
+                && pedido.getEstadoCocina() == EstadoCocina.PENDIENTE_ACEPTACION;
+    }
+
+    public Pedido cancelarPedidoCamarero(String codigoPedido, String motivo) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String m = (motivo == null || motivo.isBlank()) ? "Cancelado por camarero" : motivo.trim();
+        return cancelarPedido(codigoPedido, m, username);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Pedido cargarPedidoEditableCamarero(String codigoPedido, String username) {
+        if (codigoPedido == null || codigoPedido.isBlank()) throw new IllegalArgumentException("Código inválido");
+        if (username == null || username.isBlank()) throw new IllegalArgumentException("Usuario inválido");
+
+        Pedido p = cargarDetalle(codigoPedido); // tu helper ya existente
+
+        if (!puedeEditarOCancelarCamarero(p)) {
+            throw new IllegalArgumentException("Este pedido no se puede editar (cocina ya lo aceptó o está anulado).");
+        }
+        return p;
+    }
+
+    @Override
+    public List<LineaPedido> ordenarLineasParaVista(Set<LineaPedido> lineas) {
+        if (lineas == null || lineas.isEmpty()) return List.of();
+        List<LineaPedido> res = new ArrayList<>(lineas);
+        res.sort(Comparator.comparing(LineaPedido::getCodigo, Comparator.nullsLast(String::compareToIgnoreCase)));
+        return res;
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Ingrediente> obtenerIngredientesDisponiblesLinea(LineaPedido lp) {
+        if (lp == null) return List.of();
+        if (lp.getProducto() == null || lp.getProducto().getCodigo() == null) return List.of();
+
+        // siempre recargar producto con ingredientes dentro de transacción
+        Producto producto = productoRepo.findWithIngredientesByCodigo(lp.getProducto().getCodigo())
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+
+        if (producto.getIngredientes() != null && !producto.getIngredientes().isEmpty()) {
+            return producto.getIngredientes().stream()
+                    .filter(Objects::nonNull)
+                    .map(ProductoIngrediente::getIngrediente)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted(Comparator.comparing(i -> i.getNombre() == null ? "" : i.getNombre(),
+                            String.CASE_INSENSITIVE_ORDER))
+                    .toList();
+        }
+
+        if (lp.getIngredientes() == null || lp.getIngredientes().isEmpty()) return List.of();
+
+        return lp.getIngredientes().stream()
+                .filter(Objects::nonNull)
+                .map(LineaPedidoIngrediente::getIngrediente)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted(Comparator.comparing(i -> i.getNombre() == null ? "" : i.getNombre(),
+                        String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    @Override
+    public void aplicarCantidadLinea(Pedido pedido, String codigoLinea, int nuevaCantidad) {
+        if (pedido == null) throw new IllegalArgumentException("Pedido inválido");
+        if (codigoLinea == null || codigoLinea.isBlank()) throw new IllegalArgumentException("Código línea inválido");
+        if (nuevaCantidad <= 0) throw new IllegalArgumentException("Cantidad inválida");
+        if (pedido.getLineaPedidos() == null) throw new IllegalArgumentException("Líneas no disponibles");
+
+        LineaPedido lp = pedido.getLineaPedidos().stream()
+                .filter(x -> x != null && codigoLinea.equals(x.getCodigo()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Línea no encontrada"));
+
+        lp.setCantidad(nuevaCantidad);
+    }
+
+    @Override
+    public void eliminarLinea(Pedido pedido, String codigoLinea) {
+        if (pedido == null) throw new IllegalArgumentException("Pedido inválido");
+        if (codigoLinea == null || codigoLinea.isBlank()) throw new IllegalArgumentException("Código línea inválido");
+        if (pedido.getLineaPedidos() == null) return;
+
+        boolean removed = pedido.getLineaPedidos().removeIf(lp -> lp != null && codigoLinea.equals(lp.getCodigo()));
+        if (!removed) throw new IllegalArgumentException("Línea no encontrada");
+    }
+
+    @Override
+    public LineaPedidoIngrediente obtenerSeleccionIngrediente(LineaPedido lp, UUID ingredienteId) {
+        if (lp == null || ingredienteId == null) return null;
+        if (lp.getIngredientes() == null || lp.getIngredientes().isEmpty()) return null;
+
+        return lp.getIngredientes().stream()
+                .filter(li -> li != null
+                        && li.getIngrediente() != null
+                        && ingredienteId.equals(li.getIngrediente().getId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
+    public void aplicarSeleccionIngrediente(LineaPedido lp, Ingrediente ingrediente, boolean incluido, int extraCantidad) {
+        if (lp == null) throw new IllegalArgumentException("Línea inválida");
+        if (ingrediente == null || ingrediente.getId() == null)
+            throw new IllegalArgumentException("Ingrediente inválido");
+
+        int extra = Math.max(0, extraCantidad);
+
+        if (lp.getIngredientes() == null) {
+            lp.setIngredientes(new HashSet<>());
+        }
+
+        LineaPedidoIngrediente existente = obtenerSeleccionIngrediente(lp, ingrediente.getId());
+
+        if (existente == null) {
+            LineaPedidoIngrediente nuevo = new LineaPedidoIngrediente(
+                    lp,
+                    ingrediente,
+                    incluido,
+                    extra,
+                    ingrediente.getPrecioExtra() == null ? java.math.BigDecimal.ZERO : ingrediente.getPrecioExtra()
+            );
+            lp.getIngredientes().add(nuevo);
+            return;
+        }
+
+        existente.setIncluido(incluido);
+        existente.setExtraCantidad(extra);
+
+        if (existente.getPrecioExtra() == null) {
+            existente.setPrecioExtra(ingrediente.getPrecioExtra() == null ? java.math.BigDecimal.ZERO : ingrediente.getPrecioExtra());
+        }
     }
 }

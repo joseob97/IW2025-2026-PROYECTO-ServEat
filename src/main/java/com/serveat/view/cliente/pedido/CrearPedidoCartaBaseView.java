@@ -32,6 +32,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,6 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
 
     protected final transient PedidoService pedidoService;
 
-    // ✅ carrito + cálculo
     protected final transient PedidoCarritoService pedidoCarritoService;
     protected final transient PedidoCalculoService pedidoCalculoService;
 
@@ -82,8 +82,6 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         getStyle().set("max-width", "1280px");
         getStyle().set("margin", "0 auto");
 
-        // ✅ CAMBIO: ahora lineaPedidos es Set (no List)
-        // Antes: carrito.setLineaPedidos(new ArrayList<>());
         if (carrito.getLineaPedidos() == null) {
             carrito.setLineaPedidos(new LinkedHashSet<>());
         }
@@ -325,8 +323,11 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         personalizar.getElement().getStyle().set("font-size", "var(--lumo-font-size-xs)");
         personalizar.getElement().getStyle().set("font-weight", "700");
 
+        // Personalizar solo se habilita cuando el producto tiene receta de ingredientes
         personalizar.setEnabled(tieneIng);
-        if (!tieneIng) personalizar.getElement().setProperty("title", "Este producto no tiene ingredientes configurados");
+        if (!tieneIng) {
+            personalizar.getElement().setProperty("title", "Este producto no tiene ingredientes configurados");
+        }
 
         personalizar.addClickListener(e -> abrirDialogoPersonalizar(p.getCodigo(), qty));
 
@@ -371,10 +372,14 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
             dialog.setHeaderTitle("Personalizar: " + (producto.getNombre() != null ? producto.getNombre() : producto.getCodigo()));
 
             FormLayout form = new FormLayout();
-            form.setWidth("520px");
+            form.setWidth("600px");
+            form.setResponsiveSteps(
+                    new FormLayout.ResponsiveStep("0", 1)
+            );
 
-            Map<UUID, Checkbox> checks = new LinkedHashMap<>();
+            Map<UUID, Checkbox> quitarChecks = new LinkedHashMap<>();
             Map<UUID, IntegerField> extras = new LinkedHashMap<>();
+            Map<UUID, Runnable> stylers = new LinkedHashMap<>();
 
             for (ProductoIngrediente pi : receta) {
                 Ingrediente ing = pi.getIngrediente();
@@ -382,34 +387,75 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
                 if (ingId == null) continue;
 
                 String nombreIng = (ing.getNombre() != null) ? ing.getNombre() : "Ingrediente";
-                BigDecimal extra = (pi.getPrecioExtra() != null) ? pi.getPrecioExtra() : BigDecimal.ZERO;
 
-                Checkbox incluido = new Checkbox(nombreIng);
-                incluido.setValue(pi.isPorDefecto());
+                BigDecimal precioExtra = (pi.getPrecioExtra() != null) ? pi.getPrecioExtra()
+                        : (ing.getPrecioExtra() != null ? ing.getPrecioExtra() : BigDecimal.ZERO);
+                String precioExtraTxt = precioExtra.setScale(2, RoundingMode.HALF_UP).toPlainString();
 
-                IntegerField extraQty = new IntegerField("Extra");
+                boolean incluidoInicial = pi.isPorDefecto();
+
+                Span nombre = new Span(nombreIng);
+                nombre.getStyle().set("font-weight", "800");
+
+                Span badge = new Span();
+                badge.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+                badge.getStyle().set("font-weight", "800");
+                badge.getStyle().set("padding", "4px 10px");
+                badge.getStyle().set("border-radius", "999px");
+
+                Checkbox quitar = new Checkbox("Quitar");
+                quitar.setValue(!incluidoInicial);
+
+                IntegerField extraQty = new IntegerField();
+                extraQty.setLabel("Extra\n+ " + precioExtraTxt + " € / extra");
                 extraQty.setMin(0);
                 extraQty.setValue(0);
                 extraQty.setStepButtonsVisible(true);
-                extraQty.setWidth("140px");
+                extraQty.setWidth("220px");
 
-                Span precioExtra = new Span("+ " + extra + " € / extra");
-                precioExtra.getStyle().set("color", "var(--lumo-secondary-text-color)");
-                precioExtra.getStyle().set("font-size", "var(--lumo-font-size-s)");
-
-                if (!pi.isOpcional()) {
-                    incluido.setEnabled(false);
-                    extraQty.setEnabled(false);
-                }
-
-                checks.put(ingId, incluido);
-                extras.put(ingId, extraQty);
-
-                HorizontalLayout row = new HorizontalLayout(incluido, extraQty, precioExtra);
+                HorizontalLayout row = new HorizontalLayout(nombre, badge, quitar, extraQty);
                 row.setWidthFull();
                 row.setAlignItems(Alignment.CENTER);
-                row.setSpacing(false);
+                row.expand(nombre);
                 row.getStyle().set("gap", "12px");
+
+                Runnable aplicarEstilo = () -> {
+                    boolean incluido = !quitar.getValue();
+                    if (incluido) {
+                        row.getStyle().set("background", "var(--lumo-success-10pct)");
+                        row.getStyle().set("border", "1px solid var(--lumo-success-50pct)");
+                        badge.setText("INCLUIDO");
+                        badge.getStyle().set("background", "var(--lumo-success-50pct)");
+                        badge.getStyle().set("color", "var(--lumo-base-color)");
+                        nombre.getStyle().remove("text-decoration");
+                        nombre.getStyle().remove("opacity");
+                    } else {
+                        row.getStyle().set("background", "var(--lumo-error-10pct)");
+                        row.getStyle().set("border", "1px solid var(--lumo-error-50pct)");
+                        badge.setText("SIN");
+                        badge.getStyle().set("background", "var(--lumo-error-50pct)");
+                        badge.getStyle().set("color", "var(--lumo-base-color)");
+                        nombre.getStyle().set("text-decoration", "line-through");
+                        nombre.getStyle().set("opacity", "0.85");
+                    }
+                    row.getStyle().set("border-radius", "10px");
+                    row.getStyle().set("padding", "8px 10px");
+                };
+                aplicarEstilo.run();
+
+                if (!pi.isOpcional()) {
+                    quitar.setEnabled(false);
+                    extraQty.setEnabled(false);
+                } else {
+                    quitar.addValueChangeListener(ev -> {
+                        if (!ev.isFromClient()) return;
+                        aplicarEstilo.run();
+                    });
+                }
+
+                quitarChecks.put(ingId, quitar);
+                extras.put(ingId, extraQty);
+                stylers.put(ingId, aplicarEstilo);
 
                 form.add(row);
             }
@@ -425,8 +471,9 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
                     Map<UUID, Boolean> incluidoMap = new HashMap<>();
                     Map<UUID, Integer> extraMap = new HashMap<>();
 
-                    for (var entry : checks.entrySet()) {
-                        incluidoMap.put(entry.getKey(), Boolean.TRUE.equals(entry.getValue().getValue()));
+                    for (var entry : quitarChecks.entrySet()) {
+                        boolean incluido = !Boolean.TRUE.equals(entry.getValue().getValue());
+                        incluidoMap.put(entry.getKey(), incluido);
                     }
                     for (var entry : extras.entrySet()) {
                         Integer v = entry.getValue().getValue();
@@ -519,7 +566,7 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         return box;
     }
 
-    // ✅ CAMBIO: ingredientes ahora es Set -> tratamos como Collection y copiamos a List para iterar cómodo
+    // ingredientes es Set: se trata como Collection y se copia a List para iterar con comodidad
     private List<String> construirDetallePersonalizacion(LineaPedido lp) {
         Collection<LineaPedidoIngrediente> ingsCol =
                 (lp.getIngredientes() == null) ? List.of() : lp.getIngredientes();
@@ -604,7 +651,6 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
     }
 
     protected void refrescarCarrito() {
-        // ✅ CAMBIO: carrito.getLineaPedidos() ahora es Set -> lo convertimos a List para Vaadin Grid
         List<LineaPedido> items =
                 (carrito != null && carrito.getLineaPedidos() != null)
                         ? new ArrayList<>(carrito.getLineaPedidos())
