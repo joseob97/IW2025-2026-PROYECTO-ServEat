@@ -2,18 +2,24 @@ package com.serveat.service.notificaciones.impl;
 
 import com.serveat.service.notificaciones.EmailNotificacionService;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Service
 public class EmailNotificacionServiceImpl implements EmailNotificacionService {
 
-    @Override
-    public void enviarNotificacion(String email, String asunto, String mensaje) {
+    private static final Logger log =
+            LoggerFactory.getLogger(EmailNotificacionServiceImpl.class);
 
-        System.out.println("📧 [NOTIFICACION] Enviando notificación");
-        System.out.println("📧 Para: " + email);
-        System.out.println("📧 Asunto: " + asunto);
-        System.out.println("📧 Mensaje:");
-        System.out.println(mensaje);
+    @Override
+    public void enviarNotificacion(String destinatario, String asunto, String mensaje) {
+
+        log.info("📧 [EMAIL] Enviando email");
+        log.info("📧 Destinatario: {}", destinatario);
+        log.info("📧 Asunto: {}", asunto);
+        log.info("📧 Mensaje:\n{}", mensaje);
     }
 }
+
 
