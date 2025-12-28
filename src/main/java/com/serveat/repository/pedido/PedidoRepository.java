@@ -5,9 +5,14 @@ import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.EstadoReparto;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.domain.pedido.TipoPedidoCliente;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -209,4 +214,31 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     long countByEstado(EstadoPedido estado);
 
     long count();
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
+            "cliente",
+            "repartidor",
+            "pago"
+    })
+    @Query("""
+        select p
+        from Pedido p
+        where (:desde is null or p.fechaCreacion >= :desde)
+          and (:hasta is null or p.fechaCreacion <= :hasta)
+          and (:estadoPedido is null or p.estado = :estadoPedido)
+          and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
+          and (:mesa is null or p.reservaMesa.numeroMesa = :mesa)
+        order by p.fechaCreacion desc
+    """)
+    Page<Pedido> buscarPedidosFiltrados(@Param("desde") LocalDateTime desde,
+                                        @Param("hasta") LocalDateTime hasta,
+                                        @Param("estadoPedido") EstadoPedido estadoPedido,
+                                        @Param("estadoCocina") EstadoCocina estadoCocina,
+                                        @Param("mesa") Integer mesa,
+                                        Pageable pageable);
 }
