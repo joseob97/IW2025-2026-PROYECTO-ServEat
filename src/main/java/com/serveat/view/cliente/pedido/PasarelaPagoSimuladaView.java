@@ -4,9 +4,11 @@ import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.domain.pedido.TipoPedidoCliente;
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.pago.PagoService;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
+import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -27,6 +29,8 @@ import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @PageTitle("Pasarela de pago | Cliente")
 @Route(value = "cliente/pedido/online/pasarela", layout = MainLayout.class)
@@ -36,6 +40,7 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
     private final transient PedidoService pedidoService;
     private final transient PagoService pagoService;
     private final transient PedidoCalculoService pedidoCalculoService;
+    private final transient FeatureService featureService; // NUEVO
 
     private transient Pedido carrito;
     private transient MetodoPago metodo;
@@ -68,10 +73,12 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
 
     public PasarelaPagoSimuladaView(PedidoService pedidoService,
                                     PagoService pagoService,
-                                    PedidoCalculoService pedidoCalculoService) {
+                                    PedidoCalculoService pedidoCalculoService,
+                                    FeatureService featureService) { // NUEVO
         this.pedidoService = pedidoService;
         this.pagoService = pagoService;
         this.pedidoCalculoService = pedidoCalculoService;
+        this.featureService = featureService; // NUEVO
 
         setPadding(true);
         setSpacing(false);
@@ -86,7 +93,8 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         info.getStyle().set("color", "var(--lumo-secondary-text-color)");
         total.getStyle().set("font-weight", "600");
 
-        metodoPago.setItems(MetodoPago.values());
+        configurarMetodosPago(); // NUEVO: Lógica extraída a método
+
         metodoPago.setWidth("360px");
         metodoPago.setPlaceholder("Selecciona método");
         metodoPago.addValueChangeListener(e -> {
@@ -116,6 +124,26 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
         actualizarBloques();
     }
 
+    private void configurarMetodosPago() {
+        List<MetodoPago> metodosDisponibles = new ArrayList<>();
+        
+        // Siempre disponible
+        metodosDisponibles.add(MetodoPago.EFECTIVO);
+
+        // Solo si la feature está activa
+        if (featureService.tieneFeature(Feature.PAGO_ONLINE)) {
+            metodosDisponibles.add(MetodoPago.TARJETA);
+            metodosDisponibles.add(MetodoPago.PAYPAL);
+        }
+
+        metodoPago.setItems(metodosDisponibles);
+        
+        // Si solo hay efectivo, preseleccionarlo para comodidad
+        if (metodosDisponibles.size() == 1) {
+            metodoPago.setValue(MetodoPago.EFECTIVO);
+        }
+    }
+
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         carrito = (Pedido) event.getUI().getSession().getAttribute("pedidoOnlineCarrito");
@@ -140,7 +168,10 @@ public class PasarelaPagoSimuladaView extends VerticalLayout implements BeforeEn
             return;
         }
 
-        metodoPago.setValue(metodo);
+        // Si venía un método preseleccionado, intentar ponerlo si está disponible
+        if (metodo != null) {
+            metodoPago.setValue(metodo);
+        }
 
         info.setText("Usuario: " + username + " | Tipo: " + tipoPedido);
         total.setText("Total: " + pedidoCalculoService.calcularTotalPedido(carrito) + " €");
