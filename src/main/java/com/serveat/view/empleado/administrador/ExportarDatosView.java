@@ -10,6 +10,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -20,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Route(value = "empleado/admin/exportar", layout = MainLayout.class)
 @PageTitle("Exportar datos | Admin")
@@ -47,21 +47,36 @@ public class ExportarDatosView extends VerticalLayout {
             return;
         }
 
-        Paragraph descripcion = new Paragraph("Descarga un archivo CSV con el listado completo de pedidos para su gestión externa.");
+        Paragraph descripcion = new Paragraph("Descarga el listado completo de pedidos en el formato que necesites.");
         
-        // Configurar descarga
-        Button botonDescarga = new Button("Descargar Pedidos (.csv)");
-        botonDescarga.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        // Botón CSV
+        Button botonCsv = new Button("Descargar CSV");
+        botonCsv.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         
-        StreamResource resource = new StreamResource("pedidos.csv", this::generarCsvPedidos);
-        resource.setContentType("text/csv");
-        resource.setCacheTime(0);
+        StreamResource resourceCsv = new StreamResource("pedidos.csv", this::generarCsvPedidos);
+        resourceCsv.setContentType("text/csv");
+        resourceCsv.setCacheTime(0);
 
-        Anchor downloadLink = new Anchor(resource, "");
-        downloadLink.getElement().setAttribute("download", true);
-        downloadLink.add(botonDescarga);
+        Anchor linkCsv = new Anchor(resourceCsv, "");
+        linkCsv.getElement().setAttribute("download", true);
+        linkCsv.add(botonCsv);
 
-        add(titulo, descripcion, downloadLink);
+        // Botón PDF
+        Button botonPdf = new Button("Descargar PDF");
+        botonPdf.addThemeVariants(ButtonVariant.LUMO_CONTRAST); // Estilo diferente para distinguir
+        
+        StreamResource resourcePdf = new StreamResource("pedidos.pdf", this::generarPdfPedidos);
+        resourcePdf.setContentType("application/pdf");
+        resourcePdf.setCacheTime(0);
+
+        Anchor linkPdf = new Anchor(resourcePdf, "");
+        linkPdf.getElement().setAttribute("download", true);
+        linkPdf.add(botonPdf);
+
+        HorizontalLayout botones = new HorizontalLayout(linkCsv, linkPdf);
+        botones.setSpacing(true);
+
+        add(titulo, descripcion, botones);
     }
 
     private java.io.InputStream generarCsvPedidos() {
@@ -69,7 +84,6 @@ public class ExportarDatosView extends VerticalLayout {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         StringBuilder csv = new StringBuilder();
-        // Cabecera
         csv.append("Codigo;Fecha;Estado;Tipo;Cliente;Total\n");
 
         for (Pedido p : pedidos) {
@@ -80,11 +94,29 @@ public class ExportarDatosView extends VerticalLayout {
             String cliente = p.getCliente() != null ? p.getCliente().getUsername() : "Anonimo";
             String total = p.calcularPrecioTotal() != null ? p.calcularPrecioTotal().toString() : "0.00";
 
-            // Escapar punto y coma si fuera necesario (simple)
             csv.append(String.format("%s;%s;%s;%s;%s;%s\n",
                     codigo, fecha, estado, tipo, cliente, total));
         }
 
         return new ByteArrayInputStream(csv.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private java.io.InputStream generarPdfPedidos() {
+        List<Pedido> pedidos = pedidoService.listarTodosOrdenadosPorFecha();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        StringBuilder pdf = new StringBuilder();
+        pdf.append("REPORTE DE PEDIDOS - SERVEAT\n");
+        pdf.append("========================================\n\n");
+
+        for (Pedido p : pedidos) {
+            pdf.append("Pedido: ").append(p.getCodigo()).append("\n");
+            pdf.append("Fecha:  ").append(p.getFechaCreacion() != null ? p.getFechaCreacion().format(fmt) : "-").append("\n");
+            pdf.append("Cliente:").append(p.getCliente() != null ? p.getCliente().getUsername() : "Anonimo").append("\n");
+            pdf.append("Total:  ").append(p.calcularPrecioTotal()).append(" EUR\n");
+            pdf.append("----------------------------------------\n");
+        }
+
+        return new ByteArrayInputStream(pdf.toString().getBytes(StandardCharsets.UTF_8));
     }
 }
