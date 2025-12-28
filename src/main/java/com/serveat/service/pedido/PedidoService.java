@@ -1,13 +1,15 @@
 package com.serveat.service.pedido;
 
+import com.serveat.domain.menu.Ingrediente;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
-import com.serveat.domain.pedido.EstadoCocina;
-import com.serveat.domain.pedido.EstadoPedido;
-import com.serveat.domain.pedido.LineaPedido;
-import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.pedido.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface PedidoService {
@@ -87,4 +89,31 @@ public interface PedidoService {
     Pedido obtenerPedidoPorId(UUID id);
 
     Pedido cambiarEstadoCocina(UUID id, EstadoCocina nuevoEstado);
+
+    Page<Pedido> buscarPedidosFiltrados(LocalDateTime desde,
+                                        LocalDateTime hasta,
+                                        EstadoPedido estadoPedido,
+                                        EstadoCocina estadoCocina,
+                                        Integer mesa,
+                                        Pageable pageable);
+
+    // Editar pedido (camarero)
+
+    boolean puedeEditarOCancelarCamarero(Pedido pedido);
+
+    Pedido cancelarPedidoCamarero(String codigoPedido, String motivo);
+
+    Pedido cargarPedidoEditableCamarero(String codigoPedido, String username);
+
+    List<LineaPedido> ordenarLineasParaVista(Set<LineaPedido> lineas);
+
+    List<Ingrediente> obtenerIngredientesDisponiblesLinea(LineaPedido lp);
+
+    void aplicarCantidadLinea(Pedido pedido, String codigoLinea, int nuevaCantidad);
+
+    void eliminarLinea(Pedido pedido, String codigoLinea);
+
+    LineaPedidoIngrediente obtenerSeleccionIngrediente(LineaPedido lp, UUID ingredienteId);
+
+    void aplicarSeleccionIngrediente(LineaPedido lp, Ingrediente ingrediente, boolean incluido, int extraCantidad);
 }
