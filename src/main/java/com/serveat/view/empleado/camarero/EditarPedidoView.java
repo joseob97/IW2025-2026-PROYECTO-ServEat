@@ -1,6 +1,7 @@
 package com.serveat.view.empleado.camarero;
 
 import com.serveat.domain.menu.Ingrediente;
+import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.LineaPedidoIngrediente;
 import com.serveat.domain.pedido.Pedido;
@@ -26,8 +27,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @PageTitle("Editar Pedido | Camarero")
 @Route(value = "empleado/camarero/pedidos/editar", layout = MainLayout.class)
@@ -40,7 +41,6 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
     private transient Pedido pedidoEditable;
     private boolean hayCambios = false;
 
-    // UI
     private final Span info = new Span("");
     private final Grid<LineaPedido> gridLineas = new Grid<>(LineaPedido.class, false);
     private final Button confirmarCambios = new Button("✅ Confirmar cambios");
@@ -85,9 +85,6 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
         bloquearEdicion();
     }
 
-    /**
-     * Recibe /empleado/camarero/pedidos/editar/{codigo}
-     */
     @Override
     public void setParameter(BeforeEvent event, @OptionalParameter String codigo) {
         if (codigo == null || codigo.isBlank()) {
@@ -97,8 +94,6 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
 
         try {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
-            // Debe cargar detalle + receta para evitar LazyInitializationException
             Pedido p = pedidoService.cargarPedidoEditableCamarero(codigo, username);
 
             this.pedidoEditable = p;
@@ -116,8 +111,6 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
             limpiarVista("No se pudo cargar el pedido: " + ex.getMessage());
         }
     }
-
-    // GRID
 
     private void configurarGridLineas() {
         gridLineas.setWidthFull();
@@ -148,10 +141,7 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
                 try {
                     pedidoService.aplicarCantidadLinea(pedidoEditable, lp.getCodigo(), nueva);
                     marcarCambio();
-
-                    // Recalcula el Subtotal de ESTA línea
                     gridLineas.getDataProvider().refreshItem(lp);
-
                 } catch (Exception ex) {
                     Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
                     refrescarLineas();
@@ -196,7 +186,7 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
                 try {
                     pedidoService.eliminarLinea(pedidoEditable, lp.getCodigo());
                     marcarCambio();
-                    refrescarLineas(); // recargamos lista porque ya no existe esa fila
+                    refrescarLineas();
                 } catch (Exception ex) {
                     Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
                 }
@@ -214,23 +204,23 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
         gridLineas.setItems(items);
     }
 
-    // INGREDIENTES
-
     private void abrirEditorIngredientes(LineaPedido lp) {
         if (lp == null || pedidoEditable == null) return;
 
         Dialog dialog = new Dialog();
-        dialog.setWidth("820px");
+        dialog.setWidth("860px");
         dialog.setHeaderTitle("Ingredientes - " + (lp.getProducto() != null ? safe(lp.getProducto().getNombre()) : "-"));
 
         VerticalLayout content = new VerticalLayout();
         content.setPadding(false);
         content.setSpacing(false);
-        content.getStyle().set("gap", "10px");
+        content.getStyle().set("gap", "12px");
 
         List<Ingrediente> disponibles;
+        Map<UUID, ProductoIngrediente> recetaMap;
         try {
             disponibles = pedidoService.obtenerIngredientesDisponiblesLinea(lp);
+            recetaMap = pedidoService.obtenerRecetaPorIngrediente(lp);
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
             return;
@@ -240,102 +230,40 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
             Span s = new Span("Este producto no tiene ingredientes configurados para editar.");
             s.getStyle().set("color", "var(--lumo-secondary-text-color)");
             content.add(s);
-
         } else {
+            List<Ingrediente> porDefecto = new ArrayList<>();
+            List<Ingrediente> noPorDefecto = new ArrayList<>();
+
             for (Ingrediente ing : disponibles) {
                 if (ing == null || ing.getId() == null) continue;
+                ProductoIngrediente pi = recetaMap != null ? recetaMap.get(ing.getId()) : null;
+                boolean esPorDefecto = pi != null && pi.isPorDefecto();
+                if (esPorDefecto) porDefecto.add(ing);
+                else noPorDefecto.add(ing);
+            }
 
-                LineaPedidoIngrediente sel = pedidoService.obtenerSeleccionIngrediente(lp, ing.getId());
-                boolean incluidoInicial = (sel == null || sel.isIncluido());
+            Comparator<Ingrediente> byNombre = Comparator.comparing(i -> safe(i.getNombre()), String.CASE_INSENSITIVE_ORDER);
+            porDefecto.sort(byNombre);
+            noPorDefecto.sort(byNombre);
 
-                Span nombre = new Span(safe(ing.getNombre()));
-                nombre.getStyle().set("font-weight", "800");
+            if (!porDefecto.isEmpty()) {
+                H3 h = new H3("Por defecto");
+                h.getStyle().set("margin", "0");
+                h.getStyle().set("font-size", "var(--lumo-font-size-m)");
+                content.add(h);
+                for (Ingrediente ing : porDefecto) {
+                    content.add(crearFilaIngrediente(lp, ing, recetaMap));
+                }
+            }
 
-                Span badge = new Span();
-                badge.getStyle().set("font-size", "var(--lumo-font-size-xs)");
-                badge.getStyle().set("font-weight", "800");
-                badge.getStyle().set("padding", "4px 10px");
-                badge.getStyle().set("border-radius", "999px");
-
-                Checkbox quitar = new Checkbox("Quitar");
-                quitar.setValue(!incluidoInicial);
-
-                BigDecimal precioExtra = (ing.getPrecioExtra() == null) ? BigDecimal.ZERO : ing.getPrecioExtra();
-                String precioExtraTxt = precioExtra.setScale(2, RoundingMode.HALF_UP).toPlainString();
-
-                IntegerField extra = new IntegerField();
-                extra.setLabel("Extra\n+ " + precioExtraTxt + " € / extra");
-                extra.setMin(0);
-                extra.setStepButtonsVisible(true);
-                extra.setWidth("200px");
-                extra.setValue(sel != null ? Math.max(0, sel.getExtraCantidad()) : 0);
-
-                HorizontalLayout fila = new HorizontalLayout(nombre, badge, quitar, extra);
-                fila.setWidthFull();
-                fila.setAlignItems(Alignment.CENTER);
-                fila.expand(nombre);
-
-                Runnable aplicarEstilo = () -> {
-                    boolean incluido = !quitar.getValue();
-                    if (incluido) {
-                        fila.getStyle().set("background", "var(--lumo-success-10pct)");
-                        fila.getStyle().set("border", "1px solid var(--lumo-success-50pct)");
-                        badge.setText("INCLUIDO");
-                        badge.getStyle().set("background", "var(--lumo-success-50pct)");
-                        badge.getStyle().set("color", "var(--lumo-base-color)");
-                        nombre.getStyle().remove("text-decoration");
-                        nombre.getStyle().remove("opacity");
-                    } else {
-                        fila.getStyle().set("background", "var(--lumo-error-10pct)");
-                        fila.getStyle().set("border", "1px solid var(--lumo-error-50pct)");
-                        badge.setText("SIN");
-                        badge.getStyle().set("background", "var(--lumo-error-50pct)");
-                        badge.getStyle().set("color", "var(--lumo-base-color)");
-                        nombre.getStyle().set("text-decoration", "line-through");
-                        nombre.getStyle().set("opacity", "0.85");
-                    }
-                    fila.getStyle().set("border-radius", "10px");
-                    fila.getStyle().set("padding", "8px 10px");
-                };
-                aplicarEstilo.run();
-
-                quitar.addValueChangeListener(ev -> {
-                    if (!ev.isFromClient()) return;
-
-                    boolean incluido = !Boolean.TRUE.equals(ev.getValue());
-                    try {
-                        pedidoService.aplicarSeleccionIngrediente(lp, ing, incluido, valueOrZero(extra.getValue()));
-                        marcarCambio();
-                        aplicarEstilo.run();
-
-                        gridLineas.getDataProvider().refreshItem(lp);
-
-                    } catch (Exception ex) {
-                        Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
-                        // revertimos visual si falla
-                        quitar.setValue(!incluido);
-                        aplicarEstilo.run();
-                    }
-                });
-
-                extra.addValueChangeListener(ev -> {
-                    if (!ev.isFromClient()) return;
-                    int v = valueOrZero(ev.getValue());
-                    if (!Objects.equals(extra.getValue(), v)) extra.setValue(v);
-
-                    boolean incluido = !quitar.getValue();
-                    try {
-                        pedidoService.aplicarSeleccionIngrediente(lp, ing, incluido, v);
-                        marcarCambio();
-
-                        gridLineas.getDataProvider().refreshItem(lp);
-
-                    } catch (Exception ex) {
-                        Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
-                    }
-                });
-
-                content.add(fila);
+            if (!noPorDefecto.isEmpty()) {
+                H3 h = new H3("No por defecto");
+                h.getStyle().set("margin", porDefecto.isEmpty() ? "0" : "14px 0 0 0");
+                h.getStyle().set("font-size", "var(--lumo-font-size-m)");
+                content.add(h);
+                for (Ingrediente ing : noPorDefecto) {
+                    content.add(crearFilaIngrediente(lp, ing, recetaMap));
+                }
             }
         }
 
@@ -349,7 +277,135 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
         dialog.open();
     }
 
-    // GUARDAR
+    private Component crearFilaIngrediente(LineaPedido lp, Ingrediente ing, Map<UUID, ProductoIngrediente> recetaMap) {
+        ProductoIngrediente pi = (recetaMap != null && ing != null) ? recetaMap.get(ing.getId()) : null;
+
+        boolean esPorDefecto = pi != null && pi.isPorDefecto();
+        boolean esOpcional = (pi == null) || pi.isOpcional();
+
+        BigDecimal precioExtra = BigDecimal.ZERO;
+        if (pi != null && pi.getPrecioExtra() != null) precioExtra = pi.getPrecioExtra();
+        else if (ing.getPrecioExtra() != null) precioExtra = ing.getPrecioExtra();
+
+        String precioExtraTxt = precioExtra.setScale(2, RoundingMode.HALF_UP).toPlainString();
+
+        LineaPedidoIngrediente sel = pedidoService.obtenerSeleccionIngrediente(lp, ing.getId());
+        boolean incluidoActual = (sel == null || sel.isIncluido());
+
+        Span nombre = new Span(safe(ing.getNombre()));
+        nombre.getStyle().set("font-weight", "900");
+
+        Span sub = new Span(esPorDefecto ? "Por defecto" : "No por defecto");
+        sub.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+        sub.getStyle().set("color", "var(--lumo-secondary-text-color)");
+
+        VerticalLayout nombreBox = new VerticalLayout(nombre, sub);
+        nombreBox.setPadding(false);
+        nombreBox.setSpacing(false);
+        nombreBox.getStyle().set("gap", "2px");
+
+        Span badge = new Span();
+        badge.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+        badge.getStyle().set("font-weight", "900");
+        badge.getStyle().set("padding", "4px 10px");
+        badge.getStyle().set("border-radius", "999px");
+
+        Checkbox quitar = new Checkbox("Quitar");
+        quitar.setValue(!incluidoActual);
+
+        IntegerField extra = new IntegerField();
+        extra.setLabel("Extra\n+ " + precioExtraTxt + " € / extra");
+        extra.setMin(0);
+        extra.setStepButtonsVisible(true);
+        extra.setWidth("220px");
+        extra.setValue(sel != null ? Math.max(0, sel.getExtraCantidad()) : 0);
+
+        HorizontalLayout fila = new HorizontalLayout(nombreBox, badge, quitar, extra);
+        fila.setWidthFull();
+        fila.setAlignItems(Alignment.CENTER);
+        fila.expand(nombreBox);
+        fila.getStyle().set("gap", "12px");
+
+        Runnable aplicarEstiloYEstado = () -> {
+            boolean incluido = !Boolean.TRUE.equals(quitar.getValue());
+
+            if (incluido) {
+                fila.getStyle().set("background", "var(--lumo-success-10pct)");
+                fila.getStyle().set("border", "1px solid var(--lumo-success-50pct)");
+                badge.setText("INCLUIDO");
+                badge.getStyle().set("background", "var(--lumo-success-50pct)");
+                badge.getStyle().set("color", "var(--lumo-base-color)");
+                nombre.getStyle().remove("text-decoration");
+                nombre.getStyle().remove("opacity");
+            } else {
+                fila.getStyle().set("background", "var(--lumo-error-10pct)");
+                fila.getStyle().set("border", "1px solid var(--lumo-error-50pct)");
+                badge.setText("QUITADO");
+                badge.getStyle().set("background", "var(--lumo-error-50pct)");
+                badge.getStyle().set("color", "var(--lumo-base-color)");
+                nombre.getStyle().set("text-decoration", "line-through");
+                nombre.getStyle().set("opacity", "0.85");
+            }
+
+            fila.getStyle().set("border-radius", "12px");
+            fila.getStyle().set("padding", "10px 12px");
+
+            boolean incluidoNow = !Boolean.TRUE.equals(quitar.getValue());
+            if (!incluidoNow) {
+                if (!Objects.equals(extra.getValue(), 0)) extra.setValue(0);
+                extra.setEnabled(false);
+            } else {
+                extra.setEnabled(esOpcional);
+            }
+        };
+
+        aplicarEstiloYEstado.run();
+
+        if (!esOpcional) {
+            quitar.setEnabled(false);
+            extra.setEnabled(false);
+        } else {
+            quitar.addValueChangeListener(ev -> {
+                if (!ev.isFromClient()) return;
+
+                boolean incluido = !Boolean.TRUE.equals(ev.getValue());
+                try {
+                    if (!incluido) {
+                        if (!Objects.equals(extra.getValue(), 0)) extra.setValue(0);
+                    }
+                    pedidoService.aplicarSeleccionIngrediente(lp, ing, incluido, valueOrZero(extra.getValue()));
+                    marcarCambio();
+                    aplicarEstiloYEstado.run();
+                    gridLineas.getDataProvider().refreshItem(lp);
+                } catch (Exception ex) {
+                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                    quitar.setValue(!incluido);
+                    aplicarEstiloYEstado.run();
+                }
+            });
+
+            extra.addValueChangeListener(ev -> {
+                if (!ev.isFromClient()) return;
+
+                int v = valueOrZero(ev.getValue());
+                if (!Objects.equals(extra.getValue(), v)) extra.setValue(v);
+
+                if (Boolean.TRUE.equals(quitar.getValue())) quitar.setValue(false);
+
+                boolean incluido = !Boolean.TRUE.equals(quitar.getValue());
+                try {
+                    pedidoService.aplicarSeleccionIngrediente(lp, ing, incluido, v);
+                    marcarCambio();
+                    aplicarEstiloYEstado.run();
+                    gridLineas.getDataProvider().refreshItem(lp);
+                } catch (Exception ex) {
+                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                }
+            });
+        }
+
+        return fila;
+    }
 
     private void guardarCambios() {
         if (pedidoEditable == null) return;
@@ -363,7 +419,6 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
             hayCambios = false;
             confirmarCambios.setEnabled(false);
 
-            // recarga desde BD por si hay merge
             pedidoEditable = pedidoService.obtenerPorCodigo(pedidoEditable.getCodigo());
             refrescarLineas();
 
@@ -376,8 +431,6 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
         hayCambios = true;
         confirmarCambios.setEnabled(true);
     }
-
-    // UI helpers
 
     private void bloquearEdicion() {
         gridLineas.setEnabled(false);
