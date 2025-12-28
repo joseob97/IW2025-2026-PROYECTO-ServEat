@@ -19,14 +19,13 @@ import com.serveat.repository.pago.PagoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.reserva.ReservaMesaRepository;
 import com.serveat.repository.usuario.ClienteRepository;
-import com.serveat.service.caja.CierreCajaService;
+import com.serveat.service.caja.EstadoCajaService;
 import com.serveat.service.pago.PagoService;
 import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +41,7 @@ public class PedidoServiceImpl implements PedidoService {
     private final PagoService pagoService;
     private final PagoRepository pagoRepo;
     private final PedidoCarritoService carritoService;
-    private final CierreCajaService cierreCajaService; // NUEVO
+    private final EstadoCajaService estadoCajaService; // CAMBIO: Usamos EstadoCajaService
 
     public PedidoServiceImpl(PedidoRepository pedidoRepo,
                              ProductoRepository productoRepo,
@@ -51,7 +50,7 @@ public class PedidoServiceImpl implements PedidoService {
                              PagoService pagoService,
                              PagoRepository pagoRepo,
                              PedidoCarritoService carritoService,
-                             CierreCajaService cierreCajaService) { // NUEVO
+                             EstadoCajaService estadoCajaService) { // CAMBIO
         this.pedidoRepo = pedidoRepo;
         this.productoRepo = productoRepo;
         this.reservaMesaRepo = reservaMesaRepo;
@@ -59,14 +58,15 @@ public class PedidoServiceImpl implements PedidoService {
         this.pagoService = pagoService;
         this.pagoRepo = pagoRepo;
         this.carritoService = carritoService;
-        this.cierreCajaService = cierreCajaService; // NUEVO
+        this.estadoCajaService = estadoCajaService; // CAMBIO
     }
 
     /* Helpers */
 
     private void validarCajaAbierta() {
-        if (cierreCajaService.isCajaCerrada(LocalDate.now())) {
-            throw new IllegalStateException("No se pueden realizar pedidos: la caja del día está cerrada.");
+        // CAMBIO: La lógica ahora pregunta si la caja NO está abierta
+        if (!estadoCajaService.isCajaAbierta()) {
+            throw new IllegalStateException("No se pueden realizar pedidos: la caja está cerrada.");
         }
     }
 
@@ -110,7 +110,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido crearPedidoMesa(Integer numeroMesa) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         ReservaMesa mesa = cargarOMesaAbierta(numeroMesa);
 
         Pedido p = new Pedido();
@@ -177,7 +177,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido agregarProducto(String codigoPedido, String codigoProducto, int cantidad) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         if (codigoProducto == null || codigoProducto.isBlank()) throw new IllegalArgumentException("Producto inválido");
         if (cantidad <= 0) throw new IllegalArgumentException("Cantidad inválida");
 
@@ -194,7 +194,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido actualizarCantidadProducto(String codigoPedido, String codigoProducto, int nuevaCantidad) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         if (codigoProducto == null || codigoProducto.isBlank()) throw new IllegalArgumentException("Producto inválido");
 
         Pedido pedido = cargarDetalle(codigoPedido);
@@ -219,7 +219,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido eliminarProducto(String codigoPedido, String codigoProducto) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         if (codigoProducto == null || codigoProducto.isBlank()) throw new IllegalArgumentException("Producto inválido");
 
         Pedido pedido = cargarDetalle(codigoPedido);
@@ -241,7 +241,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido confirmarPedido(String codigoPedido) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         Pedido pedido = cargarDetalle(codigoPedido);
 
         if (pedido.getLineaPedidos() == null || pedido.getLineaPedidos().isEmpty()) {
@@ -257,7 +257,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido confirmarCambiosPedido(Pedido pedidoEditado, String usuario) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         if (pedidoEditado == null) throw new IllegalArgumentException("Pedido inválido");
         if (pedidoEditado.getLineaPedidos() == null || pedidoEditado.getLineaPedidos().isEmpty()) {
             throw new IllegalArgumentException("El pedido no puede quedar vacío");
@@ -277,7 +277,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido confirmarCambiosPedidoCliente(Pedido pedidoEditado, String username) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         if (pedidoEditado == null || pedidoEditado.getLineaPedidos() == null || pedidoEditado.getLineaPedidos().isEmpty()) {
             throw new IllegalArgumentException("El pedido no puede quedar vacío");
         }
@@ -395,13 +395,13 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido crearPedidoClienteRecoger(Pedido carrito, String username) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         return crearPedidoClienteBase(carrito, username, TipoPedidoCliente.RECOGER, null, null, false);
     }
 
     @Override
     public Pedido crearPedidoClienteDomicilio(Pedido carrito, String username, String direccionEntrega) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         if (direccionEntrega == null || direccionEntrega.trim().isBlank()) {
             throw new IllegalArgumentException("La dirección de entrega es obligatoria");
         }
@@ -410,7 +410,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido crearPedidoClienteMesa(Pedido carrito, String username, Integer numeroMesa) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         return crearPedidoClienteBase(carrito, username, TipoPedidoCliente.MESA, null, numeroMesa, true);
     }
 
@@ -483,7 +483,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido agregarLineaPersonalizada(String codigoPedido, LineaPedido lineaPersonalizada) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         if (codigoPedido == null || codigoPedido.isBlank()) throw new IllegalArgumentException("Código inválido");
         if (lineaPersonalizada == null) throw new IllegalArgumentException("Línea inválida");
         if (lineaPersonalizada.getProducto() == null || lineaPersonalizada.getProducto().getCodigo() == null) {
@@ -523,7 +523,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pago iniciarPagoOnline(Pedido carrito, String username, MetodoPago metodo) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         if (metodo == null) throw new IllegalArgumentException("Método de pago inválido");
         Pedido pedidoCreado = crearPedidoClienteRecoger(carrito, username);
         return pagoService.iniciarPago(pedidoCreado, metodo);
@@ -547,7 +547,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido confirmarPagoOnline(Long pagoId, String username, String referencia) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         Pago pago = obtenerPagoCliente(pagoId, username);
 
         if (pago.getEstado() == EstadoPago.CONFIRMADO) throw new IllegalArgumentException("El pago ya está confirmado");
@@ -593,7 +593,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido cambiarEstadoCocina(UUID id, EstadoCocina nuevoEstado) {
-        validarCajaAbierta(); // NUEVO
+        validarCajaAbierta();
         Pedido pedido = obtenerPedidoPorId(id);
 
         if (nuevoEstado == null) throw new IllegalArgumentException("Estado de cocina inválido");

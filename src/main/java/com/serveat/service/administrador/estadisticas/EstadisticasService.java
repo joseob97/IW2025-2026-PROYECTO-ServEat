@@ -37,4 +37,7 @@ public interface EstadisticasService {
 
     /* Genera un resumen de caja para el día actual */
     Map<String, Object> generarCierreCajaDiario();
+
+    /* Genera un resumen de caja para el turno actual (desde última apertura) */
+    Map<String, Object> generarCierreCajaTurno();
 }

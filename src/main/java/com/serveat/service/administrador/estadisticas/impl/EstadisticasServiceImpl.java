@@ -10,6 +10,7 @@ import com.serveat.repository.pago.PagoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.service.administrador.estadisticas.EstadisticasService;
 import com.serveat.service.administrador.estadisticas.EstadisticasSnapshot;
+import com.serveat.service.caja.EstadoCajaService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
@@ -31,10 +32,14 @@ public class EstadisticasServiceImpl implements EstadisticasService {
 
     private final PedidoRepository pedidoRepository;
     private final PagoRepository pagoRepository;
+    private final EstadoCajaService estadoCajaService; // NUEVO
 
-    public EstadisticasServiceImpl(PedidoRepository pedidoRepository, PagoRepository pagoRepository) {
+    public EstadisticasServiceImpl(PedidoRepository pedidoRepository,
+                                   PagoRepository pagoRepository,
+                                   EstadoCajaService estadoCajaService) { // NUEVO
         this.pedidoRepository = pedidoRepository;
         this.pagoRepository = pagoRepository;
+        this.estadoCajaService = estadoCajaService; // NUEVO
     }
 
     /* Obtiene un resumen agregado de KPIs para el rango indicado (con caché por rango). */
@@ -169,7 +174,6 @@ public class EstadisticasServiceImpl implements EstadisticasService {
 
             YearMonth ym = YearMonth.from(p.getFechaCreacion().toLocalDate());
 
-            // ✅ CAMBIO: ahora es Set (o Collection), no List
             Collection<LineaPedido> lineasCol = p.getLineaPedidos();
             if (lineasCol == null || lineasCol.isEmpty()) continue;
 
@@ -213,7 +217,6 @@ public class EstadisticasServiceImpl implements EstadisticasService {
 
             YearMonth ym = YearMonth.from(p.getFechaCreacion().toLocalDate());
 
-            // ✅ CAMBIO: ahora es Set (o Collection), no List
             Collection<LineaPedido> lineasCol = p.getLineaPedidos();
             if (lineasCol == null || lineasCol.isEmpty()) continue;
 
@@ -273,28 +276,42 @@ public class EstadisticasServiceImpl implements EstadisticasService {
         /* Evicción asíncrona de caché. */
     }
 
-    /* Genera un informe diario de la caja diaria */
+    /* Genera un informe diario de la caja diaria (acumulado del día) */
     @Override
     public Map<String, Object> generarCierreCajaDiario() {
-
         LocalDate hoy = LocalDate.now();
         LocalDateTime inicioDelDia = hoy.atStartOfDay();
         LocalDateTime finDelDia = hoy.plusDays(1).atStartOfDay();
 
+        return calcularTotalesEnRango(inicioDelDia, finDelDia);
+    }
 
-        List<Pago> pagosDeHoy = pagoRepository.findByEstadoAndFechaConfirmacionBetween(
+    /* Genera un informe de caja para el turno actual (desde última apertura) */
+    @Override
+    public Map<String, Object> generarCierreCajaTurno() {
+        // 1. Buscar última apertura
+        LocalDateTime inicioTurno = estadoCajaService.obtenerFechaUltimaApertura()
+                .orElse(LocalDate.now().atStartOfDay()); // Fallback: inicio del día
+
+        LocalDateTime finTurno = LocalDateTime.now();
+
+        return calcularTotalesEnRango(inicioTurno, finTurno);
+    }
+
+    /* Método privado para reutilizar la lógica de cálculo */
+    private Map<String, Object> calcularTotalesEnRango(LocalDateTime inicio, LocalDateTime fin) {
+        List<Pago> pagos = pagoRepository.findByEstadoAndFechaConfirmacionBetween(
                 EstadoPago.CONFIRMADO,
-                inicioDelDia,
-                finDelDia
+                inicio,
+                fin
         );
-
 
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal totalPaypal = BigDecimal.ZERO;
         BigDecimal totalEfectivo = BigDecimal.ZERO;
         BigDecimal totalTarjeta = BigDecimal.ZERO;
 
-        for (Pago pago : pagosDeHoy) {
+        for (Pago pago : pagos) {
             BigDecimal importe = pago.getImporte();
             total = total.add(importe);
 
@@ -310,7 +327,6 @@ public class EstadisticasServiceImpl implements EstadisticasService {
                     break;
             }
         }
-
 
         Map<String, Object> resultado = new LinkedHashMap<>();
         resultado.put("total", total.setScale(2, RoundingMode.HALF_UP));
@@ -369,7 +385,6 @@ public class EstadisticasServiceImpl implements EstadisticasService {
         Map<String, Long> res = new HashMap<>();
 
         for (Pedido p : pedidos) {
-            // ✅ CAMBIO: Set/Collection
             Collection<LineaPedido> lineasCol = p.getLineaPedidos();
             if (lineasCol == null || lineasCol.isEmpty()) continue;
 
@@ -396,7 +411,6 @@ public class EstadisticasServiceImpl implements EstadisticasService {
         Map<String, BigDecimal> res = new HashMap<>();
 
         for (Pedido p : pedidos) {
-            // ✅ CAMBIO: Set/Collection
             Collection<LineaPedido> lineasCol = p.getLineaPedidos();
             if (lineasCol == null || lineasCol.isEmpty()) continue;
 
