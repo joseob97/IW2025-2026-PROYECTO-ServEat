@@ -1,5 +1,6 @@
 package com.serveat.service.notificaciones;
 
+import jakarta.annotation.PostConstruct;
 import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.administrador.estadisticas.EstadisticasService;
 import com.serveat.service.administrador.estadisticas.EstadisticasSnapshot;
@@ -29,11 +30,16 @@ public class GananciasScheduler {
         this.pushNotificacionService = pushNotificacionService;
     }
 
+    @PostConstruct
+    public void pruebaManualNotificaciones() {
+        System.out.println(">>> PRUEBA MANUAL NOTIFICACIONES GANANCIAS <<<");
+        notificarGananciasMes();
+    }
+
+
     /**
-     * Genera la notificación de ganancias del mes en curso
-     * y envía email de aviso al administrador.
-     *
-     * Se ejecuta el día 25 a las 09:10.
+     * Notifica las ganancias del mes en curso el día 25 a las 09:10.
+     * Se envía por EMAIL y se genera una NOTIFICACIÓN PUSH para el panel de administración.
      */
     @Scheduled(cron = "0 10 9 25 * *")
     public void notificarGananciasMes() {
@@ -49,11 +55,9 @@ public class GananciasScheduler {
         EstadisticasSnapshot snapshot =
                 estadisticasService.snapshotRango(desde, hasta);
 
-        String asunto = "Preaviso fin de mes - Ganancias";
+        String titulo = "Ganancias del mes en curso";
 
         String mensaje = """
-                Ganancias del mes en curso
-
                 Periodo: %s → %s
                 Facturación acumulada: %s €
 
@@ -64,19 +68,20 @@ public class GananciasScheduler {
                 snapshot.getTotalFacturado()
         );
 
-        // 🔔 NOTIFICACIÓN PUSH (panel admin)
+        // NOTIFICACIÓN PUSH (panel admin)
         pushNotificacionService.crearNotificacion(
-                "Ganancias del mes",
+                titulo,
                 mensaje
         );
 
-        // 📧 EMAIL (canal adicional)
+        // EMAIL (canal adicional)
         emailNotificacionService.enviarNotificacion(
                 "admin@serveat.com",
-                asunto,
+                "Preaviso fin de mes - Ganancias",
                 mensaje
         );
     }
 }
+
 
 
