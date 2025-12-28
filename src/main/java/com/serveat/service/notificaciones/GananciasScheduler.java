@@ -14,20 +14,26 @@ public class GananciasScheduler {
 
     private final FeatureService featureService;
     private final EstadisticasService estadisticasService;
-    private final EmailNotificacionService notificacionService;
+    private final EmailNotificacionService emailNotificacionService;
+    private final PushNotificacionService pushNotificacionService;
 
     public GananciasScheduler(
             FeatureService featureService,
             EstadisticasService estadisticasService,
-            EmailNotificacionService notificacionService
+            EmailNotificacionService emailNotificacionService,
+            PushNotificacionService pushNotificacionService
     ) {
         this.featureService = featureService;
         this.estadisticasService = estadisticasService;
-        this.notificacionService = notificacionService;
+        this.emailNotificacionService = emailNotificacionService;
+        this.pushNotificacionService = pushNotificacionService;
     }
 
     /**
-     * Notifica las ganancias del mes en curso el día 25 a las 09:10.
+     * Genera la notificación de ganancias del mes en curso
+     * y envía email de aviso al administrador.
+     *
+     * Se ejecuta el día 25 a las 09:10.
      */
     @Scheduled(cron = "0 10 9 25 * *")
     public void notificarGananciasMes() {
@@ -58,11 +64,19 @@ public class GananciasScheduler {
                 snapshot.getTotalFacturado()
         );
 
-        notificacionService.enviarNotificacion(
+        // 🔔 NOTIFICACIÓN PUSH (panel admin)
+        pushNotificacionService.crearNotificacion(
+                "Ganancias del mes",
+                mensaje
+        );
+
+        // 📧 EMAIL (canal adicional)
+        emailNotificacionService.enviarNotificacion(
                 "admin@serveat.com",
                 asunto,
                 mensaje
         );
     }
 }
+
 
