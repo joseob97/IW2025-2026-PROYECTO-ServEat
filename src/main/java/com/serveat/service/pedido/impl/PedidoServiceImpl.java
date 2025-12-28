@@ -780,4 +780,39 @@ public class PedidoServiceImpl implements PedidoService {
             existente.setPrecioExtra(ingrediente.getPrecioExtra() == null ? java.math.BigDecimal.ZERO : ingrediente.getPrecioExtra());
         }
     }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, ProductoIngrediente> obtenerRecetaPorIngrediente(LineaPedido lp) {
+
+        if (lp == null || lp.getProducto() == null) {
+            return Map.of();
+        }
+
+        String codigoProducto = lp.getProducto().getCodigo();
+        if (codigoProducto == null || codigoProducto.isBlank()) {
+            return Map.of();
+        }
+
+        List<ProductoIngrediente> receta =
+                productoRepo.findByProductoCodigoFetchIngrediente(codigoProducto);
+
+        if (receta == null || receta.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, ProductoIngrediente> resultado = new LinkedHashMap<>();
+
+        for (ProductoIngrediente pi : receta) {
+            if (pi == null) continue;
+            if (pi.getIngrediente() == null) continue;
+            if (pi.getIngrediente().getId() == null) continue;
+
+            resultado.put(pi.getIngrediente().getId(), pi);
+        }
+
+        return resultado;
+    }
+
 }

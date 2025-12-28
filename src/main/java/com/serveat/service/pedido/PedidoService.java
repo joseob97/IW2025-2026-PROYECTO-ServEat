@@ -1,6 +1,7 @@
 package com.serveat.service.pedido;
 
 import com.serveat.domain.menu.Ingrediente;
+import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.*;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -116,4 +118,6 @@ public interface PedidoService {
     LineaPedidoIngrediente obtenerSeleccionIngrediente(LineaPedido lp, UUID ingredienteId);
 
     void aplicarSeleccionIngrediente(LineaPedido lp, Ingrediente ingrediente, boolean incluido, int extraCantidad);
+
+    Map<UUID, ProductoIngrediente> obtenerRecetaPorIngrediente(LineaPedido lp);
 }
