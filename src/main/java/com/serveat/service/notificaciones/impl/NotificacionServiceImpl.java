@@ -1,10 +1,10 @@
 package com.serveat.service.notificaciones.impl;
 
-import com.serveat.service.notificaciones.NotificacionService;
+import com.serveat.service.notificaciones.EmailNotificacionService;
 import org.springframework.stereotype.Service;
 
 @Service
-public class NotificacionServiceImpl implements NotificacionService {
+public class NotificacionServiceImpl implements EmailNotificacionService {
 
     @Override
     public void enviarNotificacion(String email, String asunto, String mensaje) {

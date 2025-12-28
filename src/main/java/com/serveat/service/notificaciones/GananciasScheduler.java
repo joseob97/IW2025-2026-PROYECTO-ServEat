@@ -14,12 +14,12 @@ public class GananciasScheduler {
 
     private final FeatureService featureService;
     private final EstadisticasService estadisticasService;
-    private final NotificacionService notificacionService;
+    private final EmailNotificacionService notificacionService;
 
     public GananciasScheduler(
             FeatureService featureService,
             EstadisticasService estadisticasService,
-            NotificacionService notificacionService
+            EmailNotificacionService notificacionService
     ) {
         this.featureService = featureService;
         this.estadisticasService = estadisticasService;
