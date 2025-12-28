@@ -1,5 +1,7 @@
 package com.serveat.view.publico.informacion;
 
+import com.serveat.domain.establecimiento.DatosLocal;
+import com.serveat.service.establecimiento.DatosLocalService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
@@ -11,15 +13,17 @@ import com.vaadin.flow.router.Route;
 @Route(value = "info", layout = MainLayout.class)
 public class InformacionSitioView extends VerticalLayout {
 
-    public InformacionSitioView() {
+    public InformacionSitioView(DatosLocalService datosLocalService) {
         setPadding(true);
         setSpacing(true);
         setAlignItems(Alignment.CENTER);
 
+        DatosLocal datos = datosLocalService.obtenerDatos();
+
         add(
                 new H2("Información del sitio"),
-                new Paragraph("ServEat es una plataforma para pedir a domicilio, recoger en local o gestionar pedidos en sala."),
-                new Paragraph("Esta web está en desarrollo para el proyecto de Ingeniería Web.")
+                new Paragraph(datos.getDescripcion()),
+                new Paragraph(datos.getDescripcion2())
         );
     }
 }
