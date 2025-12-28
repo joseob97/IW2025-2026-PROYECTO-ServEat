@@ -4,7 +4,7 @@ import com.serveat.service.notificaciones.EmailNotificacionService;
 import org.springframework.stereotype.Service;
 
 @Service
-public class NotificacionServiceImpl implements EmailNotificacionService {
+public class EmailNotificacionServiceImpl implements EmailNotificacionService {
 
     @Override
     public void enviarNotificacion(String email, String asunto, String mensaje) {
