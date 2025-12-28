@@ -2,6 +2,7 @@ package com.serveat.repository.menu;
 
 import com.serveat.domain.menu.Categoria;
 import com.serveat.domain.menu.Producto;
+import com.serveat.domain.menu.ProductoIngrediente;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -38,4 +39,13 @@ public interface ProductoRepository extends JpaRepository<Producto, UUID> {
     """)
     boolean productoTieneIngredientes(@Param("codigo") String codigo);
 
+
+    @Query("""
+        select pi
+        from ProductoIngrediente pi
+        join fetch pi.ingrediente i
+        join pi.producto p
+        where p.codigo = :codigo
+    """)
+    List<ProductoIngrediente> findByProductoCodigoFetchIngrediente(@Param("codigo") String codigo);
 }

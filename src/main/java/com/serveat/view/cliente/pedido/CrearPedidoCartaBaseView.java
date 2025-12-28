@@ -323,7 +323,6 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         personalizar.getElement().getStyle().set("font-size", "var(--lumo-font-size-xs)");
         personalizar.getElement().getStyle().set("font-weight", "700");
 
-        // Personalizar solo se habilita cuando el producto tiene receta de ingredientes
         personalizar.setEnabled(tieneIng);
         if (!tieneIng) {
             personalizar.getElement().setProperty("title", "Este producto no tiene ingredientes configurados");
@@ -356,108 +355,80 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         return card;
     }
 
+    // ✅ FIX: cada sección tiene SU FormLayout (si no, las filas se renderizan después de los 2 headers)
+    // + (opcional) deduplicamos por ingredienteId para que no salgan repetidos.
     private void abrirDialogoPersonalizar(String codigoProducto, IntegerField qtyField) {
         if (codigoProducto == null || codigoProducto.isBlank()) return;
 
         try {
             Producto producto = productoService.obtenerConIngredientesPorCodigo(codigoProducto);
-            List<ProductoIngrediente> receta = (producto.getIngredientes() == null) ? List.of() : producto.getIngredientes();
+            List<ProductoIngrediente> recetaRaw = (producto.getIngredientes() == null) ? List.of() : producto.getIngredientes();
 
-            if (receta.isEmpty()) {
+            if (recetaRaw.isEmpty()) {
                 Notification.show("Este producto no tiene ingredientes configurados", 2500, Notification.Position.MIDDLE);
                 return;
             }
 
+            // Dedup por ingredienteId (evita “Queso cheddar” repetido, etc.)
+            Map<UUID, ProductoIngrediente> unique = new LinkedHashMap<>();
+            for (ProductoIngrediente pi : recetaRaw) {
+                if (pi == null || pi.getIngrediente() == null || pi.getIngrediente().getId() == null) continue;
+                unique.putIfAbsent(pi.getIngrediente().getId(), pi);
+            }
+            List<ProductoIngrediente> receta = new ArrayList<>(unique.values());
+
             Dialog dialog = new Dialog();
+            dialog.setWidth("860px");
             dialog.setHeaderTitle("Personalizar: " + (producto.getNombre() != null ? producto.getNombre() : producto.getCodigo()));
 
-            FormLayout form = new FormLayout();
-            form.setWidth("600px");
-            form.setResponsiveSteps(
-                    new FormLayout.ResponsiveStep("0", 1)
-            );
+            VerticalLayout content = new VerticalLayout();
+            content.setPadding(false);
+            content.setSpacing(false);
+            content.getStyle().set("gap", "12px");
+
+            List<ProductoIngrediente> porDefecto = receta.stream()
+                    .filter(ProductoIngrediente::isPorDefecto)
+                    .sorted(Comparator.comparing(pi -> safe(pi.getIngrediente().getNombre()), String.CASE_INSENSITIVE_ORDER))
+                    .toList();
+
+            List<ProductoIngrediente> noPorDefecto = receta.stream()
+                    .filter(pi -> !pi.isPorDefecto())
+                    .sorted(Comparator.comparing(pi -> safe(pi.getIngrediente().getNombre()), String.CASE_INSENSITIVE_ORDER))
+                    .toList();
 
             Map<UUID, Checkbox> quitarChecks = new LinkedHashMap<>();
             Map<UUID, IntegerField> extras = new LinkedHashMap<>();
-            Map<UUID, Runnable> stylers = new LinkedHashMap<>();
 
-            for (ProductoIngrediente pi : receta) {
-                Ingrediente ing = pi.getIngrediente();
-                UUID ingId = (ing != null) ? ing.getId() : null;
-                if (ingId == null) continue;
+            if (!porDefecto.isEmpty()) {
+                H3 h = new H3("Por defecto");
+                h.getStyle().set("margin", "0");
+                h.getStyle().set("font-size", "var(--lumo-font-size-m)");
 
-                String nombreIng = (ing.getNombre() != null) ? ing.getNombre() : "Ingrediente";
+                FormLayout formDef = new FormLayout();
+                formDef.setWidth("820px");
+                formDef.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
 
-                BigDecimal precioExtra = (pi.getPrecioExtra() != null) ? pi.getPrecioExtra()
-                        : (ing.getPrecioExtra() != null ? ing.getPrecioExtra() : BigDecimal.ZERO);
-                String precioExtraTxt = precioExtra.setScale(2, RoundingMode.HALF_UP).toPlainString();
-
-                boolean incluidoInicial = pi.isPorDefecto();
-
-                Span nombre = new Span(nombreIng);
-                nombre.getStyle().set("font-weight", "800");
-
-                Span badge = new Span();
-                badge.getStyle().set("font-size", "var(--lumo-font-size-xs)");
-                badge.getStyle().set("font-weight", "800");
-                badge.getStyle().set("padding", "4px 10px");
-                badge.getStyle().set("border-radius", "999px");
-
-                Checkbox quitar = new Checkbox("Quitar");
-                quitar.setValue(!incluidoInicial);
-
-                IntegerField extraQty = new IntegerField();
-                extraQty.setLabel("Extra\n+ " + precioExtraTxt + " € / extra");
-                extraQty.setMin(0);
-                extraQty.setValue(0);
-                extraQty.setStepButtonsVisible(true);
-                extraQty.setWidth("220px");
-
-                HorizontalLayout row = new HorizontalLayout(nombre, badge, quitar, extraQty);
-                row.setWidthFull();
-                row.setAlignItems(Alignment.CENTER);
-                row.expand(nombre);
-                row.getStyle().set("gap", "12px");
-
-                Runnable aplicarEstilo = () -> {
-                    boolean incluido = !quitar.getValue();
-                    if (incluido) {
-                        row.getStyle().set("background", "var(--lumo-success-10pct)");
-                        row.getStyle().set("border", "1px solid var(--lumo-success-50pct)");
-                        badge.setText("INCLUIDO");
-                        badge.getStyle().set("background", "var(--lumo-success-50pct)");
-                        badge.getStyle().set("color", "var(--lumo-base-color)");
-                        nombre.getStyle().remove("text-decoration");
-                        nombre.getStyle().remove("opacity");
-                    } else {
-                        row.getStyle().set("background", "var(--lumo-error-10pct)");
-                        row.getStyle().set("border", "1px solid var(--lumo-error-50pct)");
-                        badge.setText("SIN");
-                        badge.getStyle().set("background", "var(--lumo-error-50pct)");
-                        badge.getStyle().set("color", "var(--lumo-base-color)");
-                        nombre.getStyle().set("text-decoration", "line-through");
-                        nombre.getStyle().set("opacity", "0.85");
-                    }
-                    row.getStyle().set("border-radius", "10px");
-                    row.getStyle().set("padding", "8px 10px");
-                };
-                aplicarEstilo.run();
-
-                if (!pi.isOpcional()) {
-                    quitar.setEnabled(false);
-                    extraQty.setEnabled(false);
-                } else {
-                    quitar.addValueChangeListener(ev -> {
-                        if (!ev.isFromClient()) return;
-                        aplicarEstilo.run();
-                    });
+                for (ProductoIngrediente pi : porDefecto) {
+                    formDef.add(crearFilaIngredientePersonalizar(pi, quitarChecks, extras));
                 }
 
-                quitarChecks.put(ingId, quitar);
-                extras.put(ingId, extraQty);
-                stylers.put(ingId, aplicarEstilo);
+                content.add(h, formDef);
+            }
 
-                form.add(row);
+            if (!noPorDefecto.isEmpty()) {
+                H3 h = new H3("No por defecto");
+                h.getStyle().set("margin", porDefecto.isEmpty() ? "0" : "14px 0 0 0");
+                h.getStyle().set("font-size", "var(--lumo-font-size-m)");
+
+                FormLayout formNoDef = new FormLayout();
+                formNoDef.setWidth("820px");
+                formNoDef.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
+
+                for (ProductoIngrediente pi : noPorDefecto) {
+                    formNoDef.add(crearFilaIngredientePersonalizar(pi, quitarChecks, extras));
+                }
+
+                content.add(h, formNoDef);
             }
 
             Button cancelar = new Button("Cancelar", e -> dialog.close());
@@ -500,16 +471,129 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
             acciones.setWidthFull();
             acciones.setJustifyContentMode(JustifyContentMode.END);
 
-            VerticalLayout content = new VerticalLayout(form, acciones);
-            content.setPadding(false);
-            content.setSpacing(true);
+            VerticalLayout wrapper = new VerticalLayout(content, acciones);
+            wrapper.setPadding(false);
+            wrapper.setSpacing(true);
 
-            dialog.add(content);
+            dialog.add(wrapper);
             dialog.open();
 
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
         }
+    }
+
+    private Component crearFilaIngredientePersonalizar(ProductoIngrediente pi,
+                                                       Map<UUID, Checkbox> quitarChecks,
+                                                       Map<UUID, IntegerField> extras) {
+
+        Ingrediente ing = pi.getIngrediente();
+        UUID ingId = (ing != null) ? ing.getId() : null;
+        if (ingId == null) return new Span("");
+
+        boolean esPorDefecto = pi.isPorDefecto();
+        boolean esOpcional = pi.isOpcional();
+
+        BigDecimal precioExtra = (pi.getPrecioExtra() != null) ? pi.getPrecioExtra()
+                : (ing.getPrecioExtra() != null ? ing.getPrecioExtra() : BigDecimal.ZERO);
+        String precioExtraTxt = precioExtra.setScale(2, RoundingMode.HALF_UP).toPlainString();
+
+        boolean incluidoInicial = esPorDefecto;
+
+        Span nombre = new Span(ing.getNombre() != null ? ing.getNombre() : "Ingrediente");
+        nombre.getStyle().set("font-weight", "900");
+
+        Span sub = new Span(esPorDefecto ? "Por defecto" : "No por defecto");
+        sub.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+        sub.getStyle().set("color", "var(--lumo-secondary-text-color)");
+
+        VerticalLayout nombreBox = new VerticalLayout(nombre, sub);
+        nombreBox.setPadding(false);
+        nombreBox.setSpacing(false);
+        nombreBox.getStyle().set("gap", "2px");
+
+        Span badge = new Span();
+        badge.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+        badge.getStyle().set("font-weight", "900");
+        badge.getStyle().set("padding", "4px 10px");
+        badge.getStyle().set("border-radius", "999px");
+
+        Checkbox quitar = new Checkbox("Quitar");
+        quitar.setValue(!incluidoInicial);
+
+        IntegerField extraQty = new IntegerField();
+        extraQty.setLabel("Extra\n+ " + precioExtraTxt + " € / extra");
+        extraQty.setMin(0);
+        extraQty.setValue(0);
+        extraQty.setStepButtonsVisible(true);
+        extraQty.setWidth("220px");
+
+        HorizontalLayout row = new HorizontalLayout(nombreBox, badge, quitar, extraQty);
+        row.setWidthFull();
+        row.setAlignItems(Alignment.CENTER);
+        row.expand(nombreBox);
+        row.getStyle().set("gap", "12px");
+
+        Runnable aplicarEstiloYEstado = () -> {
+            boolean incluido = !Boolean.TRUE.equals(quitar.getValue());
+
+            if (incluido) {
+                row.getStyle().set("background", "var(--lumo-success-10pct)");
+                row.getStyle().set("border", "1px solid var(--lumo-success-50pct)");
+                badge.setText("INCLUIDO");
+                badge.getStyle().set("background", "var(--lumo-success-50pct)");
+                badge.getStyle().set("color", "var(--lumo-base-color)");
+                nombre.getStyle().remove("text-decoration");
+                nombre.getStyle().remove("opacity");
+            } else {
+                row.getStyle().set("background", "var(--lumo-error-10pct)");
+                row.getStyle().set("border", "1px solid var(--lumo-error-50pct)");
+                badge.setText("QUITADO");
+                badge.getStyle().set("background", "var(--lumo-error-50pct)");
+                badge.getStyle().set("color", "var(--lumo-base-color)");
+                nombre.getStyle().set("text-decoration", "line-through");
+                nombre.getStyle().set("opacity", "0.85");
+            }
+
+            row.getStyle().set("border-radius", "12px");
+            row.getStyle().set("padding", "10px 12px");
+
+            boolean incluidoNow = !Boolean.TRUE.equals(quitar.getValue());
+            if (!incluidoNow) {
+                if (!Objects.equals(extraQty.getValue(), 0)) extraQty.setValue(0);
+                extraQty.setEnabled(false);
+            } else {
+                extraQty.setEnabled(esOpcional);
+            }
+        };
+
+        aplicarEstiloYEstado.run();
+
+        if (!esOpcional) {
+            quitar.setEnabled(false);
+            extraQty.setEnabled(false);
+        } else {
+            quitar.addValueChangeListener(ev -> {
+                if (!ev.isFromClient()) return;
+                aplicarEstiloYEstado.run();
+            });
+
+            extraQty.addValueChangeListener(ev -> {
+                if (!ev.isFromClient()) return;
+
+                int v = valueOrZero(ev.getValue());
+                if (!Objects.equals(extraQty.getValue(), v)) extraQty.setValue(v);
+
+                if (Boolean.TRUE.equals(quitar.getValue())) quitar.setValue(false);
+
+                aplicarEstiloYEstado.run();
+            });
+        }
+
+        quitarChecks.put(ingId, quitar);
+        extras.put(ingId, extraQty);
+
+        return row;
     }
 
     private void configurarGridCarrito() {
@@ -566,7 +650,6 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         return box;
     }
 
-    // ingredientes es Set: se trata como Collection y se copia a List para iterar con comodidad
     private List<String> construirDetallePersonalizacion(LineaPedido lp) {
         Collection<LineaPedidoIngrediente> ingsCol =
                 (lp.getIngredientes() == null) ? List.of() : lp.getIngredientes();
@@ -625,7 +708,7 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
 
     private void cambiarCantidadLinea(LineaPedido lp, int delta) {
         try {
-            if (lp == null || lp.getCodigo() == null || lp.getCodigo() == null || lp.getCodigo().isBlank()) {
+            if (lp == null || lp.getCodigo() == null || lp.getCodigo().isBlank()) {
                 throw new IllegalArgumentException("Línea inválida");
             }
 
@@ -686,4 +769,12 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
     protected abstract Component construirBloqueDetalles();
     protected abstract boolean puedeContinuar();
     protected abstract void onContinuar();
+
+    private String safe(String s) {
+        return (s == null) ? "-" : s;
+    }
+
+    private int valueOrZero(Integer v) {
+        return v == null ? 0 : Math.max(0, v);
+    }
 }
