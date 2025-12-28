@@ -39,28 +39,15 @@ public class PanelCamareroView extends VerticalLayout {
                         () -> UI.getCurrent().navigate(IniciarPedidoView.class)
                 ),
                 crearCardAccion(
-                        "✏️ Editar pedido",
-                        "Modifica un pedido antes de que cocina lo acepte.",
-                        () -> UI.getCurrent().navigate(EditarPedidoView.class)
+                        "📋 Consultar pedidos",
+                        "Filtra pedidos por fecha/estado/mesa, ver detalles y generar ticket.",
+                        () -> UI.getCurrent().navigate(PedidosCamareroView.class)
                 )
         );
 
         configurarFila(fila1);
 
-        // FILA 2
-
-        HorizontalLayout fila2 = new HorizontalLayout(
-                crearCardAccion(
-                        "❌ Cancelar pedido",
-                        "Anula un pedido no aceptado por cocina indicando el motivo.",
-                        () -> UI.getCurrent().navigate(CancelarPedidoView.class)
-                )
-                // Si añadidos otra card, la ponemos aqui
-        );
-
-        configurarFila(fila2);
-
-        add(fila1, fila2);
+        add(fila1);
     }
 
     // HELPERS
