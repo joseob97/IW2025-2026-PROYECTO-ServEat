@@ -1,5 +1,6 @@
 package com.serveat.view.empleado.administrador.estadisticas;
 
+import com.serveat.service.caja.CierreCajaService;
 import com.serveat.service.administrador.estadisticas.EstadisticasService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -9,6 +10,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
@@ -16,6 +18,7 @@ import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Map;
 
 @Route(value = "empleado/admin/cierre-caja", layout = MainLayout.class)
@@ -24,11 +27,14 @@ import java.util.Map;
 public class CierreCajaView extends VerticalLayout {
 
     private final EstadisticasService estadisticasService;
+    private final CierreCajaService cierreCajaService;
 
     private final VerticalLayout resultadosLayout = new VerticalLayout();
+    private final Button cerrarCajaButton = new Button("Generar Cierre de Caja del Día");
 
-    public CierreCajaView(EstadisticasService estadisticasService) {
+    public CierreCajaView(EstadisticasService estadisticasService, CierreCajaService cierreCajaService) {
         this.estadisticasService = estadisticasService;
+        this.cierreCajaService = cierreCajaService;
 
         // Estilos para centrar y limitar el ancho
         setSizeFull();
@@ -45,7 +51,6 @@ public class CierreCajaView extends VerticalLayout {
         cardAccion.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         cardAccion.getStyle().set("border-radius", "12px");
 
-        Button cerrarCajaButton = new Button("Generar Cierre de Caja del Día");
         cerrarCajaButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         cerrarCajaButton.setWidthFull();
         cerrarCajaButton.addClickListener(e -> confirmarCierreCaja());
@@ -61,18 +66,28 @@ public class CierreCajaView extends VerticalLayout {
         resultadosLayout.getStyle().set("margin-top", "20px");
 
         add(titulo, cardAccion, resultadosLayout);
+        
+        comprobarEstadoCaja();
+    }
+
+    private void comprobarEstadoCaja() {
+        if (cierreCajaService.isCajaCerrada(LocalDate.now())) {
+            cerrarCajaButton.setEnabled(false);
+            cerrarCajaButton.setText("La caja de hoy ya está cerrada");
+            Notification.show("La caja del día ya ha sido cerrada.", 3000, Notification.Position.TOP_CENTER);
+        }
     }
 
     private void confirmarCierreCaja() {
         ConfirmDialog dialog = new ConfirmDialog();
         dialog.setHeader("Confirmar Cierre de Caja Manual");
-        dialog.setText("Usted está cerrando la caja manualmente, a partir de este momento no se atenderán pedidos hasta que vuelva a abrir la caja manualmente o espere a la apertura automática del siguiente día.");
+        dialog.setText("Usted está cerrando la caja manualmente. A partir de este momento no se atenderán pedidos hasta que vuelva a abrir la caja manualmente o espere a la apertura automática del siguiente día.");
         
         dialog.setCancelable(true);
         dialog.setCancelText("Cancelar");
         
         dialog.setConfirmText("Confirmar Cierre");
-        dialog.setConfirmButtonTheme("error primary"); // Botón de confirmación rojo para dar énfasis
+        dialog.setConfirmButtonTheme("error primary");
 
         dialog.addConfirmListener(event -> realizarCierreCaja());
         
@@ -81,11 +96,31 @@ public class CierreCajaView extends VerticalLayout {
 
     private void realizarCierreCaja() {
         try {
+            // 1. Obtener datos
             Map<String, Object> resultados = estadisticasService.generarCierreCajaDiario();
+            
+            BigDecimal total = (BigDecimal) resultados.get("total");
+            BigDecimal paypal = (BigDecimal) resultados.get("paypal");
+            BigDecimal efectivo = (BigDecimal) resultados.get("efectivo");
+            BigDecimal tarjeta = (BigDecimal) resultados.get("tarjeta");
+
+            // 2. Guardar cierre
+            cierreCajaService.cerrarCaja(LocalDate.now(), total, efectivo, tarjeta, paypal);
+
+            // 3. Mostrar éxito y resultados
+            Notification.show("Caja cerrada correctamente ✅", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            
             mostrarResultados(resultados);
             resultadosLayout.setVisible(true);
+            
+            // 4. Deshabilitar botón
+            cerrarCajaButton.setEnabled(false);
+            cerrarCajaButton.setText("Caja Cerrada");
+
         } catch (Exception e) {
-            Notification.show("Error al generar el cierre de caja: " + e.getMessage(), 3000, Notification.Position.MIDDLE);
+            Notification.show("Error al cerrar la caja: " + e.getMessage(), 5000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
 
