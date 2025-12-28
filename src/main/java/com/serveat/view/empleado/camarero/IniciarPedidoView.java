@@ -35,6 +35,7 @@ import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -91,7 +92,6 @@ public class IniciarPedidoView extends VerticalLayout {
         getStyle().set("max-width", "1280px");
         getStyle().set("margin", "0 auto");
 
-        // ✅ CAMBIO: si Pedido.lineaPedidos ahora es Set, inicializa con LinkedHashSet (no ArrayList)
         if (carrito.getLineaPedidos() == null) {
             carrito.setLineaPedidos(new LinkedHashSet<>());
         }
@@ -106,7 +106,6 @@ public class IniciarPedidoView extends VerticalLayout {
         cargarProductos();
         refrescarCarrito();
 
-        // ✅ Deja la UI deshabilitada de inicio
         setUiPedidoCreado(false);
     }
 
@@ -312,7 +311,6 @@ public class IniciarPedidoView extends VerticalLayout {
     }
 
     private Component crearCardProducto(Producto p) {
-
         Image img = new Image(
                 p.getImagenUrl() != null ? p.getImagenUrl() : "/images/productos/placeholder.png",
                 p.getNombre() != null ? p.getNombre() : "Producto"
@@ -374,8 +372,6 @@ public class IniciarPedidoView extends VerticalLayout {
         personalizar.getElement().getStyle().set("font-size", "var(--lumo-font-size-xs)");
         personalizar.getElement().getStyle().set("font-weight", "700");
 
-        // ✅ OJO: esto depende de hayPedidoCreado() en el momento de CREAR la card.
-        //         Por eso, cuando se crea el pedido, hay que re-renderizar (ver setUiPedidoCreado()).
         personalizar.setEnabled(hayPedidoCreado() && tieneIng);
 
         if (!tieneIng) {
@@ -429,10 +425,14 @@ public class IniciarPedidoView extends VerticalLayout {
             dialog.setHeaderTitle("Personalizar: " + (producto.getNombre() != null ? producto.getNombre() : producto.getCodigo()));
 
             FormLayout form = new FormLayout();
-            form.setWidth("520px");
+            form.setWidth("600px");
+            form.setResponsiveSteps(
+                    new FormLayout.ResponsiveStep("0", 1)
+            );
 
-            Map<UUID, Checkbox> checks = new LinkedHashMap<>();
+            Map<UUID, Checkbox> quitarChecks = new LinkedHashMap<>();
             Map<UUID, IntegerField> extras = new LinkedHashMap<>();
+            Map<UUID, Runnable> stylers = new LinkedHashMap<>();
 
             for (ProductoIngrediente pi : receta) {
                 Ingrediente ing = pi.getIngrediente();
@@ -440,34 +440,75 @@ public class IniciarPedidoView extends VerticalLayout {
                 if (ingId == null) continue;
 
                 String nombreIng = (ing.getNombre() != null) ? ing.getNombre() : "Ingrediente";
-                BigDecimal extra = (pi.getPrecioExtra() != null) ? pi.getPrecioExtra() : BigDecimal.ZERO;
 
-                Checkbox incluido = new Checkbox(nombreIng);
-                incluido.setValue(pi.isPorDefecto());
+                BigDecimal precioExtra = (pi.getPrecioExtra() != null) ? pi.getPrecioExtra()
+                        : (ing.getPrecioExtra() != null ? ing.getPrecioExtra() : BigDecimal.ZERO);
+                String precioExtraTxt = precioExtra.setScale(2, RoundingMode.HALF_UP).toPlainString();
 
-                IntegerField extraQty = new IntegerField("Extra");
+                boolean incluidoInicial = pi.isPorDefecto();
+
+                Span nombre = new Span(nombreIng);
+                nombre.getStyle().set("font-weight", "800");
+
+                Span badge = new Span();
+                badge.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+                badge.getStyle().set("font-weight", "800");
+                badge.getStyle().set("padding", "4px 10px");
+                badge.getStyle().set("border-radius", "999px");
+
+                Checkbox quitar = new Checkbox("Quitar");
+                quitar.setValue(!incluidoInicial);
+
+                IntegerField extraQty = new IntegerField();
+                extraQty.setLabel("Extra\n+ " + precioExtraTxt + " € / extra");
                 extraQty.setMin(0);
                 extraQty.setValue(0);
                 extraQty.setStepButtonsVisible(true);
-                extraQty.setWidth("140px");
+                extraQty.setWidth("220px");
 
-                Span precioExtra = new Span("+ " + extra + " € / extra");
-                precioExtra.getStyle().set("color", "var(--lumo-secondary-text-color)");
-                precioExtra.getStyle().set("font-size", "var(--lumo-font-size-s)");
-
-                if (!pi.isOpcional()) {
-                    incluido.setEnabled(false);
-                    extraQty.setEnabled(false);
-                }
-
-                checks.put(ingId, incluido);
-                extras.put(ingId, extraQty);
-
-                HorizontalLayout row = new HorizontalLayout(incluido, extraQty, precioExtra);
+                HorizontalLayout row = new HorizontalLayout(nombre, badge, quitar, extraQty);
                 row.setWidthFull();
                 row.setAlignItems(Alignment.CENTER);
-                row.setSpacing(false);
+                row.expand(nombre);
                 row.getStyle().set("gap", "12px");
+
+                Runnable aplicarEstilo = () -> {
+                    boolean incluido = !quitar.getValue();
+                    if (incluido) {
+                        row.getStyle().set("background", "var(--lumo-success-10pct)");
+                        row.getStyle().set("border", "1px solid var(--lumo-success-50pct)");
+                        badge.setText("INCLUIDO");
+                        badge.getStyle().set("background", "var(--lumo-success-50pct)");
+                        badge.getStyle().set("color", "var(--lumo-base-color)");
+                        nombre.getStyle().remove("text-decoration");
+                        nombre.getStyle().remove("opacity");
+                    } else {
+                        row.getStyle().set("background", "var(--lumo-error-10pct)");
+                        row.getStyle().set("border", "1px solid var(--lumo-error-50pct)");
+                        badge.setText("SIN");
+                        badge.getStyle().set("background", "var(--lumo-error-50pct)");
+                        badge.getStyle().set("color", "var(--lumo-base-color)");
+                        nombre.getStyle().set("text-decoration", "line-through");
+                        nombre.getStyle().set("opacity", "0.85");
+                    }
+                    row.getStyle().set("border-radius", "10px");
+                    row.getStyle().set("padding", "8px 10px");
+                };
+                aplicarEstilo.run();
+
+                if (!pi.isOpcional()) {
+                    quitar.setEnabled(false);
+                    extraQty.setEnabled(false);
+                } else {
+                    quitar.addValueChangeListener(ev -> {
+                        if (!ev.isFromClient()) return;
+                        aplicarEstilo.run();
+                    });
+                }
+
+                quitarChecks.put(ingId, quitar);
+                extras.put(ingId, extraQty);
+                stylers.put(ingId, aplicarEstilo);
 
                 form.add(row);
             }
@@ -483,8 +524,9 @@ public class IniciarPedidoView extends VerticalLayout {
                     Map<UUID, Boolean> incluidoMap = new HashMap<>();
                     Map<UUID, Integer> extraMap = new HashMap<>();
 
-                    for (var entry : checks.entrySet()) {
-                        incluidoMap.put(entry.getKey(), Boolean.TRUE.equals(entry.getValue().getValue()));
+                    for (var entry : quitarChecks.entrySet()) {
+                        boolean incluido = !Boolean.TRUE.equals(entry.getValue().getValue());
+                        incluidoMap.put(entry.getKey(), incluido);
                     }
                     for (var entry : extras.entrySet()) {
                         Integer v = entry.getValue().getValue();
@@ -663,7 +705,7 @@ public class IniciarPedidoView extends VerticalLayout {
             pedidoActual = pedidoService.crearPedidoMesa(nMesa);
             codigo.setValue(pedidoActual.getCodigo());
 
-            setUiPedidoCreado(true); // <-- dentro se re-renderiza la carta (ver abajo)
+            setUiPedidoCreado(true);
 
             refrescarCarrito();
             Notification.show("Pedido creado: " + pedidoActual.getCodigo(), 3000, Notification.Position.MIDDLE);
@@ -723,8 +765,6 @@ public class IniciarPedidoView extends VerticalLayout {
                 && carrito.getLineaPedidos() != null
                 && !carrito.getLineaPedidos().isEmpty());
 
-        // ✅✅ CAMBIO CLAVE: re-renderiza la carta cuando cambia "pedido creado"
-        // Así los botones "Añadir" / "Personalizar" se crean con hayPedidoCreado() correcto.
         cargarProductos();
     }
 
@@ -737,7 +777,6 @@ public class IniciarPedidoView extends VerticalLayout {
         crearPedido.setEnabled(false);
         mesa.setEnabled(false);
 
-        // ✅ opcional: refrescar carta para que se vean todos deshabilitados tras confirmar
         cargarProductos();
     }
 
