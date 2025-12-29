@@ -1,5 +1,7 @@
 package com.serveat.view.cliente.pedido;
 
+import com.serveat.domain.seguridad.Feature;
+import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.serveat.view.publico.carta.CartaView;
 import com.vaadin.flow.component.Component;
@@ -18,7 +20,7 @@ import org.springframework.security.access.annotation.Secured;
 @Secured("ROLE_CLIENTE")
 public class PanelPedidoClienteView extends VerticalLayout {
 
-    public PanelPedidoClienteView() {
+    public PanelPedidoClienteView(FeatureService featureService) {
         setPadding(true);
         setSpacing(false);
         setWidthFull();
@@ -74,6 +76,17 @@ public class PanelPedidoClienteView extends VerticalLayout {
                         CartaView.class
                 )
         );
+
+        if (featureService.tieneFeature(Feature.MENUS_OFERTAS)) {
+            fila3.add(
+                    crearCardLink(
+                            "🍱 Menús y ofertas",
+                            "Consulta menús y combinaciones a precio especial.",
+                            CartaView.class
+                    )
+            );
+        }
+
         fila3.setWidthFull();
         fila3.setSpacing(false);
         fila3.getStyle().set("gap", "14px");
