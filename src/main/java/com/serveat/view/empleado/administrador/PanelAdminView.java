@@ -14,6 +14,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import org.springframework.security.access.annotation.Secured;
+import com.serveat.view.empleado.administrador.GestionMenusView;
 
 @Route(value = "empleado/admin", layout = MainLayout.class)
 @Secured("ROLE_ADMIN")
@@ -67,13 +68,20 @@ public class PanelAdminView extends VerticalLayout {
             add(botonBloqueado("Gestionar promociones (requiere PRO)"));
         }
 
+        // 👉 BLOQUE NUEVO (MENÚS / OFERTAS)
+        if (featureService.tieneFeature(Feature.MENUS_OFERTAS)) {
+            add(new RouterLink("Gestionar menús / ofertas", GestionMenusView.class));
+        } else {
+            add(botonBloqueado("Gestionar menús / ofertas (requiere PRO)"));
+        }
+
         /* Estadísticas */
         if (featureService.tieneFeature(Feature.ESTADISTICAS)) {
             add(new RouterLink("Estadísticas", EstadisticasAdminView.class));
         } else {
             add(botonBloqueado("Estadísticas (requiere PRO)"));
         }
-        
+
         /* Cierre de Caja */
         if (featureService.tieneFeature(Feature.CIERRE_CAJA)) {
             add(new RouterLink("Cierre de Caja", CierreCajaView.class));
