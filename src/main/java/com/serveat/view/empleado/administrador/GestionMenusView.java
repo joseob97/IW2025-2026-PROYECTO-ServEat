@@ -3,19 +3,19 @@ package com.serveat.view.empleado.administrador;
 import com.serveat.domain.menu.Menu;
 import com.serveat.domain.menu.Producto;
 import com.serveat.domain.seguridad.Feature;
+import com.serveat.repository.menu.ProductoRepository;
 import com.serveat.service.menu.MenuService;
-import com.serveat.service.menu.ProductoService;
 import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.component.multiselectcombobox.MultiSelectComboBox;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.security.access.annotation.Secured;
@@ -29,7 +29,7 @@ import java.util.List;
 public class GestionMenusView extends VerticalLayout {
 
     public GestionMenusView(MenuService menuService,
-                            ProductoService productoService,
+                            ProductoRepository productoRepository,
                             FeatureService featureService) {
 
         setPadding(true);
@@ -37,7 +37,7 @@ public class GestionMenusView extends VerticalLayout {
 
         H2 titulo = new H2("Gestión de menús y ofertas");
 
-        // 🔒 Comprobación de feature premium (igual que Promociones)
+        // 🔒 Control de feature premium (igual que Promociones)
         if (!featureService.tieneFeature(Feature.MENUS_OFERTAS)) {
             add(
                     titulo,
@@ -47,16 +47,13 @@ public class GestionMenusView extends VerticalLayout {
             return;
         }
 
-        // 🧾 Formulario de creación de menús
         TextField nombre = new TextField("Nombre del menú");
         TextField descripcion = new TextField("Descripción");
 
-        MultiSelectComboBox<Producto> productos =
-                new MultiSelectComboBox<>("Productos incluidos");
-
-        List<Producto> listaProductos = productoService.obtenerTodos();
-        productos.setItems(listaProductos);
+        ListBox<Producto> productos = new ListBox<>();
+        productos.setItems(productoRepository.findAll());
         productos.setItemLabelGenerator(Producto::getNombre);
+        productos.setMultiple(true);
 
         NumberField precio = new NumberField("Precio fijo");
         precio.setMin(0);
@@ -67,7 +64,7 @@ public class GestionMenusView extends VerticalLayout {
                 Menu menu = new Menu();
                 menu.setNombre(nombre.getValue());
                 menu.setDescripcion(descripcion.getValue());
-                menu.setProductos(List.copyOf(productos.getValue()));
+                menu.setProductos(productos.getSelectedItems().stream().toList());
                 menu.setPrecioFijo(BigDecimal.valueOf(precio.getValue()));
 
                 menuService.crearMenu(menu);
@@ -75,19 +72,16 @@ public class GestionMenusView extends VerticalLayout {
                 Notification.show("Menú creado correctamente");
                 nombre.clear();
                 descripcion.clear();
-                productos.clear();
+                productos.deselectAll();
                 precio.clear();
 
             } catch (Exception e) {
-                Notification.show(
-                        e.getMessage(),
-                        4000,
-                        Notification.Position.MIDDLE
-                );
+                Notification.show(e.getMessage(), 4000, Notification.Position.MIDDLE);
             }
         });
 
-        FormLayout formulario = new FormLayout(
+        FormLayout formulario = new FormLayout();
+        formulario.add(
                 nombre,
                 descripcion,
                 productos,
