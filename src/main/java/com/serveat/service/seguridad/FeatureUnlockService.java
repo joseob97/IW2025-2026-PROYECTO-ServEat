@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -29,20 +30,41 @@ public class FeatureUnlockService {
     }
 
     /**
+     * Devuelve el precio configurado de una feature.
+     * Se usa para mostrarlo en la vista (sin hardcodear).
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public BigDecimal obtenerPrecioFeature(Feature feature) {
+        return featureDatosRepository.findByFeature(feature)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No existen datos para la feature " + feature))
+                .getPrecio();
+    }
+
+    /**
      * Simula el pago de una feature y envía el código por notificación push.
+     * Marca la feature como PAGADA pero NO activa todavía.
      * Solo ADMIN.
      */
     @PreAuthorize("hasRole('ADMIN')")
     public void simularPagoYEnviarCodigo(Feature feature) {
 
         FeatureDatos datos = featureDatosRepository.findByFeature(feature)
-                .orElseThrow(() -> new IllegalStateException("No existen datos para la feature " + feature));
+                .orElseThrow(() -> new IllegalStateException(
+                        "No existen datos para la feature " + feature));
 
         if (featureActivaRepository.existsByFeature(feature)) {
             throw new IllegalStateException("La feature ya está activa");
         }
 
+        if (datos.isPagada()) {
+            throw new IllegalStateException("La feature ya ha sido pagada. Introduce el código de desbloqueo.");
+        }
+
         // Simulación de pago correcta
+        datos.setPagada(true);
+        featureDatosRepository.save(datos);
+
         String mensaje = """
                 Pago realizado correctamente.
                 
@@ -68,7 +90,12 @@ public class FeatureUnlockService {
         }
 
         FeatureDatos datos = featureDatosRepository.findByFeature(feature)
-                .orElseThrow(() -> new IllegalStateException("No existen datos para la feature " + feature));
+                .orElseThrow(() -> new IllegalStateException(
+                        "No existen datos para la feature " + feature));
+
+        if (!datos.isPagada()) {
+            throw new IllegalStateException("La feature aún no ha sido pagada");
+        }
 
         if (!datos.getCodigoDesbloqueo().equals(codigoIntroducido)) {
             throw new IllegalArgumentException("Código de desbloqueo incorrecto");
