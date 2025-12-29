@@ -33,8 +33,7 @@ public class PedidoCarritoServiceImpl implements PedidoCarritoService {
         if (producto == null) throw new IllegalArgumentException("Producto inválido");
         if (cantidad <= 0) throw new IllegalArgumentException("Cantidad inválida");
 
-        // ✅ CAMBIO: carrito.getLineaPedidos() ahora es Set, pero stream() funciona igual
-        // Agrupa SOLO líneas SIN personalización
+
         LineaPedido existente = carrito.getLineaPedidos().stream()
                 .filter(lp -> lp.getProducto() != null
                         && lp.getProducto().getCodigo() != null
@@ -78,8 +77,6 @@ public class PedidoCarritoServiceImpl implements PedidoCarritoService {
                 extraPorIngrediente
         );
 
-        // ✅ CAMBIO: mismaPersonalizacion acepta Collection (Set o List)
-        // Intenta agrupar SOLO si misma personalización
         LineaPedido candidata = carrito.getLineaPedidos().stream()
                 .filter(lp -> lp.getProducto() != null
                         && codigoProducto.equals(lp.getProducto().getCodigo())
@@ -95,7 +92,6 @@ public class PedidoCarritoServiceImpl implements PedidoCarritoService {
         // Crear nueva línea personalizada
         LineaPedido nueva = new LineaPedido(carrito, producto, cantidad);
 
-        // ✅ CAMBIO: nueva.getIngredientes() es Set, add() igual funciona
         for (LineaPedidoIngrediente sel : seleccion) {
             nueva.getIngredientes().add(new LineaPedidoIngrediente(
                     nueva,
@@ -144,7 +140,6 @@ public class PedidoCarritoServiceImpl implements PedidoCarritoService {
     public void volcarCarritoEnPedido(String codigoPedido, Pedido carrito) {
         if (codigoPedido == null || codigoPedido.isBlank()) throw new IllegalArgumentException("Código pedido inválido");
 
-        // ✅ CAMBIO: lineaPedidos ahora Set -> isEmpty() ok
         if (carrito == null || carrito.getLineaPedidos() == null || carrito.getLineaPedidos().isEmpty()) {
             throw new IllegalArgumentException("El pedido no puede estar vacío");
         }
@@ -152,10 +147,8 @@ public class PedidoCarritoServiceImpl implements PedidoCarritoService {
         Pedido pedido = pedidoRepo.findWithDetalleByCodigo(codigoPedido)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado"));
 
-        // ✅ sigue igual (Set clear)
         pedido.getLineaPedidos().clear();
 
-        // ✅ CAMBIO: iteras sobre Set, ok
         for (LineaPedido lp : carrito.getLineaPedidos()) {
             if (lp.getProducto() == null || lp.getProducto().getCodigo() == null) continue;
 
@@ -164,7 +157,6 @@ public class PedidoCarritoServiceImpl implements PedidoCarritoService {
 
             LineaPedido nueva = new LineaPedido(pedido, producto, lp.getCantidad());
 
-            // ✅ CAMBIO: lp.getIngredientes() ahora Set -> sigue ok
             if (lp.getIngredientes() != null && !lp.getIngredientes().isEmpty()) {
                 for (LineaPedidoIngrediente sel : lp.getIngredientes()) {
                     if (sel == null || sel.getIngrediente() == null) continue;
@@ -185,12 +177,11 @@ public class PedidoCarritoServiceImpl implements PedidoCarritoService {
         pedidoRepo.save(pedido);
     }
 
-    // ----------------- helpers -----------------
+    // helpers
 
     private void validarCarrito(Pedido carrito) {
         if (carrito == null) throw new IllegalArgumentException("Carrito inválido");
 
-        // ✅ CAMBIO: ahora es Set; antes era new ArrayList<>()
         if (carrito.getLineaPedidos() == null) {
             carrito.setLineaPedidos(new LinkedHashSet<>()); // <-- clave
         }
@@ -240,7 +231,6 @@ public class PedidoCarritoServiceImpl implements PedidoCarritoService {
     }
 
     /**
-     * OPCIÓN A:
      * - Acepta Collection para que funcione con Set o List.
      * - Compara por ingredienteId: incluido + extraCantidad + precioExtra.
      */

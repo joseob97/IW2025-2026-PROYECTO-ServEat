@@ -88,6 +88,7 @@ public interface PedidoService {
 
     Pedido marcarPagoOnlineFallido(Long pagoId, String username, String motivo);
 
+    com.serveat.service.pago.dto.AjustePagoDTO confirmarCambiosPedidoClienteConAjuste(Pedido pedidoEditado, String username);
 
     /* Cocina */
 

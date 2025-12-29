@@ -6,11 +6,14 @@ import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
+import com.serveat.service.pago.dto.AjustePagoDTO;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -54,6 +57,7 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
 
     private final Span info = new Span("Cargando pedido...");
     private final Span total = new Span("Total: 0 €");
+    private final Span infoPago = new Span("");
 
     private final Grid<LineaPedido> gridLineas = new Grid<>(LineaPedido.class, false);
 
@@ -88,10 +92,12 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
         titulo.getStyle().set("margin", "0");
 
         info.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        infoPago.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        infoPago.setVisible(false);
 
         volver.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate(ConsultaPedidosView.class)));
 
-        add(titulo, info, volver);
+        add(titulo, info, infoPago, volver);
 
         VerticalLayout cardLineas = crearCard();
         configurarGridLineas();
@@ -132,6 +138,8 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
         cantidad.setWidth("160px");
 
         anadir.setWidth("420px");
+        anadir.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        anadir.getStyle().set("font-weight", "700");
         anadir.addClickListener(e -> anadirAlPedido());
 
         VerticalLayout bloqueProducto = new VerticalLayout(comboProducto, anadir);
@@ -154,6 +162,7 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
 
         guardarCambios.setWidth("360px");
         guardarCambios.getStyle().set("font-weight", "600");
+        guardarCambios.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         guardarCambios.addClickListener(e -> confirmarGuardado());
 
         HorizontalLayout filaGuardar = new HorizontalLayout(guardarCambios);
@@ -232,7 +241,6 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
                 .setHeader("Subtotal")
                 .setAutoWidth(true);
 
-
         gridLineas.addComponentColumn(lp -> {
             IntegerField qty = new IntegerField();
             qty.setMin(1);
@@ -268,7 +276,6 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
             qty.setEnabled(pedidoService.puedeModificarCliente(pedidoActual));
             return qty;
         }).setHeader("Modificar");
-
 
         gridLineas.addComponentColumn(lp -> {
             Button borrar = new Button("❌");
@@ -393,9 +400,31 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
         try {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-            pedidoActual = pedidoService.confirmarCambiosPedidoCliente(pedidoEditable, username);
+            AjustePagoDTO res = pedidoService.confirmarCambiosPedidoClienteConAjuste(pedidoEditable, username);
 
-            Notification.show("Cambios guardados", 3000, Notification.Position.MIDDLE);
+            if (res != null && res.getMensaje() != null && !res.getMensaje().isBlank()) {
+                Notification.show(res.getMensaje(), 4500, Notification.Position.MIDDLE);
+            } else {
+                Notification.show("Cambios guardados", 3000, Notification.Position.MIDDLE);
+            }
+
+            if (res != null
+                    && res.getAccion() != null
+                    && res.getAccion() != AjustePagoDTO.Accion.NINGUNA
+                    && res.getDiferenciaAbs() != null
+                    && res.getDiferenciaAbs().signum() > 0) {
+
+                String txt = (res.getAccion() == AjustePagoDTO.Accion.COBRAR_DIFERENCIA)
+                        ? "Hay que pagar una diferencia de " + res.getDiferenciaAbs() + " €."
+                        : "Se debe devolver una diferencia de " + res.getDiferenciaAbs() + " €.";
+
+                infoPago.setText(txt);
+                infoPago.setVisible(true);
+            } else {
+                infoPago.setText("");
+                infoPago.setVisible(false);
+            }
+
             getUI().ifPresent(ui -> ui.navigate(ConsultaPedidosView.class));
 
         } catch (Exception ex) {
