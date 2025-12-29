@@ -9,6 +9,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
@@ -22,26 +23,24 @@ public class NotificacionesView extends VerticalLayout {
     public NotificacionesView(PushNotificacionService pushNotificacionService) {
         this.pushNotificacionService = pushNotificacionService;
 
-        // CLAVES PARA OCUPAR TODO EL ANCHO
         setSizeFull();
         setWidthFull();
-        setPadding(true);
+        setPadding(false);
         setSpacing(true);
 
         H2 titulo = new H2("Notificaciones");
-        titulo.getStyle().set("margin-bottom", "1rem");
+        titulo.getStyle().set("padding", "var(--lumo-space-m)");
 
         configurarGrid();
 
         add(titulo, grid);
-
-        // El grid debe crecer para ocupar todo
         expand(grid);
     }
 
     private void configurarGrid() {
+        grid.setWidthFull();
+        grid.setHeightFull();
 
-        // ORDEN DE COLUMNAS: Título → Mensaje → Fecha
         grid.addColumn(PushNotificacion::getTitulo)
                 .setHeader("Título")
                 .setAutoWidth(true)
@@ -53,34 +52,22 @@ public class NotificacionesView extends VerticalLayout {
 
         grid.addColumn(PushNotificacion::getCreadaEn)
                 .setHeader("Fecha")
-                .setAutoWidth(true)
-                .setFlexGrow(0);
+                .setAutoWidth(true);
 
-        // ACCIONES
         grid.addComponentColumn(notificacion -> {
-
-            Button ver = new Button("Ver");
-            ver.addClickListener(e -> mostrarDetalle(notificacion));
-
-            Button eliminar = new Button("Eliminar");
-            eliminar.addClickListener(e -> {
+            Button ver = new Button("Ver", e -> mostrarDetalle(notificacion));
+            Button eliminar = new Button("Eliminar", e -> {
                 pushNotificacionService.eliminarNotificacion(notificacion.getId());
                 refrescar();
             });
 
-            VerticalLayout acciones = new VerticalLayout(ver, eliminar);
-            acciones.setPadding(false);
-            acciones.setSpacing(false);
-
+            HorizontalLayout acciones = new HorizontalLayout(ver, eliminar);
             return acciones;
-
-        }).setHeader("Acciones").setAutoWidth(true);
-
-        grid.setWidthFull();
-        grid.setHeightFull();
+        }).setHeader("Acciones");
 
         refrescar();
     }
+
 
     private void refrescar() {
         grid.setItems(pushNotificacionService.listarNotificaciones());
@@ -92,7 +79,9 @@ public class NotificacionesView extends VerticalLayout {
         dialog.setWidth("500px");
 
         H2 titulo = new H2(notificacion.getTitulo());
+
         Paragraph mensaje = new Paragraph(notificacion.getMensaje());
+        mensaje.getStyle().set("white-space", "pre-line");
 
         Button cerrar = new Button("Cerrar", e -> dialog.close());
 
