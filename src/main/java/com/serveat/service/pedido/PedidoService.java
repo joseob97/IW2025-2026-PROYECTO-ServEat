@@ -62,6 +62,8 @@ public interface PedidoService {
 
     List<Pedido> listarPedidosCliente(String username);
 
+    Pedido cancelarPedidoCliente(String codigoPedido, String motivo, String username);
+
     /* Cliente: creación */
 
     Pedido crearPedidoClienteRecoger(Pedido carrito, String username);
@@ -85,6 +87,7 @@ public interface PedidoService {
     Pedido confirmarPagoOnline(Long pagoId, String username, String referencia);
 
     Pedido marcarPagoOnlineFallido(Long pagoId, String username, String motivo);
+
 
     /* Cocina */
 
