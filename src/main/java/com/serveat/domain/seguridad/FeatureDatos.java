@@ -20,6 +20,9 @@ public class FeatureDatos {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
 
+    @Column(nullable = false)
+    private boolean pagada = false;
+
     @Column(name = "codigo_desbloqueo", nullable = false, length = 5)
     private String codigoDesbloqueo;
 
@@ -49,6 +52,14 @@ public class FeatureDatos {
 
     public void setPrecio(BigDecimal precio) {
         this.precio = precio;
+    }
+
+    public boolean isPagada() {
+        return pagada;
+    }
+
+    public void setPagada(boolean pagada) {
+        this.pagada = pagada;
     }
 
     public String getCodigoDesbloqueo() {
