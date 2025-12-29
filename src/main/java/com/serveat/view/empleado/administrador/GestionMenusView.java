@@ -8,10 +8,10 @@ import com.serveat.service.menu.MenuService;
 import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
@@ -50,10 +50,10 @@ public class GestionMenusView extends VerticalLayout {
         TextField nombre = new TextField("Nombre del menú");
         TextField descripcion = new TextField("Descripción");
 
-        ListBox<Producto> productos = new ListBox<>();
+        CheckboxGroup<Producto> productos = new CheckboxGroup<>();
+        productos.setLabel("Productos incluidos");
         productos.setItems(productoRepository.findAll());
         productos.setItemLabelGenerator(Producto::getNombre);
-        productos.setMultiple(true);
 
         NumberField precio = new NumberField("Precio fijo");
         precio.setMin(0);
@@ -64,7 +64,7 @@ public class GestionMenusView extends VerticalLayout {
                 Menu menu = new Menu();
                 menu.setNombre(nombre.getValue());
                 menu.setDescripcion(descripcion.getValue());
-                menu.setProductos(productos.getSelectedItems().stream().toList());
+                menu.setProductos(productos.getValue().stream().toList());
                 menu.setPrecioFijo(BigDecimal.valueOf(precio.getValue()));
 
                 menuService.crearMenu(menu);
@@ -72,7 +72,7 @@ public class GestionMenusView extends VerticalLayout {
                 Notification.show("Menú creado correctamente");
                 nombre.clear();
                 descripcion.clear();
-                productos.deselectAll();
+                productos.clear();
                 precio.clear();
 
             } catch (Exception e) {
