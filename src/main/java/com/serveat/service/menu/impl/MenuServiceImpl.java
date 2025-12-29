@@ -28,10 +28,18 @@ public class MenuServiceImpl implements MenuService {
         return menuRepository.save(menu);
     }
 
+    // 🔹 Usado por ADMIN (no necesita productos)
     @Override
     public List<Menu> obtenerMenusActivos() {
         comprobarFeatureMenus();
         return menuRepository.findByActivoTrue();
+    }
+
+    // 🔹 Usado por CLIENTE (con productos cargados)
+    @Override
+    public List<Menu> obtenerMenusActivosConProductos() {
+        comprobarFeatureMenus();
+        return menuRepository.findMenusActivosConProductos();
     }
 
     @Override

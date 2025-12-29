@@ -9,7 +9,11 @@ public interface MenuService {
 
     Menu crearMenu(Menu menu);
 
+    // 🔹 Para ADMIN (no necesita productos)
     List<Menu> obtenerMenusActivos();
+
+    // 🔹 PARA CLIENTE (con productos cargados)
+    List<Menu> obtenerMenusActivosConProductos();
 
     Menu obtenerPorId(UUID id);
 }
