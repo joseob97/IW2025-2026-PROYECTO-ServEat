@@ -5,6 +5,7 @@ import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
 import com.serveat.domain.pedido.*;
+import com.serveat.service.pago.AjustePagoDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -88,7 +89,7 @@ public interface PedidoService {
 
     Pedido marcarPagoOnlineFallido(Long pagoId, String username, String motivo);
 
-    com.serveat.service.pago.dto.AjustePagoDTO confirmarCambiosPedidoClienteConAjuste(Pedido pedidoEditado, String username);
+    AjustePagoDTO confirmarCambiosPedidoClienteConAjuste(Pedido pedidoEditado, String username);
 
     /* Cocina */
 
@@ -124,4 +125,6 @@ public interface PedidoService {
     void aplicarSeleccionIngrediente(LineaPedido lp, Ingrediente ingrediente, boolean incluido, int extraCantidad);
 
     Map<UUID, ProductoIngrediente> obtenerRecetaPorIngrediente(LineaPedido lp);
+
+    AjustePagoDTO prepararAjusteCambiosCliente(Pedido pedidoEditado, String username);
 }

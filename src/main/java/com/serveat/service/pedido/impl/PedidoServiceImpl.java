@@ -6,13 +6,7 @@ import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pago.EstadoPago;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
-import com.serveat.domain.pedido.EstadoCocina;
-import com.serveat.domain.pedido.EstadoPedido;
-import com.serveat.domain.pedido.EstadoReparto;
-import com.serveat.domain.pedido.LineaPedido;
-import com.serveat.domain.pedido.LineaPedidoIngrediente;
-import com.serveat.domain.pedido.Pedido;
-import com.serveat.domain.pedido.TipoPedidoCliente;
+import com.serveat.domain.pedido.*;
 import com.serveat.domain.reserva.EstadoReservaMesa;
 import com.serveat.domain.reserva.ReservaMesa;
 import com.serveat.domain.usuario.Cliente;
@@ -22,6 +16,7 @@ import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.reserva.ReservaMesaRepository;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.service.caja.EstadoCajaService;
+import com.serveat.service.pago.AjustePagoDTO;
 import com.serveat.service.pago.AjustePagoService;
 import com.serveat.service.pago.PagoService;
 import com.serveat.service.pedido.PedidoCalculoService;
@@ -32,11 +27,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.serveat.service.pago.dto.AjustePagoDTO;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -903,6 +897,48 @@ public class PedidoServiceImpl implements PedidoService {
         return ajustePagoService.calcularYCrearOActualizarAjuste(
                 actual, pagoOriginal, totalAnterior, totalNuevo
         );
+    }
+
+    @Override
+    @Transactional
+    public AjustePagoDTO prepararAjusteCambiosCliente(Pedido pedidoEditado, String username) {
+
+        if (pedidoEditado == null) throw new IllegalArgumentException("Pedido inválido");
+        if (pedidoEditado.getCodigo() == null || pedidoEditado.getCodigo().isBlank()) {
+            throw new IllegalArgumentException("Falta código del pedido");
+        }
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+
+        // 1) Cargar pedido real (BD) para:
+        //    - validar que es del cliente
+        //    - obtener el totalAnterior
+        //    - obtener el pagoOriginal (si aplica)
+        Pedido pedidoBd = cargarDetalleCliente(pedidoEditado.getCodigo(), username);
+
+        // 2) Calcular totales
+        BigDecimal totalAnterior = pedidoCalculoService.calcularTotalPedido(pedidoBd);
+        BigDecimal totalNuevo = pedidoCalculoService.calcularTotalPedido(pedidoEditado);
+
+        // 3) Obtener pago original (CONFIRMADO) si existe
+        Pago pagoOriginal = null;
+        if (pedidoBd.getPago() != null) {
+            pagoOriginal = pedidoBd.getPago();
+        }
+
+        // 4) Crear/Actualizar ajuste pendiente (esto SÍ persiste AjustePago, pero NO el pedido)
+        AjustePagoDTO dto = ajustePagoService.calcularYCrearOActualizarAjuste(
+                pedidoBd,
+                pagoOriginal,
+                totalAnterior,
+                totalNuevo
+        );
+
+        // dto puede venir con:
+        // - accion NINGUNA
+        // - codigoAjuste null (si no aplica o si efectivo)
+        return dto;
     }
 
 }
