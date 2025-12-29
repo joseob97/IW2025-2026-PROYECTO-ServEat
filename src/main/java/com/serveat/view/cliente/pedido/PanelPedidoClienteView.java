@@ -2,6 +2,7 @@ package com.serveat.view.cliente.pedido;
 
 import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.seguridad.FeatureService;
+import com.serveat.view.cliente.menu.MenusClienteView; // ✅ IMPORT NUEVO
 import com.serveat.view.layout.MainLayout;
 import com.serveat.view.publico.carta.CartaView;
 import com.vaadin.flow.component.Component;
@@ -77,12 +78,13 @@ public class PanelPedidoClienteView extends VerticalLayout {
                 )
         );
 
+        // ✅ CAMBIO CLAVE: ahora apunta a MenusClienteView
         if (featureService.tieneFeature(Feature.MENUS_OFERTAS)) {
             fila3.add(
                     crearCardLink(
                             "🍱 Menús y ofertas",
                             "Consulta menús y combinaciones a precio especial.",
-                            CartaView.class
+                            MenusClienteView.class
                     )
             );
         }
