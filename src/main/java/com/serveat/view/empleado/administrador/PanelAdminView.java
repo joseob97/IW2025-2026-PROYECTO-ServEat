@@ -46,6 +46,13 @@ public class PanelAdminView extends VerticalLayout {
         /* Productos */
         add(new RouterLink("Gestión de Productos", GestionProductosView.class));
 
+        /* Notificaciones */
+        if (featureService.tieneFeature(Feature.NOTIFICACIONES)) {
+            add(new RouterLink("Notificaciones del sistema", NotificacionesView.class));
+        } else {
+            add(botonBloqueado("Notificaciones del sistema (requiere PRO)"));
+        }
+
         /* Ingredientes */
         if (featureService.tieneFeature(Feature.INGREDIENTES)) {
             add(new RouterLink("Gestión de Ingredientes", GestionIngredientesView.class));
