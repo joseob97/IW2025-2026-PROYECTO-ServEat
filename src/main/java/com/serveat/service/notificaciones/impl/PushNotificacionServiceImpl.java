@@ -18,6 +18,12 @@ public class PushNotificacionServiceImpl
     }
 
     @Override
+    public void enviarNotificacion(String titulo, String mensaje) {
+        // Reutilizamos la lógica que YA tienes implementada
+        crearNotificacion(titulo, mensaje);
+    }
+
+    @Override
     public void crearNotificacion(String titulo, String mensaje) {
         repository.save(new PushNotificacion(titulo, mensaje));
     }
