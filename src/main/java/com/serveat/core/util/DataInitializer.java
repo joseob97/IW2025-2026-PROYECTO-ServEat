@@ -15,7 +15,6 @@ import com.serveat.repository.menu.IngredienteRepository;
 import com.serveat.repository.menu.ProductoRepository;
 import com.serveat.repository.pago.PagoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
-import com.serveat.repository.seguridad.FeatureActivaRepository;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.repository.usuario.EmpleadoRepository;
 import com.serveat.service.pedido.PedidoCalculoService;
@@ -44,10 +43,10 @@ public class DataInitializer {
                                    CategoriaRepository categoriaRepository,
                                    ProductoRepository productoRepository,
                                    IngredienteRepository ingredienteRepository,
-                                   FeatureActivaRepository featureActivaRepository,
                                    PedidoRepository pedidoRepository,
                                    PagoRepository pagoRepository,
                                    PedidoCalculoService pedidoCalculoService) {
+
 
         return args -> {
 
@@ -426,6 +425,7 @@ public class DataInitializer {
 
                 log.info("Pedidos y pagos demo creados.");
             }
+
         };
     }
 
