@@ -1,4 +1,4 @@
-package com.serveat.service.pago.dto;
+package com.serveat.service.pago;
 
 import com.serveat.domain.pago.ajuste.EstadoAjustePago;
 import com.serveat.domain.pago.MetodoPago;
