@@ -1,10 +1,9 @@
 package com.serveat.service.notificaciones.impl;
 
 import com.serveat.service.notificaciones.EmailNotificacionService;
-import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.springframework.stereotype.Service;
 
 @Service
 public class EmailNotificacionServiceImpl implements EmailNotificacionService {
@@ -19,7 +18,10 @@ public class EmailNotificacionServiceImpl implements EmailNotificacionService {
         log.info("📧 Destinatario: {}", destinatario);
         log.info("📧 Asunto: {}", asunto);
         log.info("📧 Mensaje:\n{}", mensaje);
+
+        // Implementación real SMTP irá aquí en el futuro
     }
 }
+
 
 
