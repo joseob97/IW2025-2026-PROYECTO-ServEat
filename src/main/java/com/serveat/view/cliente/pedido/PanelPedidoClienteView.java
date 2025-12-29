@@ -63,7 +63,7 @@ public class PanelPedidoClienteView extends VerticalLayout {
                 crearCardLink(
                         "📍 Seguimiento",
                         "Seguimiento en tiempo real de cocina y reparto.",
-                        SeguimientoPedidoView.class
+                        SeguimientoPedidosActivosView.class
                 )
         );
         fila2.setWidthFull();

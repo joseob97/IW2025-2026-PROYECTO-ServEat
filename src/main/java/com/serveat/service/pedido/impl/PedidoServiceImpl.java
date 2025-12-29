@@ -396,6 +396,23 @@ public class PedidoServiceImpl implements PedidoService {
         return pedidoRepo.findByCliente_UsernameOrderByFechaCreacionDesc(username);
     }
 
+    @Override
+    public Pedido cancelarPedidoCliente(String codigoPedido, String motivo, String username) {
+        validarCajaAbierta();
+
+        if (codigoPedido == null || codigoPedido.isBlank()) {
+            throw new IllegalArgumentException("Código de pedido inválido");
+        }
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+
+
+        Pedido pCliente = cargarDetalleCliente(codigoPedido, username);
+        String m = (motivo == null || motivo.isBlank()) ? "Cancelado por cliente" : motivo.trim();
+        return cancelarPedido(pCliente.getCodigo(), m, username);
+    }
+
     /* Cliente: creación */
 
     @Override
