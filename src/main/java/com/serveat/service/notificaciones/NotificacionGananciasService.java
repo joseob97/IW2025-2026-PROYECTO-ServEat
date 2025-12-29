@@ -48,7 +48,7 @@ public class NotificacionGananciasService {
 
         // EMAIL
         emailService.enviarNotificacion(
-                "admin@serveat.com",
+                "admserveat2526@gmail.com",
                 titulo,
                 mensaje
         );
