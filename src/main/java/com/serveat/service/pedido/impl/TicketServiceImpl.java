@@ -316,4 +316,18 @@ public class TicketServiceImpl implements TicketService {
     private String safe(String s) {
         return (s == null) ? "-" : s;
     }
+
+    @Override
+    public byte[] generarTicketRepartidor(String codigoPedido) {
+        validarFeatureActiva();
+
+        if (codigoPedido == null || codigoPedido.isBlank()) {
+            throw new IllegalArgumentException("Código de pedido inválido");
+        }
+
+        Pedido pedido = pedidoRepo.findWithDetalleByCodigo(codigoPedido)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado: " + codigoPedido));
+
+        return generarPdfTicket(pedido, "REPARTIDOR");
+    }
 }

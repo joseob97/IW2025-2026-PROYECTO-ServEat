@@ -1,7 +1,11 @@
 package com.serveat.service.repartidor;
 
+import com.serveat.domain.pedido.EstadoReparto;
 import com.serveat.domain.pedido.Pedido;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface RepartidorService {
@@ -23,4 +27,14 @@ public interface RepartidorService {
 
     // Marca una incidencia en el reparto
     Pedido marcarIncidencia(String codigoPedido, String repartidorUsername, String motivo);
+
+    Page<Pedido> buscarPedidosDisponibles(LocalDateTime desde,
+                                          LocalDateTime hasta,
+                                          Pageable pageable);
+
+    Page<Pedido> buscarMisRepartos(String username,
+                                   LocalDateTime desde,
+                                   LocalDateTime hasta,
+                                   EstadoReparto estadoReparto,
+                                   Pageable pageable);
 }
