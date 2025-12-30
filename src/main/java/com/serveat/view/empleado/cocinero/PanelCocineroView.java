@@ -18,11 +18,9 @@ import org.springframework.security.access.annotation.Secured;
 public class PanelCocineroView extends VerticalLayout {
 
     public PanelCocineroView() {
-
         setPadding(true);
         setSpacing(false);
         setWidthFull();
-
         getStyle().set("gap", "18px");
         getStyle().set("max-width", "1100px");
         getStyle().set("margin", "0 auto");
@@ -35,28 +33,32 @@ public class PanelCocineroView extends VerticalLayout {
 
         add(titulo, subtitulo);
 
+        add(crearCardGrande(
+                "📅 Pedidos de hoy",
+                "Gestiona y actualiza el estado de los pedidos del día",
+                PedidosCocinaHoyView.class
+        ));
 
-        HorizontalLayout cardsLayout = new HorizontalLayout(
-                crearCard(
-                        "🧾 Pedidos Entrantes",
-                        "Pedidos esperando ser aceptados por cocina",
+        HorizontalLayout filaSecundaria = new HorizontalLayout(
+                crearCardPequena(
+                        "🧾 Entrantes",
+                        "Pedidos esperando aceptación",
                         PedidosPendientesCocinaView.class
                 ),
-                crearCard(
-                        "🔄 Modificar estado de un pedido",
-                        "Gestiona y actualiza el estado de los pedidos en curso",
-                        GestionPedidoCocineroView.class // Usamos esta vista como placeholder para la gestión de estados
+                crearCardPequena(
+                        "🗂 Histórico",
+                        "Buscar pedidos antiguos y ver detalle",
+                        PedidosCocinaHistoricoView.class
                 )
         );
-        cardsLayout.setWidthFull();
-        cardsLayout.getStyle().set("gap", "14px");
+        filaSecundaria.setWidthFull();
+        filaSecundaria.setSpacing(false);
+        filaSecundaria.getStyle().set("gap", "14px");
 
-        add(cardsLayout);
+        add(filaSecundaria);
     }
 
-    private Component crearCard(String titulo, String descripcion,
-                                Class<? extends Component> destino) {
-
+    private Component crearCardGrande(String titulo, String descripcion, Class<? extends Component> destino) {
         RouterLink link = new RouterLink("", destino);
         link.getStyle().set("text-decoration", "none");
         link.getStyle().set("width", "100%");
@@ -71,8 +73,36 @@ public class PanelCocineroView extends VerticalLayout {
         card.setPadding(true);
         card.setSpacing(false);
         card.setWidthFull();
-
         card.getStyle().set("gap", "8px");
+
+        card.getStyle().set("background", "var(--lumo-primary-color-10pct)");
+        card.getStyle().set("border", "1px solid var(--lumo-primary-color-50pct)");
+        card.getStyle().set("border-radius", "16px");
+        card.getStyle().set("box-shadow", "0 10px 26px rgba(0,0,0,0.08)");
+        card.getStyle().set("cursor", "pointer");
+
+        link.add(card);
+        return link;
+    }
+
+    private Component crearCardPequena(String titulo, String descripcion, Class<? extends Component> destino) {
+        RouterLink link = new RouterLink("", destino);
+        link.getStyle().set("text-decoration", "none");
+        link.getStyle().set("width", "100%");
+
+        Span t = new Span(titulo);
+        t.getStyle().set("font-weight", "800");
+
+        Span desc = new Span(descripcion);
+        desc.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        desc.getStyle().set("font-size", "var(--lumo-font-size-s)");
+
+        VerticalLayout card = new VerticalLayout(t, desc);
+        card.setPadding(true);
+        card.setSpacing(false);
+        card.setWidthFull();
+        card.getStyle().set("gap", "6px");
+
         card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
