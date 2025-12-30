@@ -12,6 +12,8 @@ import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.usuario.EmpleadoRepository;
 import com.serveat.service.pago.PagoService;
 import com.serveat.service.repartidor.RepartidorService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -195,5 +197,24 @@ public class RepartidorServiceImpl implements RepartidorService {
         }
 
         return pedido;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Pedido> buscarPedidosDisponibles(LocalDateTime desde,
+                                                 LocalDateTime hasta,
+                                                 Pageable pageable) {
+        return pedidoRepo.buscarPedidosDisponiblesRepartidor(desde, hasta, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Pedido> buscarMisRepartos(String username,
+                                          LocalDateTime desde,
+                                          LocalDateTime hasta,
+                                          EstadoReparto estadoReparto,
+                                          Pageable pageable) {
+        if (username == null || username.isBlank()) throw new IllegalArgumentException("Usuario inválido");
+        return pedidoRepo.buscarMisRepartosFiltrados(username, desde, hasta, estadoReparto, pageable);
     }
 }
