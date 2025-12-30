@@ -241,4 +241,44 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
                                         @Param("estadoCocina") EstadoCocina estadoCocina,
                                         @Param("mesa") Integer mesa,
                                         Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos"
+    })
+    @Query("""
+    select p
+    from Pedido p
+    where (:desde is null or p.fechaCreacion >= :desde)
+      and (:hasta is null or p.fechaCreacion <= :hasta)
+      and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
+      and (:mesa is null or p.reservaMesa.numeroMesa = :mesa)
+    order by p.fechaCreacion asc
+""")
+    Page<Pedido> buscarPedidosCocinaHoy(@Param("desde") LocalDateTime desde,
+                                        @Param("hasta") LocalDateTime hasta,
+                                        @Param("estadoCocina") EstadoCocina estadoCocina,
+                                        @Param("mesa") Integer mesa,
+                                        Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos"
+    })
+    @Query("""
+    select p
+    from Pedido p
+    where (:desde is null or p.fechaCreacion >= :desde)
+      and (:hasta is null or p.fechaCreacion <= :hasta)
+      and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
+      and (:mesa is null or p.reservaMesa.numeroMesa = :mesa)
+    order by p.fechaCreacion desc
+""")
+    Page<Pedido> buscarPedidosCocinaHistorico(@Param("desde") LocalDateTime desde,
+                                              @Param("hasta") LocalDateTime hasta,
+                                              @Param("estadoCocina") EstadoCocina estadoCocina,
+                                              @Param("mesa") Integer mesa,
+                                              Pageable pageable);
 }
