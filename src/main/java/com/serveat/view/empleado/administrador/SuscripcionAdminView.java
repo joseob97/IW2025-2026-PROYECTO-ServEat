@@ -222,7 +222,7 @@ public class SuscripcionAdminView extends VerticalLayout {
             case FACTURACION_TICKET -> "Ticket / Factura (PDF)";
             case ESTADISTICAS -> "Estadísticas de ventas";
             case EXPORTAR_DATOS -> "Exportar datos";
-            case CIERRE_CAJA -> "Cierre de caja";
+            case CIERRE_CAJA -> "Cierre de caja Automático";
             case INGREDIENTES -> "Gestión de ingredientes";
             case NOTIFICACIONES -> "Notificaciones";
         };
@@ -237,7 +237,7 @@ public class SuscripcionAdminView extends VerticalLayout {
             case FACTURACION_TICKET -> "Ticket y factura en PDF.";
             case ESTADISTICAS -> "KPIs y métricas de ventas.";
             case EXPORTAR_DATOS -> "Exportación para gestoría.";
-            case CIERRE_CAJA -> "Arqueo y cierre diario.";
+            case CIERRE_CAJA -> "Apertura y cierre automático de la caja e histórico de ingresos";
             case INGREDIENTES -> "Ingredientes, alérgenos y stock.";
             case NOTIFICACIONES -> "Avisos a clientes y empleados.";
         };
