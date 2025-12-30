@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -91,11 +92,27 @@ public class Pedido {
     public Pedido() {
     }
 
+    // LÓGICA DE DOMINIO
+
+    public void marcarModificado(String username) {
+        this.modificadoPor = username;
+        this.fechaUltimaModificacion = LocalDateTime.now();
+    }
+
+    public BigDecimal calcularPrecioTotal() {
+        if (lineaPedidos == null || lineaPedidos.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return lineaPedidos.stream()
+                .map(LineaPedido::calcularPrecio)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // GETTERS Y SETTERS
 
     public UUID getId() {
         return id;
     }
-
 
     public String getCodigo() {
         return codigo;

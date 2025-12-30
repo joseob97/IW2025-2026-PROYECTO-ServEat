@@ -52,6 +52,25 @@ public class LineaPedido {
         this.precioUnitario = (producto != null) ? producto.getPrecio() : BigDecimal.ZERO;
     }
 
+    // LÓGICA DE DOMINIO
+
+    public BigDecimal calcularPrecio() {
+        BigDecimal base = (precioUnitario != null) ? precioUnitario : BigDecimal.ZERO;
+        
+        // Sumar extras de ingredientes si los hubiera
+        BigDecimal extras = BigDecimal.ZERO;
+        if (ingredientes != null) {
+            for (LineaPedidoIngrediente ing : ingredientes) {
+                if (ing.getPrecioExtra() != null) {
+                    extras = extras.add(ing.getPrecioExtra());
+                }
+            }
+        }
+
+        return base.add(extras).multiply(BigDecimal.valueOf(cantidad));
+    }
+
+    // GETTERS Y SETTERS
 
     public UUID getId() {
         return id;
