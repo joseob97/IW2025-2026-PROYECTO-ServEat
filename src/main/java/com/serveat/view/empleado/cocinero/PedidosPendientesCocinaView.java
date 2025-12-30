@@ -1,8 +1,8 @@
 package com.serveat.view.empleado.cocinero;
 
-import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.pedido.TipoPedidoCliente;
 import com.serveat.service.cocina.CocineroService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -70,7 +70,6 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
         add(crearBloquePaginacion());
 
         configurarGrid();
-
         cargarPagina(0);
     }
 
@@ -155,9 +154,16 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setFlexGrow(0);
 
-        grid.addColumn(p -> p.getReservaMesa() != null
-                        ? "Mesa " + p.getReservaMesa().getNumeroMesa()
-                        : "Cliente")
+        grid.addColumn(p -> {
+                    if (p.getTipoPedido() == null) return "Cliente";
+                    return switch (p.getTipoPedido()) {
+                        case DOMICILIO -> "Domicilio";
+                        case RECOGER -> "Recogida";
+                        default -> (p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa() != null)
+                                ? "Mesa " + p.getReservaMesa().getNumeroMesa()
+                                : "Mesa";
+                    };
+                })
                 .setHeader("Origen")
                 .setAutoWidth(true)
                 .setFlexGrow(0);

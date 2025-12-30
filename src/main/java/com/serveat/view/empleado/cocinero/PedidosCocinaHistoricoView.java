@@ -2,6 +2,7 @@ package com.serveat.view.empleado.cocinero;
 
 import com.serveat.domain.pedido.EstadoCocina;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.pedido.TipoPedidoCliente;
 import com.serveat.service.cocina.CocineroService;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.view.layout.MainLayout;
@@ -19,7 +20,6 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -41,7 +41,6 @@ public class PedidosCocinaHistoricoView extends VerticalLayout {
     private final transient CocineroService cocineroService;
     private final transient PedidoCalculoService pedidoCalculoService;
 
-    // Filtros
     private final DatePicker desde = new DatePicker("Desde");
     private final DatePicker hasta = new DatePicker("Hasta");
     private final ComboBox<EstadoCocina> filtroEstado = new ComboBox<>("Estado cocina");
@@ -50,7 +49,6 @@ public class PedidosCocinaHistoricoView extends VerticalLayout {
     private final Button btnBuscar = new Button("Buscar");
     private final Button btnLimpiar = new Button("Limpiar");
 
-    // Grid + paginación
     private final Grid<Pedido> grid = new Grid<>(Pedido.class, false);
     private final Button prev = new Button("◀ Anterior");
     private final Button next = new Button("Siguiente ▶");
@@ -96,7 +94,6 @@ public class PedidosCocinaHistoricoView extends VerticalLayout {
         configurarGrid();
         configurarFiltros();
 
-        // Carga inicial
         cargarPagina(0);
     }
 
@@ -194,9 +191,16 @@ public class PedidosCocinaHistoricoView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setFlexGrow(0);
 
-        grid.addColumn(p -> (p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa() != null)
-                        ? "Mesa " + p.getReservaMesa().getNumeroMesa()
-                        : "Cliente")
+        grid.addColumn(p -> {
+                    if (p.getTipoPedido() == null) return "Cliente";
+                    return switch (p.getTipoPedido()) {
+                        case DOMICILIO -> "Domicilio";
+                        case RECOGER -> "Recogida";
+                        default -> (p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa() != null)
+                                ? "Mesa " + p.getReservaMesa().getNumeroMesa()
+                                : "Mesa";
+                    };
+                })
                 .setHeader("Origen")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
