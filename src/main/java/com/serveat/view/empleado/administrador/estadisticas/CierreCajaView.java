@@ -1,5 +1,6 @@
 package com.serveat.view.empleado.administrador.estadisticas;
 
+import com.serveat.domain.caja.CierreCaja;
 import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.caja.CierreCajaService;
 import com.serveat.service.caja.EstadoCajaService;
@@ -9,6 +10,7 @@ import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
@@ -23,6 +25,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 
 @Route(value = "empleado/admin/cierre-caja", layout = MainLayout.class)
@@ -33,7 +37,7 @@ public class CierreCajaView extends VerticalLayout {
     private final EstadisticasService estadisticasService;
     private final CierreCajaService cierreCajaService;
     private final EstadoCajaService estadoCajaService;
-    private final FeatureService featureService; // NUEVO
+    private final FeatureService featureService;
 
     private final VerticalLayout resultadosLayout = new VerticalLayout();
     private final Button cerrarCajaButton = new Button("Cerrar Caja");
@@ -42,16 +46,16 @@ public class CierreCajaView extends VerticalLayout {
     public CierreCajaView(EstadisticasService estadisticasService,
                           CierreCajaService cierreCajaService,
                           EstadoCajaService estadoCajaService,
-                          FeatureService featureService) { // NUEVO
+                          FeatureService featureService) {
         this.estadisticasService = estadisticasService;
         this.cierreCajaService = cierreCajaService;
         this.estadoCajaService = estadoCajaService;
-        this.featureService = featureService; // NUEVO
+        this.featureService = featureService;
 
         // Estilos para centrar y limitar el ancho
         setSizeFull();
         setAlignItems(FlexComponent.Alignment.CENTER);
-        getStyle().set("max-width", "800px");
+        getStyle().set("max-width", "900px");
         getStyle().set("margin", "0 auto");
 
         H2 titulo = new H2("Gestión de Caja");
@@ -74,7 +78,7 @@ public class CierreCajaView extends VerticalLayout {
         
         cardAccion.add(cerrarCajaButton, abrirCajaButton);
 
-        // Layout para los resultados
+        // Layout para los resultados del turno
         resultadosLayout.setPadding(true);
         resultadosLayout.setVisible(false);
         resultadosLayout.setWidthFull();
@@ -83,8 +87,59 @@ public class CierreCajaView extends VerticalLayout {
         resultadosLayout.getStyle().set("margin-top", "20px");
 
         add(titulo, cardAccion, resultadosLayout);
+
+        // BLOQUE PREMIUM: Histórico y Acumulado
+        if (featureService.tieneFeature(Feature.CIERRE_CAJA)) {
+            add(construirBloquePremium());
+        }
         
         actualizarEstadoBotones();
+    }
+
+    private VerticalLayout construirBloquePremium() {
+        VerticalLayout bloque = new VerticalLayout();
+        bloque.setWidthFull();
+        bloque.setPadding(true);
+        bloque.getStyle().set("margin-top", "30px");
+        bloque.getStyle().set("background-color", "var(--lumo-base-color)");
+        bloque.getStyle().set("border", "1px solid var(--lumo-primary-color-50pct)");
+        bloque.getStyle().set("border-radius", "12px");
+
+        H3 titulo = new H3("📊 Panel de Control Financiero (Premium)");
+        titulo.getStyle().set("color", "var(--lumo-primary-text-color)");
+
+        // 1. Total Acumulado del Día
+        Map<String, Object> datosDia = estadisticasService.generarCierreCajaDiario();
+        BigDecimal totalDia = (BigDecimal) datosDia.get("total");
+        
+        Span labelTotal = new Span("Facturación Acumulada Hoy (00:00 - Actualidad):");
+        Span valorTotal = new Span(totalDia + " €");
+        valorTotal.getStyle().set("font-weight", "bold");
+        valorTotal.getStyle().set("font-size", "1.5em");
+        valorTotal.getStyle().set("color", "var(--lumo-success-text-color)");
+
+        VerticalLayout kpiDia = new VerticalLayout(labelTotal, valorTotal);
+        kpiDia.setSpacing(false);
+        kpiDia.setPadding(false);
+
+        // 2. Histórico de Cierres
+        H3 subTitulo = new H3("Histórico de Cierres (Últimos 7 días)");
+        subTitulo.getStyle().set("font-size", "1.1em");
+        subTitulo.getStyle().set("margin-top", "20px");
+
+        Grid<CierreCaja> grid = new Grid<>(CierreCaja.class, false);
+        grid.addColumn(c -> c.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+                .setHeader("Fecha").setAutoWidth(true);
+        grid.addColumn(c -> c.getTotalGeneral() + " €").setHeader("Total").setAutoWidth(true);
+        grid.addColumn(c -> c.getTotalEfectivo() + " €").setHeader("Efectivo").setAutoWidth(true);
+        grid.addColumn(c -> c.getTotalTarjeta() + " €").setHeader("Tarjeta").setAutoWidth(true);
+        
+        List<CierreCaja> historial = cierreCajaService.obtenerHistorialSemanal();
+        grid.setItems(historial);
+        grid.setHeight("250px");
+
+        bloque.add(titulo, kpiDia, subTitulo, grid);
+        return bloque;
     }
 
     private void actualizarEstadoBotones() {
