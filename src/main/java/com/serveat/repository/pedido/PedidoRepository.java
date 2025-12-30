@@ -226,14 +226,15 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "pago"
     })
     @Query("""
-        select p
-        from Pedido p
-        where (:desde is null or p.fechaCreacion >= :desde)
-          and (:hasta is null or p.fechaCreacion <= :hasta)
-          and (:estadoPedido is null or p.estado = :estadoPedido)
-          and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
-          and (:mesa is null or p.reservaMesa.numeroMesa = :mesa)
-        order by p.fechaCreacion desc
+    select p
+    from Pedido p
+    left join p.reservaMesa rm
+    where (:desde is null or p.fechaCreacion >= :desde)
+      and (:hasta is null or p.fechaCreacion <= :hasta)
+      and (:estadoPedido is null or p.estado = :estadoPedido)
+      and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
+      and (:mesa is null or rm.numeroMesa = :mesa)
+    order by p.fechaCreacion desc
     """)
     Page<Pedido> buscarPedidosFiltrados(@Param("desde") LocalDateTime desde,
                                         @Param("hasta") LocalDateTime hasta,
@@ -241,4 +242,96 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
                                         @Param("estadoCocina") EstadoCocina estadoCocina,
                                         @Param("mesa") Integer mesa,
                                         Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos"
+    })
+    @Query("""
+    select p
+    from Pedido p
+    left join p.reservaMesa rm
+    where (:desde is null or p.fechaCreacion >= :desde)
+      and (:hasta is null or p.fechaCreacion <= :hasta)
+      and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
+      and (:mesa is null or rm.numeroMesa = :mesa)
+    order by p.fechaCreacion desc
+    """)
+    Page<Pedido> buscarPedidosCocinaHistorico(@Param("desde") LocalDateTime desde,
+                                              @Param("hasta") LocalDateTime hasta,
+                                              @Param("estadoCocina") EstadoCocina estadoCocina,
+                                              @Param("mesa") Integer mesa,
+                                              Pageable pageable);
+
+
+
+    @EntityGraph(attributePaths = {
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos"
+    })
+    @Query("""
+    select p
+    from Pedido p
+    left join p.reservaMesa rm
+    where (:desde is null or p.fechaCreacion >= :desde)
+      and (:hasta is null or p.fechaCreacion <= :hasta)
+      and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
+      and (:mesa is null or rm.numeroMesa = :mesa)
+    order by p.fechaCreacion asc
+    """)
+    Page<Pedido> buscarPedidosCocinaHoy(@Param("desde") LocalDateTime desde,
+                                        @Param("hasta") LocalDateTime hasta,
+                                        @Param("estadoCocina") EstadoCocina estadoCocina,
+                                        @Param("mesa") Integer mesa,
+                                        Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "pago",
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
+            "repartidor"
+    })
+    @Query("""
+    select p
+    from Pedido p
+    where p.tipoPedido = com.serveat.domain.pedido.TipoPedidoCliente.DOMICILIO
+      and p.estadoReparto = com.serveat.domain.pedido.EstadoReparto.PENDIENTE_ASIGNACION
+      and (:desde is null or p.fechaCreacion >= :desde)
+      and (:hasta is null or p.fechaCreacion <= :hasta)
+    order by p.fechaCreacion desc
+    """)
+    Page<Pedido> buscarPedidosDisponiblesRepartidor(@Param("desde") LocalDateTime desde,
+                                                    @Param("hasta") LocalDateTime hasta,
+                                                    Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "pago",
+            "reservaMesa",
+            "lineaPedidos",
+            "lineaPedidos.productos",
+            "lineaPedidos.ingredientes",
+            "lineaPedidos.ingredientes.ingrediente",
+            "repartidor"
+    })
+    @Query("""
+    select p
+    from Pedido p
+    where p.repartidor.username = :username
+      and (:desde is null or p.fechaCreacion >= :desde)
+      and (:hasta is null or p.fechaCreacion <= :hasta)
+      and (:estadoReparto is null or p.estadoReparto = :estadoReparto)
+    order by p.fechaCreacion desc
+    """)
+    Page<Pedido> buscarMisRepartosFiltrados(@Param("username") String username,
+                                            @Param("desde") LocalDateTime desde,
+                                            @Param("hasta") LocalDateTime hasta,
+                                            @Param("estadoReparto") EstadoReparto estadoReparto,
+                                            Pageable pageable);
 }

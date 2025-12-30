@@ -33,11 +33,11 @@ public class EmpleadoUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        //Buscar primero EMPLEADO
+        // Buscar EMPLEADO
         Empleado empleado = empleadoRepository.findByUsername(username).orElse(null);
         if (empleado != null) {
+
             if (!empleado.isEnabled()) {
-                // 👇 Esta excepción es la que ahora detecta el FailureHandler
                 throw new DisabledException("El usuario está desactivado");
             }
 
@@ -47,9 +47,16 @@ public class EmpleadoUserDetailsService implements UserDetailsService {
                     .build();
         }
 
-        //Buscar CLIENTE si no era empleado
+        // Buscar CLIENTE
         Cliente cliente = clienteRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("Usuario no encontrado: " + username)
+                );
+
+        // Bloquea cliente
+        if (!cliente.isActivo()) {
+            throw new DisabledException("El usuario está desactivado");
+        }
 
         return User.withUsername(cliente.getUsername())
                 .password(cliente.getPassword())

@@ -9,4 +9,7 @@ import java.util.UUID;
 
 public interface FeatureActivaRepository extends JpaRepository<FeatureActiva, UUID> {
     Optional<FeatureActiva> findByFeature(Feature feature);
+
+    boolean existsByFeature(Feature feature);
+
 }

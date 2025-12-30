@@ -15,7 +15,7 @@ import com.serveat.repository.menu.IngredienteRepository;
 import com.serveat.repository.menu.ProductoRepository;
 import com.serveat.repository.pago.PagoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
-import com.serveat.repository.seguridad.FeatureActivaRepository;
+import com.serveat.repository.seguridad.FeatureDatosRepository;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.repository.usuario.EmpleadoRepository;
 import com.serveat.service.pedido.PedidoCalculoService;
@@ -31,6 +31,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.serveat.domain.seguridad.Feature;
+import com.serveat.domain.seguridad.FeatureDatos;
+
+import java.security.SecureRandom;
+
 
 @Profile("dev")
 @Configuration
@@ -44,10 +49,11 @@ public class DataInitializer {
                                    CategoriaRepository categoriaRepository,
                                    ProductoRepository productoRepository,
                                    IngredienteRepository ingredienteRepository,
-                                   FeatureActivaRepository featureActivaRepository,
                                    PedidoRepository pedidoRepository,
                                    PagoRepository pagoRepository,
-                                   PedidoCalculoService pedidoCalculoService) {
+                                   PedidoCalculoService pedidoCalculoService,
+                                   FeatureDatosRepository featureDatosRepository) {
+
 
         return args -> {
 
@@ -62,6 +68,9 @@ public class DataInitializer {
 
             // EMPLEADOS
             insertarEmpleados(empleadoRepository, pass);
+
+            // FEATURES (datos base: precio + código)
+            inicializarFeatureDatos(featureDatosRepository);
 
             // CLIENTES
             if (clienteRepository.count() == 0) {
@@ -426,6 +435,7 @@ public class DataInitializer {
 
                 log.info("Pedidos y pagos demo creados.");
             }
+
         };
     }
 
@@ -595,4 +605,27 @@ public class DataInitializer {
             }
         }
     }
+
+    private static void inicializarFeatureDatos(FeatureDatosRepository featureDatosRepository) {
+
+        SecureRandom random = new SecureRandom();
+
+        for (Feature feature : Feature.values()) {
+
+            featureDatosRepository.findByFeature(feature)
+                    .orElseGet(() -> featureDatosRepository.save(
+                            new FeatureDatos(
+                                    feature,
+                                    new BigDecimal("100.00"),
+                                    generarCodigoFeature(random)
+                            )
+                    ));
+        }
+    }
+
+    private static String generarCodigoFeature(SecureRandom random) {
+        int num = random.nextInt(100000);
+        return String.format("%05d", num);
+    }
+
 }

@@ -6,11 +6,14 @@ import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
+import com.serveat.service.pago.AjustePagoDTO;
+import com.serveat.service.pago.AjustePagoService;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -27,6 +30,7 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinSession;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -41,19 +45,22 @@ import java.util.List;
 @Secured("ROLE_CLIENTE")
 public class ModificarPedidoClienteView extends VerticalLayout implements HasUrlParameter<String> {
 
+    private static final String SESSION_KEY_PREFIX = "AJUSTE_BORRADOR_"; // + codigoAjuste
+
     private final transient PedidoService pedidoService;
     private final transient PedidoCarritoService pedidoCarritoService;
     private final transient PedidoCalculoService pedidoCalculoService;
-
     private final transient ProductoService productoService;
     private final transient CategoriaService categoriaService;
+    private final transient AjustePagoService ajustePagoService;
 
-    private transient Pedido pedidoActual;
-    private transient Pedido pedidoEditable;
+    private transient Pedido pedidoActual;   // leído de BD (para info/permiso)
+    private transient Pedido pedidoEditable; // borrador en memoria (lo editas aquí)
     private String codigoPedido;
 
     private final Span info = new Span("Cargando pedido...");
     private final Span total = new Span("Total: 0 €");
+    private final Span infoPago = new Span("");
 
     private final Grid<LineaPedido> gridLineas = new Grid<>(LineaPedido.class, false);
 
@@ -70,12 +77,14 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
                                       PedidoCarritoService pedidoCarritoService,
                                       PedidoCalculoService pedidoCalculoService,
                                       ProductoService productoService,
-                                      CategoriaService categoriaService) {
+                                      CategoriaService categoriaService,
+                                      AjustePagoService ajustePagoService) {
         this.pedidoService = pedidoService;
         this.pedidoCarritoService = pedidoCarritoService;
         this.pedidoCalculoService = pedidoCalculoService;
         this.productoService = productoService;
         this.categoriaService = categoriaService;
+        this.ajustePagoService = ajustePagoService;
 
         setPadding(true);
         setSpacing(false);
@@ -88,10 +97,11 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
         titulo.getStyle().set("margin", "0");
 
         info.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        infoPago.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        infoPago.setVisible(false);
 
         volver.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate(ConsultaPedidosView.class)));
-
-        add(titulo, info, volver);
+        add(titulo, info, infoPago, volver);
 
         VerticalLayout cardLineas = crearCard();
         configurarGridLineas();
@@ -132,6 +142,8 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
         cantidad.setWidth("160px");
 
         anadir.setWidth("420px");
+        anadir.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        anadir.getStyle().set("font-weight", "700");
         anadir.addClickListener(e -> anadirAlPedido());
 
         VerticalLayout bloqueProducto = new VerticalLayout(comboProducto, anadir);
@@ -154,6 +166,7 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
 
         guardarCambios.setWidth("360px");
         guardarCambios.getStyle().set("font-weight", "600");
+        guardarCambios.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         guardarCambios.addClickListener(e -> confirmarGuardado());
 
         HorizontalLayout filaGuardar = new HorizontalLayout(guardarCambios);
@@ -186,7 +199,10 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
             pedidoActual = pedidoService.cargarDetalleCliente(codigoPedido, username);
-            pedidoEditable = pedidoActual;
+
+            // OJO: si aquí haces "pedidoEditable = pedidoActual", hay problema
+            // Debe ser un borrador independiente (PedidoCarritoService ya lo trata como carrito/borrador).
+            pedidoEditable = ajustePagoService.crearBorradorPedidoParaEdicion(pedidoActual);
 
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
             String fecha = pedidoActual.getFechaCreacion() != null ? pedidoActual.getFechaCreacion().format(fmt) : "-";
@@ -202,7 +218,6 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
             if (!editable) {
                 Notification.show("Este pedido ya no se puede modificar", 3500, Notification.Position.MIDDLE);
             }
-
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 4500, Notification.Position.MIDDLE);
             getUI().ifPresent(ui -> ui.navigate(ConsultaPedidosView.class));
@@ -210,28 +225,21 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
     }
 
     private void configurarGridLineas() {
-
         gridLineas.addColumn(lp -> lp.getProducto() != null ? lp.getProducto().getNombre() : "-")
-                .setHeader("Producto")
-                .setAutoWidth(true)
-                .setFlexGrow(1);
+                .setHeader("Producto").setAutoWidth(true).setFlexGrow(1);
 
         gridLineas.addColumn(LineaPedido::getCantidad)
-                .setHeader("Cantidad")
-                .setAutoWidth(true);
+                .setHeader("Cantidad").setAutoWidth(true);
 
         gridLineas.addColumn(lp -> {
                     if (lp.getPrecioUnitario() != null) return lp.getPrecioUnitario() + " €";
                     if (lp.getProducto() != null && lp.getProducto().getPrecio() != null) return lp.getProducto().getPrecio() + " €";
                     return "-";
                 })
-                .setHeader("Precio ud.")
-                .setAutoWidth(true);
+                .setHeader("Precio ud.").setAutoWidth(true);
 
         gridLineas.addColumn(lp -> pedidoCalculoService.calcularPrecioLinea(lp) + " €")
-                .setHeader("Subtotal")
-                .setAutoWidth(true);
-
+                .setHeader("Subtotal").setAutoWidth(true);
 
         gridLineas.addComponentColumn(lp -> {
             IntegerField qty = new IntegerField();
@@ -253,11 +261,7 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
                 }
 
                 try {
-                    pedidoEditable = pedidoCarritoService.actualizarCantidadLinea(
-                            pedidoEditable,
-                            lp.getCodigo(),
-                            nueva
-                    );
+                    pedidoEditable = pedidoCarritoService.actualizarCantidadLinea(pedidoEditable, lp.getCodigo(), nueva);
                     refrescar();
                 } catch (Exception ex) {
                     Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
@@ -269,18 +273,13 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
             return qty;
         }).setHeader("Modificar");
 
-
         gridLineas.addComponentColumn(lp -> {
             Button borrar = new Button("❌");
-
             borrar.addClickListener(e -> {
                 if (!pedidoService.puedeModificarCliente(pedidoActual)) return;
 
                 try {
-                    pedidoEditable = pedidoCarritoService.eliminarLinea(
-                            pedidoEditable,
-                            lp.getCodigo()
-                    );
+                    pedidoEditable = pedidoCarritoService.eliminarLinea(pedidoEditable, lp.getCodigo());
                     refrescar();
                 } catch (Exception ex) {
                     Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
@@ -293,15 +292,12 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
     }
 
     private void configurarFiltrosProducto() {
-
         buscarProducto.setPlaceholder("Buscar por nombre");
         buscarProducto.setClearButtonVisible(true);
         buscarProducto.setValueChangeMode(ValueChangeMode.EAGER);
 
         filtroCategoria.setItems(
-                categoriaService.listarCategorias().stream()
-                        .map(Categoria::getNombre)
-                        .toList()
+                categoriaService.listarCategorias().stream().map(Categoria::getNombre).toList()
         );
         filtroCategoria.setClearButtonVisible(true);
 
@@ -343,7 +339,6 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
     }
 
     private void anadirAlPedido() {
-
         if (!pedidoService.puedeModificarCliente(pedidoActual)) {
             Notification.show("Este pedido ya no se puede modificar", 3000, Notification.Position.MIDDLE);
             return;
@@ -359,7 +354,6 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
 
         try {
             pedidoEditable = pedidoCarritoService.agregarProducto(pedidoEditable, prod, qty);
-
             cantidad.setValue(1);
             comboProducto.clear();
             refrescar();
@@ -369,7 +363,6 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
     }
 
     private void confirmarGuardado() {
-
         if (!pedidoService.puedeModificarCliente(pedidoActual)) {
             Notification.show("Este pedido ya no se puede modificar", 3000, Notification.Position.MIDDLE);
             return;
@@ -382,21 +375,40 @@ public class ModificarPedidoClienteView extends VerticalLayout implements HasUrl
 
         ConfirmDialog dialog = new ConfirmDialog();
         dialog.setHeader("Confirmar cambios");
-        dialog.setText("¿Deseas guardar los cambios del pedido " + codigoPedido + "?");
+        dialog.setText("¿Deseas continuar con el ajuste del pedido " + codigoPedido + "?");
         dialog.setCancelable(true);
-        dialog.setConfirmText("Sí, guardar");
-        dialog.addConfirmListener(e -> guardar());
+        dialog.setConfirmText("Sí, continuar");
+        dialog.addConfirmListener(e -> prepararAjusteYNavegar());
         dialog.open();
     }
 
-    private void guardar() {
+    /**
+     * NO persiste el pedido.
+     * Solo prepara el ajuste (pendiente) y guarda el borrador en sesión para usarlo en la pantalla de ajuste.
+     */
+    private void prepararAjusteYNavegar() {
         try {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-            pedidoActual = pedidoService.confirmarCambiosPedidoCliente(pedidoEditable, username);
+            AjustePagoDTO res = pedidoService.prepararAjusteCambiosCliente(pedidoEditable, username);
 
-            Notification.show("Cambios guardados", 3000, Notification.Position.MIDDLE);
-            getUI().ifPresent(ui -> ui.navigate(ConsultaPedidosView.class));
+            if (res == null || res.getCodigoAjuste() == null || res.getCodigoAjuste().isBlank()) {
+                // Si no hace falta ajuste (o es efectivo), aquí decides qué hacer.
+                Notification.show(
+                        (res != null && res.getMensaje() != null && !res.getMensaje().isBlank())
+                                ? res.getMensaje()
+                                : "No se ha generado ajuste.",
+                        4500, Notification.Position.MIDDLE
+                );
+                getUI().ifPresent(ui -> ui.navigate(ConsultaPedidosView.class));
+                return;
+            }
+
+            // Guardamos el borrador en sesión, ligado al ajuste.
+            VaadinSession.getCurrent().setAttribute(SESSION_KEY_PREFIX + res.getCodigoAjuste(), pedidoEditable);
+
+            // Ir a pantalla de ajuste
+            getUI().ifPresent(ui -> ui.navigate("cliente/ajustes/" + res.getCodigoAjuste()));
 
         } catch (Exception ex) {
             Notification.show(ex.getMessage(), 4500, Notification.Position.MIDDLE);

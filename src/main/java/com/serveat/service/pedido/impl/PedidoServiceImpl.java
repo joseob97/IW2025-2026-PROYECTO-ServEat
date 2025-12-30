@@ -6,13 +6,7 @@ import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pago.EstadoPago;
 import com.serveat.domain.pago.MetodoPago;
 import com.serveat.domain.pago.Pago;
-import com.serveat.domain.pedido.EstadoCocina;
-import com.serveat.domain.pedido.EstadoPedido;
-import com.serveat.domain.pedido.EstadoReparto;
-import com.serveat.domain.pedido.LineaPedido;
-import com.serveat.domain.pedido.LineaPedidoIngrediente;
-import com.serveat.domain.pedido.Pedido;
-import com.serveat.domain.pedido.TipoPedidoCliente;
+import com.serveat.domain.pedido.*;
 import com.serveat.domain.reserva.EstadoReservaMesa;
 import com.serveat.domain.reserva.ReservaMesa;
 import com.serveat.domain.usuario.Cliente;
@@ -22,7 +16,10 @@ import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.repository.reserva.ReservaMesaRepository;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.service.caja.EstadoCajaService;
+import com.serveat.service.pago.AjustePagoDTO;
+import com.serveat.service.pago.AjustePagoService;
 import com.serveat.service.pago.PagoService;
+import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import org.springframework.data.domain.Page;
@@ -31,9 +28,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -46,7 +43,9 @@ public class PedidoServiceImpl implements PedidoService {
     private final PagoService pagoService;
     private final PagoRepository pagoRepo;
     private final PedidoCarritoService carritoService;
-    private final EstadoCajaService estadoCajaService; // CAMBIO: Usamos EstadoCajaService
+    private final EstadoCajaService estadoCajaService;
+    private final PedidoCalculoService pedidoCalculoService;
+    private final AjustePagoService ajustePagoService;
 
     public PedidoServiceImpl(PedidoRepository pedidoRepo,
                              ProductoRepository productoRepo,
@@ -55,7 +54,9 @@ public class PedidoServiceImpl implements PedidoService {
                              PagoService pagoService,
                              PagoRepository pagoRepo,
                              PedidoCarritoService carritoService,
-                             EstadoCajaService estadoCajaService) { // CAMBIO
+                             EstadoCajaService estadoCajaService,
+                             PedidoCalculoService pedidoCalculoService,
+                             AjustePagoService ajustePagoService) {
         this.pedidoRepo = pedidoRepo;
         this.productoRepo = productoRepo;
         this.reservaMesaRepo = reservaMesaRepo;
@@ -63,7 +64,9 @@ public class PedidoServiceImpl implements PedidoService {
         this.pagoService = pagoService;
         this.pagoRepo = pagoRepo;
         this.carritoService = carritoService;
-        this.estadoCajaService = estadoCajaService; // CAMBIO
+        this.estadoCajaService = estadoCajaService;
+        this.pedidoCalculoService = pedidoCalculoService;
+        this.ajustePagoService = ajustePagoService;
     }
 
     /* Helpers */
@@ -394,6 +397,23 @@ public class PedidoServiceImpl implements PedidoService {
     public List<Pedido> listarPedidosCliente(String username) {
         if (username == null || username.isBlank()) throw new IllegalArgumentException("Usuario inválido");
         return pedidoRepo.findByCliente_UsernameOrderByFechaCreacionDesc(username);
+    }
+
+    @Override
+    public Pedido cancelarPedidoCliente(String codigoPedido, String motivo, String username) {
+        validarCajaAbierta();
+
+        if (codigoPedido == null || codigoPedido.isBlank()) {
+            throw new IllegalArgumentException("Código de pedido inválido");
+        }
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+
+
+        Pedido pCliente = cargarDetalleCliente(codigoPedido, username);
+        String m = (motivo == null || motivo.isBlank()) ? "Cancelado por cliente" : motivo.trim();
+        return cancelarPedido(pCliente.getCodigo(), m, username);
     }
 
     /* Cliente: creación */
@@ -813,6 +833,112 @@ public class PedidoServiceImpl implements PedidoService {
         }
 
         return resultado;
+    }
+
+    @Override
+    public AjustePagoDTO confirmarCambiosPedidoClienteConAjuste(Pedido pedidoEditado, String username) {
+        validarCajaAbierta();
+
+        if (pedidoEditado == null || pedidoEditado.getCodigo() == null || pedidoEditado.getCodigo().isBlank()) {
+            throw new IllegalArgumentException("Pedido inválido");
+        }
+        if (pedidoEditado.getLineaPedidos() == null || pedidoEditado.getLineaPedidos().isEmpty()) {
+            throw new IllegalArgumentException("El pedido no puede quedar vacío");
+        }
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+
+        Pedido actual = cargarDetalleCliente(pedidoEditado.getCodigo(), username);
+
+        if (actual.getEstado() == EstadoPedido.ANULADO) {
+            throw new IllegalArgumentException("Pedido anulado");
+        }
+        if (actual.getEstadoCocina() != EstadoCocina.PENDIENTE_ACEPTACION) {
+            throw new IllegalArgumentException("La cocina ya ha aceptado el pedido");
+        }
+
+        BigDecimal totalAnterior = pedidoCalculoService.calcularTotalPedido(actual);
+
+        actual.getLineaPedidos().clear();
+
+        for (LineaPedido lp : pedidoEditado.getLineaPedidos()) {
+            if (lp == null || lp.getProducto() == null || lp.getProducto().getCodigo() == null) continue;
+
+            Producto producto = productoRepo.findByCodigo(lp.getProducto().getCodigo())
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + lp.getProducto().getCodigo()));
+
+            LineaPedido nueva = new LineaPedido(actual, producto, lp.getCantidad());
+
+            if (lp.getIngredientes() != null && !lp.getIngredientes().isEmpty()) {
+                for (LineaPedidoIngrediente sel : lp.getIngredientes()) {
+                    if (sel == null || sel.getIngrediente() == null) continue;
+
+                    nueva.getIngredientes().add(new LineaPedidoIngrediente(
+                            nueva,
+                            sel.getIngrediente(),
+                            sel.isIncluido(),
+                            sel.getExtraCantidad(),
+                            sel.getPrecioExtra()
+                    ));
+                }
+            }
+
+            actual.getLineaPedidos().add(nueva);
+        }
+
+        marcarModificado(actual, username);
+        pedidoRepo.save(actual);
+
+        BigDecimal totalNuevo = pedidoCalculoService.calcularTotalPedido(actual);
+
+        Pago pagoOriginal = pagoRepo.findByPedido_Codigo(actual.getCodigo()).orElse(null);
+
+        return ajustePagoService.calcularYCrearOActualizarAjuste(
+                actual, pagoOriginal, totalAnterior, totalNuevo
+        );
+    }
+
+    @Override
+    @Transactional
+    public AjustePagoDTO prepararAjusteCambiosCliente(Pedido pedidoEditado, String username) {
+
+        if (pedidoEditado == null) throw new IllegalArgumentException("Pedido inválido");
+        if (pedidoEditado.getCodigo() == null || pedidoEditado.getCodigo().isBlank()) {
+            throw new IllegalArgumentException("Falta código del pedido");
+        }
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Usuario inválido");
+        }
+
+        // 1) Cargar pedido real (BD) para:
+        //    - validar que es del cliente
+        //    - obtener el totalAnterior
+        //    - obtener el pagoOriginal (si aplica)
+        Pedido pedidoBd = cargarDetalleCliente(pedidoEditado.getCodigo(), username);
+
+        // 2) Calcular totales
+        BigDecimal totalAnterior = pedidoCalculoService.calcularTotalPedido(pedidoBd);
+        BigDecimal totalNuevo = pedidoCalculoService.calcularTotalPedido(pedidoEditado);
+
+        // 3) Obtener pago original (CONFIRMADO) si existe
+        Pago pagoOriginal = null;
+        if (pedidoBd.getPago() != null) {
+            pagoOriginal = pedidoBd.getPago();
+        }
+
+        // 4) Crear/Actualizar ajuste pendiente (esto SÍ persiste AjustePago, pero NO el pedido)
+        AjustePagoDTO dto = ajustePagoService.calcularYCrearOActualizarAjuste(
+                pedidoBd,
+                pagoOriginal,
+                totalAnterior,
+                totalNuevo
+        );
+
+        // dto puede venir con:
+        // - accion NINGUNA
+        // - codigoAjuste null (si no aplica o si efectivo)
+        return dto;
     }
 
 }
