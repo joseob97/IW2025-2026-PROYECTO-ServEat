@@ -29,10 +29,6 @@ public class FeatureUnlockService {
         this.pushNotificacionService = pushNotificacionService;
     }
 
-    /**
-     * Devuelve el precio configurado de una feature.
-     * Se usa para mostrarlo en la vista (sin hardcodear).
-     */
     @PreAuthorize("hasRole('ADMIN')")
     public BigDecimal obtenerPrecioFeature(Feature feature) {
         return featureDatosRepository.findByFeature(feature)
@@ -41,11 +37,16 @@ public class FeatureUnlockService {
                 .getPrecio();
     }
 
-    /**
-     * Simula el pago de una feature y envía el código por notificación push.
-     * Marca la feature como PAGADA pero NO activa todavía.
-     * Solo ADMIN.
-     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public boolean isFeaturePagada(Feature feature) {
+
+        FeatureDatos datos = featureDatosRepository.findByFeature(feature)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No existen datos para la feature " + feature));
+
+        return datos.isPagada();
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     public void simularPagoYEnviarCodigo(Feature feature) {
 
@@ -78,10 +79,6 @@ public class FeatureUnlockService {
         );
     }
 
-    /**
-     * Valida el código introducido y activa la feature si es correcto.
-     * Solo ADMIN.
-     */
     @PreAuthorize("hasRole('ADMIN')")
     public void validarCodigoYActivar(Feature feature, String codigoIntroducido) {
 
