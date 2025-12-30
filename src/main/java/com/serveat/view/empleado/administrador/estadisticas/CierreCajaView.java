@@ -150,48 +150,30 @@ public class CierreCajaView extends VerticalLayout {
     }
 
     private void confirmarCierreCaja() {
-        ConfirmDialog dialog = new ConfirmDialog();
-        dialog.setHeader("Confirmar Cierre de Caja Manual");
-        
         String mensaje = "Usted está cerrando la caja manualmente. A partir de este momento no se atenderán pedidos hasta que vuelva a abrir la caja manualmente.";
-        
         if (featureService.tieneFeature(Feature.CIERRE_CAJA)) {
             mensaje += "\n\n⚠️ ATENCIÓN: Tiene activa la apertura automática. La caja se abrirá automáticamente a las 13:00 si no la abre antes.";
         }
-        
-        dialog.setText(mensaje);
-        
-        dialog.setCancelable(true);
-        dialog.setCancelText("Cancelar");
-        
-        dialog.setConfirmText("Confirmar Cierre");
-        dialog.setConfirmButtonTheme("error primary");
-
-        dialog.addConfirmListener(event -> realizarCierreCaja());
-        
-        dialog.open();
+        mostrarDialogoConfirmacion("Confirmar Cierre de Caja Manual", mensaje, "Confirmar Cierre", "error primary", this::realizarCierreCaja);
     }
 
     private void confirmarAperturaCaja() {
-        ConfirmDialog dialog = new ConfirmDialog();
-        dialog.setHeader("Confirmar Apertura de Caja");
-        
         String mensaje = "¿Desea abrir la caja? Se permitirán nuevos pedidos a partir de este momento.";
-        
         if (featureService.tieneFeature(Feature.CIERRE_CAJA)) {
             mensaje += "\n\n⚠️ ATENCIÓN: Tiene activo el cierre automático. La caja se cerrará automáticamente a las 00:00.";
         }
-        
+        mostrarDialogoConfirmacion("Confirmar Apertura de Caja", mensaje, "Abrir Caja", "success primary", this::realizarAperturaCaja);
+    }
+
+    private void mostrarDialogoConfirmacion(String titulo, String mensaje, String textoBoton, String temaBoton, Runnable accionConfirmada) {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(titulo);
         dialog.setText(mensaje);
-        
         dialog.setCancelable(true);
         dialog.setCancelText("Cancelar");
-        
-        dialog.setConfirmText("Abrir Caja");
-        dialog.setConfirmButtonTheme("success primary");
-
-        dialog.addConfirmListener(event -> realizarAperturaCaja());
-        
+        dialog.setConfirmText(textoBoton);
+        dialog.setConfirmButtonTheme(temaBoton);
+        dialog.addConfirmListener(event -> accionConfirmada.run());
         dialog.open();
     }
 
