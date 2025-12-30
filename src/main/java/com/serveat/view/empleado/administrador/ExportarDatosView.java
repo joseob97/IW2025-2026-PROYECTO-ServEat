@@ -10,7 +10,6 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
@@ -20,6 +19,8 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.annotation.Secured;
 
 import java.io.ByteArrayInputStream;
@@ -34,6 +35,7 @@ import java.util.List;
 @Secured("ROLE_ADMIN")
 public class ExportarDatosView extends VerticalLayout {
 
+    private static final Logger logger = LoggerFactory.getLogger(ExportarDatosView.class);
     private final PedidoService pedidoService;
 
     public ExportarDatosView(FeatureService featureService, PedidoService pedidoService) {
@@ -131,14 +133,10 @@ public class ExportarDatosView extends VerticalLayout {
                 DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
                 for (Pedido p : pedidos) {
-                    if (y < 50) { // Nueva página si se acaba el espacio
-                        contentStream.close(); // Cerrar stream actual
+                    if (y < 50) { 
+                        contentStream.close();
                         PDPage newPage = new PDPage();
                         document.addPage(newPage);
-                        // Iniciar nuevo stream para la nueva página
-                        // Nota: En una implementación más compleja, esto requeriría reestructurar el bucle
-                        // Para simplificar, limitamos a una página o cortamos.
-                        // Pero para hacerlo bien:
                         break; 
                     }
 
@@ -159,7 +157,7 @@ public class ExportarDatosView extends VerticalLayout {
                     contentStream.showText("Cliente: " + (p.getCliente() != null ? p.getCliente().getUsername() : "Anonimo") + 
                                          " | Estado: " + p.getEstado());
                     contentStream.endText();
-                    y -= (lineHeight + 10); // Espacio extra entre pedidos
+                    y -= (lineHeight + 10);
                 }
             }
 
@@ -167,7 +165,7 @@ public class ExportarDatosView extends VerticalLayout {
             return new ByteArrayInputStream(out.toByteArray());
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Error al generar el PDF de pedidos", e);
             return new ByteArrayInputStream("Error al generar PDF".getBytes(StandardCharsets.UTF_8));
         }
     }
