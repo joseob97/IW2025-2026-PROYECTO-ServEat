@@ -3,6 +3,8 @@ package com.serveat.service.cocina.impl;
 import com.serveat.domain.pedido.*;
 import com.serveat.repository.pedido.PedidoRepository;
 import com.serveat.service.cocina.CocineroService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -122,4 +124,33 @@ public class CocineroServiceImpl implements CocineroService {
         return pedidoRepo.findWithDetalleByCodigo(codigo)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado"));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Pedido> buscarPendientesAceptacion(LocalDateTime desde,
+                                                   LocalDateTime hasta,
+                                                   Integer mesa,
+                                                   Pageable pageable) {
+        return pedidoRepo.buscarPedidosCocinaHistorico(
+                desde, hasta, EstadoCocina.PENDIENTE_ACEPTACION, mesa, pageable
+        );
+    }
+
+    public Page<Pedido> buscarPedidosCocinaHoy(LocalDateTime desde,
+                                               LocalDateTime hasta,
+                                               EstadoCocina estado,
+                                               Integer mesa,
+                                               Pageable pageable) {
+        return pedidoRepo.buscarPedidosCocinaHoy(desde, hasta, estado, mesa, pageable);
+    }
+
+    public Page<Pedido> buscarPedidosCocinaHistorico(LocalDateTime desde,
+                                                     LocalDateTime hasta,
+                                                     EstadoCocina estado,
+                                                     Integer mesa,
+                                                     Pageable pageable) {
+        return pedidoRepo.buscarPedidosCocinaHistorico(desde, hasta, estado, mesa, pageable);
+    }
+
+
 }
