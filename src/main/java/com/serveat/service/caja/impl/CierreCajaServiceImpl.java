@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @Transactional
@@ -40,5 +41,11 @@ public class CierreCajaServiceImpl implements CierreCajaService {
 
         CierreCaja cierre = new CierreCaja(fecha, total, efectivo, tarjeta, paypal);
         return cierreCajaRepo.save(cierre);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CierreCaja> obtenerHistorialSemanal() {
+        return cierreCajaRepo.findTop7ByOrderByFechaDesc();
     }
 }
