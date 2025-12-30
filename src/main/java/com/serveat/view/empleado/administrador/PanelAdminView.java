@@ -83,6 +83,14 @@ public class PanelAdminView extends VerticalLayout {
                 GestionProductosView.class
         ));
 
+        // NUEVO: Gestión de caja ahora es básica (gratis)
+        cardsOrdenadas.add(cardBasica(
+                VaadinIcon.CASH.create(),
+                "Gestión de Caja",
+                "Apertura y cierre manual de caja y arqueo.",
+                CierreCajaView.class
+        ));
+
         /* =========================
            2) BLOQUES PREMIUM (ORDENADOS: ACTIVAS -> BLOQUEADAS)
            ========================= */
@@ -122,13 +130,7 @@ public class PanelAdminView extends VerticalLayout {
                         "Ventas por fecha, top productos y KPIs.",
                         EstadisticasAdminView.class
                 ),
-                new PremiumCard(
-                        Feature.CIERRE_CAJA,
-                        VaadinIcon.CASH.create(),
-                        "Cierre de caja",
-                        "Arqueo del día y totales por método de pago.",
-                        CierreCajaView.class
-                ),
+                // Cierre de caja movido a básico
                 new PremiumCard(
                         Feature.EXPORTAR_DATOS,
                         VaadinIcon.DOWNLOAD.create(),
@@ -276,4 +278,3 @@ public class PanelAdminView extends VerticalLayout {
         }
     }
 }
-
