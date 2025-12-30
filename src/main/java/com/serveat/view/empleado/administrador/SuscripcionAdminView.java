@@ -115,7 +115,7 @@ public class SuscripcionAdminView extends VerticalLayout {
 
         // PAGADA PERO NO ACTIVADA
         if (featureUnlockService.isFeaturePagada(feature)) {
-            Button codigo = new Button("Introducir código");
+            Button codigo = new Button("Activar");
             codigo.addClickListener(e -> mostrarDialogCodigo(feature));
             return codigo;
         }
