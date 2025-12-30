@@ -1,8 +1,10 @@
 package com.serveat.view.empleado.administrador.estadisticas;
 
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.caja.CierreCajaService;
 import com.serveat.service.caja.EstadoCajaService;
 import com.serveat.service.administrador.estadisticas.EstadisticasService;
+import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -31,17 +33,20 @@ public class CierreCajaView extends VerticalLayout {
     private final EstadisticasService estadisticasService;
     private final CierreCajaService cierreCajaService;
     private final EstadoCajaService estadoCajaService;
+    private final FeatureService featureService; // NUEVO
 
     private final VerticalLayout resultadosLayout = new VerticalLayout();
-    private final Button cerrarCajaButton = new Button("Generar Cierre de Caja del Turno");
+    private final Button cerrarCajaButton = new Button("Cerrar Caja");
     private final Button abrirCajaButton = new Button("Abrir Caja");
 
     public CierreCajaView(EstadisticasService estadisticasService,
                           CierreCajaService cierreCajaService,
-                          EstadoCajaService estadoCajaService) {
+                          EstadoCajaService estadoCajaService,
+                          FeatureService featureService) { // NUEVO
         this.estadisticasService = estadisticasService;
         this.cierreCajaService = cierreCajaService;
         this.estadoCajaService = estadoCajaService;
+        this.featureService = featureService; // NUEVO
 
         // Estilos para centrar y limitar el ancho
         setSizeFull();
@@ -92,7 +97,14 @@ public class CierreCajaView extends VerticalLayout {
     private void confirmarCierreCaja() {
         ConfirmDialog dialog = new ConfirmDialog();
         dialog.setHeader("Confirmar Cierre de Caja Manual");
-        dialog.setText("Usted está cerrando la caja manualmente. A partir de este momento no se atenderán pedidos hasta que vuelva a abrir la caja manualmente.");
+        
+        String mensaje = "Usted está cerrando la caja manualmente. A partir de este momento no se atenderán pedidos hasta que vuelva a abrir la caja manualmente.";
+        
+        if (featureService.tieneFeature(Feature.CIERRE_CAJA)) {
+            mensaje += "\n\n⚠️ ATENCIÓN: Tiene activa la apertura automática. La caja se abrirá automáticamente a las 13:00 si no la abre antes.";
+        }
+        
+        dialog.setText(mensaje);
         
         dialog.setCancelable(true);
         dialog.setCancelText("Cancelar");
@@ -108,7 +120,14 @@ public class CierreCajaView extends VerticalLayout {
     private void confirmarAperturaCaja() {
         ConfirmDialog dialog = new ConfirmDialog();
         dialog.setHeader("Confirmar Apertura de Caja");
-        dialog.setText("¿Desea abrir la caja? Se permitirán nuevos pedidos a partir de este momento.");
+        
+        String mensaje = "¿Desea abrir la caja? Se permitirán nuevos pedidos a partir de este momento.";
+        
+        if (featureService.tieneFeature(Feature.CIERRE_CAJA)) {
+            mensaje += "\n\n⚠️ ATENCIÓN: Tiene activo el cierre automático. La caja se cerrará automáticamente a las 00:00.";
+        }
+        
+        dialog.setText(mensaje);
         
         dialog.setCancelable(true);
         dialog.setCancelText("Cancelar");
