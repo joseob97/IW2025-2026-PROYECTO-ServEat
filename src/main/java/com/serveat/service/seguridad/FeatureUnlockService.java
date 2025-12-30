@@ -48,7 +48,7 @@ public class FeatureUnlockService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public void simularPagoYEnviarCodigo(Feature feature) {
+    public String simularPagoYObtenerCodigo(Feature feature) {
 
         FeatureDatos datos = featureDatosRepository.findByFeature(feature)
                 .orElseThrow(() -> new IllegalStateException(
@@ -59,25 +59,35 @@ public class FeatureUnlockService {
         }
 
         if (datos.isPagada()) {
-            throw new IllegalStateException("La feature ya ha sido pagada. Introduce el código de desbloqueo.");
+            throw new IllegalStateException("La feature ya ha sido pagada");
         }
 
-        // Simulación de pago correcta
+        // Marcar como pagada
         datos.setPagada(true);
         featureDatosRepository.save(datos);
 
-        String mensaje = """
+        String codigo = datos.getCodigoDesbloqueo();
+
+        // 👉 SOLO enviar push si NOTIFICACIONES está activa
+        if (featureActivaRepository.existsByFeature(Feature.NOTIFICACIONES)) {
+
+            String mensaje = """
                 Pago realizado correctamente.
                 
-                Código de desbloqueo para la feature %s:
+                Código de desbloqueo para %s:
                 %s
-                """.formatted(feature.name(), datos.getCodigoDesbloqueo());
+                """.formatted(feature.name(), codigo);
 
-        pushNotificacionService.enviarNotificacion(
-                "Desbloqueo de funcionalidad",
-                mensaje
-        );
+            pushNotificacionService.enviarNotificacion(
+                    "Desbloqueo de funcionalidad",
+                    mensaje
+            );
+        }
+
+        // 👉 SIEMPRE devolver el código (la vista decide qué hacer con él)
+        return codigo;
     }
+
 
     @PreAuthorize("hasRole('ADMIN')")
     public void validarCodigoYActivar(Feature feature, String codigoIntroducido) {
