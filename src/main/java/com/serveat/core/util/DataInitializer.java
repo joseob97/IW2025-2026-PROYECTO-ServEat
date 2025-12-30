@@ -15,6 +15,7 @@ import com.serveat.repository.menu.IngredienteRepository;
 import com.serveat.repository.menu.ProductoRepository;
 import com.serveat.repository.pago.PagoRepository;
 import com.serveat.repository.pedido.PedidoRepository;
+import com.serveat.repository.seguridad.FeatureDatosRepository;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.repository.usuario.EmpleadoRepository;
 import com.serveat.service.pedido.PedidoCalculoService;
