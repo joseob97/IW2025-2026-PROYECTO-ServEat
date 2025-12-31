@@ -9,6 +9,8 @@ import com.serveat.repository.menu.IngredienteRepository;
 import com.serveat.repository.menu.ProductoRepository;
 import com.serveat.service.menu.ProductoService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +48,7 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
+    @CacheEvict(value = {"productos", "productos_categoria"}, allEntries = true)
     public Producto crearProducto(String nombre, String descripcion, BigDecimal precio, String categoriaNombre) {
         Categoria categoria = categoriaRepo.findByNombre(categoriaNombre)
                 .orElseThrow(() -> new IllegalArgumentException("La categoría no existe"));
@@ -61,6 +64,7 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
+    @CacheEvict(value = {"productos", "productos_categoria"}, allEntries = true)
     public Producto crearProductoConIngredientes(
             String nombre,
             String descripcion,
@@ -90,6 +94,7 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
+    @CacheEvict(value = {"productos", "productos_categoria"}, allEntries = true)
     public Producto actualizarProductoConIngredientes(
             String codigo,
             String nombre,
@@ -139,11 +144,13 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable("productos")
     public List<Producto> listarProductos() {
         return productoRepo.findAll();
     }
 
     @Override
+    @Cacheable(value = "productos_categoria", key = "#categoriaNombre")
     public List<Producto> buscarPorCategoria(String categoriaNombre) {
         Categoria categoria = categoriaRepo.findByNombre(categoriaNombre)
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
@@ -161,6 +168,7 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
+    @CacheEvict(value = {"productos", "productos_categoria"}, allEntries = true)
     public void eliminarProducto(String codigo) {
         Producto p = productoRepo.findByCodigo(codigo)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
