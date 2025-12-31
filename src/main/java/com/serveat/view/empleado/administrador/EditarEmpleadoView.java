@@ -16,6 +16,7 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.validator.EmailValidator;
 import com.vaadin.flow.router.*;
 import jakarta.annotation.security.RolesAllowed;
 
@@ -106,10 +107,7 @@ public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObs
 
         binder.forField(email)
                 .asRequired("El email es obligatorio")
-                .withValidator(
-                        e -> e.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"),
-                        "Formato de email no válido"
-                )
+                .withValidator(new EmailValidator("Formato de email no válido"))
                 .bind(Empleado::getEmail, Empleado::setEmail);
 
         binder.forField(direccion)
@@ -119,7 +117,7 @@ public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObs
         binder.forField(telefono)
                 .asRequired("El teléfono es obligatorio")
                 .withValidator(
-                        t -> t.matches("^[0-9]{9,15}$"),
+                        t -> t != null && t.matches("^[0-9]{9,15}$"),
                         "Debe tener entre 9 y 15 dígitos"
                 )
                 .bind(Empleado::getTelefono, Empleado::setTelefono);
@@ -131,6 +129,7 @@ public class EditarEmpleadoView extends VerticalLayout implements BeforeEnterObs
         binder.forField(enabled)
                 .bind(Empleado::isEnabled, Empleado::setEnabled);
     }
+
 
     /* =========================
        CARGA EMPLEADO

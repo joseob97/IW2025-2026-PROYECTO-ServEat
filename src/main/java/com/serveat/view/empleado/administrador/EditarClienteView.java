@@ -16,6 +16,7 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.validator.EmailValidator;
 import com.vaadin.flow.router.*;
 import jakarta.annotation.security.RolesAllowed;
 
@@ -102,23 +103,19 @@ public class EditarClienteView extends VerticalLayout implements BeforeEnterObse
 
         binder.forField(email)
                 .asRequired("El email es obligatorio")
-                .withValidator(
-                        e -> e != null && e.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"),
-                        "Formato de email no válido"
-                )
+                .withValidator(new EmailValidator("Formato de email no válido"))
                 .bind(Cliente::getEmail, Cliente::setEmail);
 
-        // 🔐 PASSWORD OPCIONAL
         binder.forField(password)
                 .withValidator(
                         p -> p == null || p.isBlank() || p.length() >= 6,
                         "La contraseña debe tener al menos 6 caracteres"
                 )
                 .bind(
-                        cliente -> "", // nunca mostramos la actual
-                        (cliente, nuevaPassword) -> {
+                        c -> "",
+                        (c, nuevaPassword) -> {
                             if (nuevaPassword != null && !nuevaPassword.isBlank()) {
-                                cliente.setPassword(nuevaPassword);
+                                c.setPassword(nuevaPassword);
                             }
                         }
                 );
@@ -126,7 +123,7 @@ public class EditarClienteView extends VerticalLayout implements BeforeEnterObse
         binder.forField(telefono)
                 .asRequired("El teléfono es obligatorio")
                 .withValidator(
-                        t -> t.matches("^[0-9]{9,15}$"),
+                        t -> t != null && t.matches("^[0-9]{9,15}$"),
                         "El teléfono debe tener entre 9 y 15 dígitos"
                 )
                 .bind(Cliente::getTelefono, Cliente::setTelefono);
