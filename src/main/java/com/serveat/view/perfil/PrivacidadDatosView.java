@@ -4,15 +4,16 @@ import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.UnorderedList;
-import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
 import jakarta.annotation.security.RolesAllowed;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Route(value = "privacidad", layout = MainLayout.class)
 @PageTitle("Privacidad y datos personales")
@@ -80,7 +81,7 @@ public class PrivacidadDatosView extends VerticalLayout {
         VerticalLayout box = seccion("¿Cuánto tiempo se conservan los datos?");
         box.add(new Paragraph(
                 "Tus datos se conservan mientras tu cuenta esté activa. " +
-                        "Si desactivas o eliminas tu cuenta, se aplicará el proceso correspondiente de baja y supresión."
+                        "Si se solicita la baja o eliminación, se aplicará el proceso correspondiente."
         ));
         return box;
     }
@@ -96,17 +97,33 @@ public class PrivacidadDatosView extends VerticalLayout {
 
     private VerticalLayout seccionDerechos() {
         VerticalLayout box = seccion("Tus derechos (GDPR)");
+
+        if (esCliente()) {
+            UnorderedList ul = new UnorderedList(
+                    new ListItem("Consultar tus datos: puedes verlos en la sección “Mi perfil”."),
+                    new ListItem("Modificar tus datos: puedes editarlos desde “Mi perfil”."),
+                    new ListItem("Suprimir tus datos: puedes eliminar tu cuenta desde “Mi perfil”."),
+                    new ListItem("Desactivar tu cuenta: puedes desactivarla desde “Mi perfil”.")
+            );
+            box.add(ul);
+            box.add(new Paragraph(
+                    "Si necesitas ejercer algún derecho adicional o tienes dudas, puedes contactar con el restaurante."
+            ));
+            return box;
+        }
+
         UnorderedList ul = new UnorderedList(
                 new ListItem("Consultar tus datos: puedes verlos en la sección “Mi perfil”."),
                 new ListItem("Modificar tus datos: puedes editarlos desde “Mi perfil”."),
-                new ListItem("Suprimir tus datos: puedes eliminar tu cuenta desde “Mi perfil”."),
-                new ListItem("Desactivar tu cuenta: puedes desactivarla desde “Mi perfil”.")
+                new ListItem("Baja o eliminación de cuenta: debe gestionarlo un administrador del restaurante por motivos de seguridad y trazabilidad.")
         );
         box.add(ul);
 
         box.add(new Paragraph(
-                "Si necesitas ejercer algún derecho adicional o tienes dudas, puedes contactar con el restaurante."
+                "Si necesitas solicitar la baja/eliminación de tu cuenta o ejercer algún derecho adicional, " +
+                        "contacta con el administrador del restaurante."
         ));
+
         return box;
     }
 
@@ -146,5 +163,13 @@ public class PrivacidadDatosView extends VerticalLayout {
         hl.setJustifyContentMode(JustifyContentMode.START);
         hl.getStyle().set("margin-top", "6px");
         return hl;
+    }
+
+    private boolean esCliente() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) return false;
+
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_CLIENTE".equals(a.getAuthority()) || "CLIENTE".equals(a.getAuthority()));
     }
 }
