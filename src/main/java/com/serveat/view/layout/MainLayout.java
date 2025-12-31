@@ -2,7 +2,7 @@ package com.serveat.view.layout;
 
 import com.serveat.view.cliente.inicio.InicioClienteView;
 import com.serveat.view.cliente.pedido.PanelPedidoClienteView;
-import com.serveat.view.cliente.perfil.PerfilView;
+import com.serveat.view.perfil.PerfilView;
 
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.button.Button;

@@ -1,10 +1,11 @@
-package com.serveat.view.cliente.perfil;
+package com.serveat.view.perfil;
 
 import com.serveat.domain.usuario.Cliente;
 import com.serveat.domain.usuario.Empleado;
 import com.serveat.repository.usuario.EmpleadoRepository;
 import com.serveat.service.usuario.ClienteService;
 import com.serveat.service.usuario.EmpleadoService;
+import com.serveat.view.perfil.PrivacidadDatosView;
 import com.serveat.view.layout.MainLayout;
 
 import com.vaadin.flow.component.UI;
@@ -58,6 +59,7 @@ public class PerfilView extends VerticalLayout {
     private Button btnEditar;
     private Button btnGuardar;
     private Button btnCancelar;
+    private Button btnPrivacidad;
     private Button btnDesactivar;
     private Button btnEliminar;
 
@@ -82,9 +84,6 @@ public class PerfilView extends VerticalLayout {
         actualizarModo();
     }
 
-    /* =========================
-       CARGAR USUARIO
-       ========================= */
     private void cargarUsuario() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String usernameAuth = auth.getName();
@@ -97,9 +96,6 @@ public class PerfilView extends VerticalLayout {
         }
     }
 
-    /* =========================
-       FORMULARIO
-       ========================= */
     private void crearFormulario() {
 
         nombre = new TextField("Nombre");
@@ -145,9 +141,10 @@ public class PerfilView extends VerticalLayout {
             actualizarModo();
         });
 
-        HorizontalLayout acciones = new HorizontalLayout(
-                btnEditar, btnGuardar, btnCancelar
-        );
+        btnPrivacidad = new Button("🔒 Privacidad y datos");
+        btnPrivacidad.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate(PrivacidadDatosView.class)));
+
+        HorizontalLayout acciones = new HorizontalLayout(btnEditar, btnGuardar, btnCancelar, btnPrivacidad);
 
         add(form, acciones);
 
@@ -156,9 +153,6 @@ public class PerfilView extends VerticalLayout {
         }
     }
 
-    /* =========================
-       MODO EDICIÓN
-       ========================= */
     private void actualizarModo() {
 
         boolean editable = modoEdicion;
@@ -174,11 +168,10 @@ public class PerfilView extends VerticalLayout {
         btnEditar.setVisible(!editable);
         btnGuardar.setVisible(editable);
         btnCancelar.setVisible(editable);
+
+        btnPrivacidad.setVisible(!editable);
     }
 
-    /* =========================
-       GUARDAR CAMBIOS
-       ========================= */
     private void guardarCambios() {
 
         if (!validarCampos()) return;
@@ -222,9 +215,6 @@ public class PerfilView extends VerticalLayout {
         }
     }
 
-    /* =========================
-       VALIDACIONES
-       ========================= */
     private boolean validarCampos() {
 
         nombre.setInvalid(false);
@@ -278,9 +268,6 @@ public class PerfilView extends VerticalLayout {
         password.clear();
     }
 
-    /* =========================
-       ACCIONES CLIENTE
-       ========================= */
     private void crearAccionesCliente() {
 
         btnDesactivar = new Button("Desactivar cuenta");
@@ -292,9 +279,7 @@ public class PerfilView extends VerticalLayout {
         btnDesactivar.addClickListener(e -> confirmarDesactivacion());
         btnEliminar.addClickListener(e -> confirmarEliminacion());
 
-        HorizontalLayout accionesPeligro = new HorizontalLayout(
-                btnDesactivar, btnEliminar
-        );
+        HorizontalLayout accionesPeligro = new HorizontalLayout(btnDesactivar, btnEliminar);
         accionesPeligro.getStyle().set("margin-top", "30px");
 
         add(accionesPeligro);
