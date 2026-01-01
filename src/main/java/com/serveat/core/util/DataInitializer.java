@@ -41,7 +41,43 @@ import java.security.SecureRandom;
 @Configuration
 public class DataInitializer {
 
+    public static final String EXTRA_JALAPENOS = "Extra jalapeños";
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+    public static final String LECHUGA = "Lechuga";
+    public static final String TOMATE = "Tomate";
+    public static final String PAN_BRIOCHE = "Pan Brioche";
+    public static final String CARNE_DE_TERNERA = "Carne de ternera";
+    public static final String POLLO_CRISPY = "Pollo crispy";
+    public static final String QUESO_CHEDDAR = "Queso cheddar";
+    public static final String CEBOLLA = "Cebolla";
+    public static final String PEPINILLO = "Pepinillo";
+    public static final String MAYONESA = "Mayonesa";
+    public static final String SALSA_BBQ = "Salsa BBQ";
+    public static final String JALAPENOS = "Jalapeños";
+    public static final String BACON = "Bacon";
+    public static final String SETAS = "Setas";
+    public static final String JAMON = "Jamón";
+    public static final String CHAMPINONES = "Champiñones";
+    public static final String ACEITUNAS = "Aceitunas";
+    public static final String PARMESANO = "Parmesano";
+    public static final String GORGONZOLA = "Gorgonzola";
+    public static final String CHEDDAR_PIZZA = "Cheddar (pizza)";
+    public static final String BACON_PIZZA = "Bacon (pizza)";
+    public static final String EXTRA_QUESO = "Extra queso";
+    public static final String EXTRA_BACON = "Extra bacon";
+    public static final String EXTRA_PEPPERONI = "Extra pepperoni";
+    public static final String EXTRA_CHAMPINONES = "Extra champiñones";
+    public static final String MAYO_DE_TRUFA = "Mayo de trufa";
+    public static final String TOMATE_PIZZA = "Tomate (pizza)";
+    public static final String MOZZARELLA = "Mozzarella";
+    public static final String PEPPERONI = "Pepperoni";
+    public static final String SALAMI_PICANTE = "Salami picante";
+    public static final String PINA = "Piña";
+    public static final String ATUN = "Atún";
+    public static final String RUCULA = "Rúcula";
+    public static final String REPARTIDOR_1 = "repartidor1";
+    public static final String COCINERO_1 = "cocinero1";
+    public static final String CLIENTE = "CLIENTE";
 
     @Bean
     CommandLineRunner initDatabase(EmpleadoRepository empleadoRepository,
@@ -83,7 +119,7 @@ public class DataInitializer {
                 cliente.setTelefono("696369963");
                 cliente.setUsername("cliente1");
                 cliente.setPassword(pass);
-                cliente.setRol("CLIENTE");
+                cliente.setRol(CLIENTE);
                 clienteRepository.save(cliente);
 
                 Cliente cliente2 = new Cliente();
@@ -93,7 +129,7 @@ public class DataInitializer {
                 cliente2.setTelefono("600123456");
                 cliente2.setUsername("cliente2");
                 cliente2.setPassword(pass);
-                cliente2.setRol("CLIENTE");
+                cliente2.setRol(CLIENTE);
                 clienteRepository.save(cliente2);
 
                 Cliente cliente3 = new Cliente();
@@ -103,7 +139,7 @@ public class DataInitializer {
                 cliente3.setTelefono("123654987");
                 cliente3.setUsername("prueba");
                 cliente3.setPassword(pass);
-                cliente3.setRol("CLIENTE");
+                cliente3.setRol(CLIENTE);
                 clienteRepository.save(cliente3);
 
                 log.info("Clientes de prueba creados.");
@@ -131,41 +167,42 @@ public class DataInitializer {
                 log.info("Insertando ingredientes iniciales...");
 
                 ingredienteRepository.saveAll(List.of(
-                        ing("Pan Brioche", "0.00"),
-                        ing("Carne de ternera", "0.00"),
-                        ing("Pollo crispy", "0.00"),
-                        ing("Queso cheddar", "0.00"),
-                        ing("Lechuga", "0.00"),
-                        ing("Tomate", "0.00"),
-                        ing("Cebolla", "0.00"),
-                        ing("Pepinillo", "0.00"),
-                        ing("Mayonesa", "0.00"),
-                        ing("Salsa BBQ", "0.00"),
-                        ing("Jalapeños", "0.00"),
-                        ing("Bacon", "0.00"),
-                        ing("Setas", "0.00"),
-                        ing("Mayo de trufa", "0.00"),
-                        ing("Tomate (pizza)", "0.00"),
-                        ing("Mozzarella", "0.00"),
-                        ing("Pepperoni", "0.00"),
-                        ing("Salami picante", "0.00"),
-                        ing("Jamón", "0.00"),
-                        ing("Piña", "0.00"),
-                        ing("Atún", "0.00"),
-                        ing("Champiñones", "0.00"),
-                        ing("Aceitunas", "0.00"),
-                        ing("Rúcula", "0.00"),
-                        ing("Parmesano", "0.00"),
-                        ing("Gorgonzola", "0.00"),
-                        ing("Cheddar (pizza)", "0.00"),
-                        ing("Bacon (pizza)", "0.00"),
+                        ing(PAN_BRIOCHE, "0.00"),
+                        ing(CARNE_DE_TERNERA, "0.00"),
+                        ing(POLLO_CRISPY, "0.00"),
+                        ing(QUESO_CHEDDAR, "0.00"),
+                        ing(LECHUGA, "0.00"),
+                        ing(TOMATE, "0.00"),
+                        ing(CEBOLLA, "0.00"),
+                        ing(PEPINILLO, "0.00"),
+                        ing(MAYONESA, "0.00"),
+                        ing(SALSA_BBQ, "0.00"),
+                        ing(JALAPENOS, "0.00"),
+                        ing(BACON, "0.00"),
+                        ing(SETAS, "0.00"),
+                        ing(MAYO_DE_TRUFA, "0.00"),
+                        ing(TOMATE_PIZZA, "0.00"),
+                        ing(MOZZARELLA, "0.00"),
+                        ing(PEPPERONI, "0.00"),
+                        ing(SALAMI_PICANTE, "0.00"),
+                        ing(JAMON, "0.00"),
+                        ing(PINA, "0.00"),
+                        ing(ATUN, "0.00"),
+                        ing(CHAMPINONES, "0.00"),
+                        ing(ACEITUNAS, "0.00"),
+                        ing(RUCULA, "0.00"),
+                        ing(PARMESANO, "0.00"),
+                        ing(GORGONZOLA, "0.00"),
+                        ing(CHEDDAR_PIZZA, "0.00"),
+                        ing(BACON_PIZZA, "0.00"),
 
-                        ing("Extra queso", "0.80"),
-                        ing("Extra bacon", "1.20"),
-                        ing("Extra jalapeños", "0.50"),
-                        ing("Extra pepperoni", "0.90"),
-                        ing("Extra champiñones", "0.70")
+                        ing(EXTRA_QUESO, "0.80"),
+                        ing(EXTRA_BACON, "1.20"),
+                        ing(EXTRA_JALAPENOS, "0.50"),
+                        ing(EXTRA_PEPPERONI, "0.90"),
+                        ing(EXTRA_CHAMPINONES, "0.70")
                 ));
+
 
                 log.info("Ingredientes iniciales creados.");
             }
@@ -247,56 +284,56 @@ public class DataInitializer {
                 recetaPizzaBase(p9, ing);
                 recetaPizzaBase(p10, ing);
 
-                addNormal(b2, ing.get("Queso cheddar"));
-                addExtra(b2, ing.get("Extra queso"), "0.80");
+                addNormal(b2, ing.get(QUESO_CHEDDAR));
+                addExtra(b2, ing.get(EXTRA_QUESO), "0.80");
 
-                addNormal(b3, ing.get("Salsa BBQ"));
-                addNormal(b3, ing.get("Bacon"));
-                addExtra(b3, ing.get("Extra bacon"), "1.20");
+                addNormal(b3, ing.get(SALSA_BBQ));
+                addNormal(b3, ing.get(BACON));
+                addExtra(b3, ing.get(EXTRA_BACON), "1.20");
 
-                setOpcionalPorDefecto(b4, ing.get("Carne de ternera"), true);
-                addNormal(b4, ing.get("Pollo crispy"));
-                addNormal(b4, ing.get("Mayonesa"));
+                setOpcionalPorDefecto(b4, ing.get(CARNE_DE_TERNERA), true);
+                addNormal(b4, ing.get(POLLO_CRISPY));
+                addNormal(b4, ing.get(MAYONESA));
 
-                addNormal(b6, ing.get("Jalapeños"));
-                addExtra(b6, ing.get("Extra jalapeños"), "0.50");
+                addNormal(b6, ing.get(JALAPENOS));
+                addExtra(b6, ing.get(EXTRA_JALAPENOS), "0.50");
 
-                addNormal(b7, ing.get("Setas"));
-                addNormal(b7, ing.get("Mayo de trufa"));
+                addNormal(b7, ing.get(SETAS));
+                addNormal(b7, ing.get(MAYO_DE_TRUFA));
 
-                addNormal(p2, ing.get("Pepperoni"));
-                addExtra(p2, ing.get("Extra pepperoni"), "0.90");
+                addNormal(p2, ing.get(PEPPERONI));
+                addExtra(p2, ing.get(EXTRA_PEPPERONI), "0.90");
 
-                addNormal(p3, ing.get("Gorgonzola"));
-                addNormal(p3, ing.get("Parmesano"));
-                addNormal(p3, ing.get("Cheddar (pizza)"));
-                addExtra(p3, ing.get("Extra queso"), "0.80");
+                addNormal(p3, ing.get(GORGONZOLA));
+                addNormal(p3, ing.get(PARMESANO));
+                addNormal(p3, ing.get(CHEDDAR_PIZZA));
+                addExtra(p3, ing.get(EXTRA_QUESO), "0.80");
 
-                addNormal(p4, ing.get("Salsa BBQ"));
-                addNormal(p4, ing.get("Cebolla"));
-                addNormal(p4, ing.get("Pollo crispy"));
-                addExtra(p4, ing.get("Extra bacon"), "1.20");
+                addNormal(p4, ing.get(SALSA_BBQ));
+                addNormal(p4, ing.get(CEBOLLA));
+                addNormal(p4, ing.get(POLLO_CRISPY));
+                addExtra(p4, ing.get(EXTRA_BACON), "1.20");
 
-                addNormal(p5, ing.get("Jamón"));
-                addNormal(p5, ing.get("Piña"));
+                addNormal(p5, ing.get(JAMON));
+                addNormal(p5, ing.get(PINA));
 
-                addNormal(p6, ing.get("Champiñones"));
-                addNormal(p6, ing.get("Aceitunas"));
-                addNormal(p6, ing.get("Cebolla"));
-                addExtra(p6, ing.get("Extra champiñones"), "0.70");
+                addNormal(p6, ing.get(CHAMPINONES));
+                addNormal(p6, ing.get(ACEITUNAS));
+                addNormal(p6, ing.get(CEBOLLA));
+                addExtra(p6, ing.get(EXTRA_CHAMPINONES), "0.70");
 
-                addNormal(p7, ing.get("Salami picante"));
-                addExtra(p7, ing.get("Extra jalapeños"), "0.50");
+                addNormal(p7, ing.get(SALAMI_PICANTE));
+                addExtra(p7, ing.get(EXTRA_JALAPENOS), "0.50");
 
-                addNormal(p8, ing.get("Jamón"));
-                addNormal(p8, ing.get("Rúcula"));
-                addNormal(p8, ing.get("Parmesano"));
+                addNormal(p8, ing.get(JAMON));
+                addNormal(p8, ing.get(RUCULA));
+                addNormal(p8, ing.get(PARMESANO));
 
-                addNormal(p9, ing.get("Bacon (pizza)"));
-                addNormal(p9, ing.get("Parmesano"));
+                addNormal(p9, ing.get(BACON_PIZZA));
+                addNormal(p9, ing.get(PARMESANO));
 
-                addNormal(p10, ing.get("Atún"));
-                addNormal(p10, ing.get("Cebolla"));
+                addNormal(p10, ing.get(ATUN));
+                addNormal(p10, ing.get(CEBOLLA));
 
                 productoRepository.saveAll(List.of(
                         b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,
@@ -314,7 +351,7 @@ public class DataInitializer {
                 Cliente cliente = clienteRepository.findByUsername("cliente1")
                         .orElseThrow(() -> new IllegalStateException("cliente1 no existe"));
 
-                Empleado repartidor = empleadoRepository.findByUsername("repartidor1")
+                Empleado repartidor = empleadoRepository.findByUsername(REPARTIDOR_1)
                         .orElseThrow(() -> new IllegalStateException("repartidor1 no existe"));
 
                 Producto burg1 = productoRepository.findByCodigo("BURG-001")
@@ -335,7 +372,7 @@ public class DataInitializer {
                 recoger2.setEstado(EstadoPedido.EN_COCINA);
                 recoger2.setEstadoCocina(EstadoCocina.EN_PREPARACION);
                 recoger2.setEstadoReparto(EstadoReparto.NO_APLICA);
-                recoger2.setModificadoPor("cocinero1");
+                recoger2.setModificadoPor(COCINERO_1);
                 recoger2.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(20));
                 addLinea(recoger2, pizz1, 1);
 
@@ -343,7 +380,7 @@ public class DataInitializer {
                 recoger3.setEstado(EstadoPedido.EN_COCINA);
                 recoger3.setEstadoCocina(EstadoCocina.LISTO);
                 recoger3.setEstadoReparto(EstadoReparto.NO_APLICA);
-                recoger3.setModificadoPor("cocinero1");
+                recoger3.setModificadoPor(COCINERO_1);
                 recoger3.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(10));
                 addLinea(recoger3, burg1, 2);
 
@@ -358,7 +395,7 @@ public class DataInitializer {
                 dom2.setEstado(EstadoPedido.EN_COCINA);
                 dom2.setEstadoCocina(EstadoCocina.LISTO);
                 dom2.setEstadoReparto(EstadoReparto.PENDIENTE_ASIGNACION);
-                dom2.setModificadoPor("cocinero1");
+                dom2.setModificadoPor(COCINERO_1);
                 dom2.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(5));
                 addLinea(dom2, burg1, 1);
                 addLinea(dom2, beb1, 1);
@@ -369,7 +406,7 @@ public class DataInitializer {
                 dom3.setEstadoReparto(EstadoReparto.ASIGNADO);
                 dom3.setRepartidor(repartidor);
                 dom3.setFechaAsignacionReparto(LocalDateTime.now().minusMinutes(15));
-                dom3.setModificadoPor("repartidor1");
+                dom3.setModificadoPor(REPARTIDOR_1);
                 dom3.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(15));
                 addLinea(dom3, pizz1, 2);
 
@@ -380,7 +417,7 @@ public class DataInitializer {
                 dom4.setRepartidor(repartidor);
                 dom4.setFechaAsignacionReparto(LocalDateTime.now().minusMinutes(30));
                 dom4.setFechaSalidaReparto(LocalDateTime.now().minusMinutes(10));
-                dom4.setModificadoPor("repartidor1");
+                dom4.setModificadoPor(REPARTIDOR_1);
                 dom4.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(10));
                 addLinea(dom4, burg1, 1);
                 addLinea(dom4, beb1, 1);
@@ -393,7 +430,7 @@ public class DataInitializer {
                 dom5.setFechaAsignacionReparto(LocalDateTime.now().minusHours(1));
                 dom5.setFechaSalidaReparto(LocalDateTime.now().minusMinutes(40));
                 dom5.setFechaEntrega(LocalDateTime.now().minusMinutes(15));
-                dom5.setModificadoPor("repartidor1");
+                dom5.setModificadoPor(REPARTIDOR_1);
                 dom5.setFechaUltimaModificacion(LocalDateTime.now().minusMinutes(15));
                 addLinea(dom5, pizz1, 1);
 
@@ -404,7 +441,7 @@ public class DataInitializer {
                 dom6.setRepartidor(repartidor);
                 dom6.setIncidenciaReparto("No hay nadie en casa");
                 dom6.setFechaAsignacionReparto(LocalDateTime.now().minusHours(2));
-                dom6.setModificadoPor("repartidor1");
+                dom6.setModificadoPor(REPARTIDOR_1);
                 dom6.setFechaUltimaModificacion(LocalDateTime.now().minusHours(2));
                 addLinea(dom6, burg1, 1);
 
@@ -449,12 +486,12 @@ public class DataInitializer {
             ));
 
             empleadoRepository.save(new Empleado(
-                    "Cocinero Demo", "cocinero1", pass, "712345678",
+                    "Cocinero Demo", COCINERO_1, pass, "712345678",
                     "cocinero@gmail.com", "Calle del cocinero nº25", "COCINERO", true
             ));
 
             empleadoRepository.save(new Empleado(
-                    "Repartidor Demo", "repartidor1", pass, "798765432",
+                    "Repartidor Demo", REPARTIDOR_1, pass, "798765432",
                     "repartidor@gmail.com", "Calle del repartidor nº99", "REPARTIDOR", true
             ));
 
@@ -555,42 +592,42 @@ public class DataInitializer {
     }
 
     private static void recetaBurgerBase(Producto p, Map<String, Ingrediente> ing) {
-        addObligatorio(p, ing.get("Pan Brioche"));
-        addObligatorio(p, ing.get("Carne de ternera"));
+        addObligatorio(p, ing.get(PAN_BRIOCHE));
+        addObligatorio(p, ing.get(CARNE_DE_TERNERA));
 
-        addNormal(p, ing.get("Queso cheddar"));
-        addNormal(p, ing.get("Lechuga"));
-        addNormal(p, ing.get("Tomate"));
-        addNormal(p, ing.get("Cebolla"));
-        addNormal(p, ing.get("Pepinillo"));
+        addNormal(p, ing.get(QUESO_CHEDDAR));
+        addNormal(p, ing.get(LECHUGA));
+        addNormal(p, ing.get(TOMATE));
+        addNormal(p, ing.get(CEBOLLA));
+        addNormal(p, ing.get(PEPINILLO));
 
-        addExtra(p, ing.get("Extra queso"), "0.80");
-        addExtra(p, ing.get("Extra bacon"), "1.20");
-        addExtra(p, ing.get("Extra jalapeños"), "0.50");
+        addExtra(p, ing.get(EXTRA_QUESO), "0.80");
+        addExtra(p, ing.get(EXTRA_BACON), "1.20");
+        addExtra(p, ing.get(EXTRA_JALAPENOS), "0.50");
     }
 
     private static void recetaBurgerVeggie(Producto p, Map<String, Ingrediente> ing) {
-        addObligatorio(p, ing.get("Pan Brioche"));
-        addNormal(p, ing.get("Tomate"));
-        addNormal(p, ing.get("Lechuga"));
-        addNormal(p, ing.get("Cebolla"));
-        addNormal(p, ing.get("Pepinillo"));
+        addObligatorio(p, ing.get(PAN_BRIOCHE));
+        addNormal(p, ing.get(TOMATE));
+        addNormal(p, ing.get(LECHUGA));
+        addNormal(p, ing.get(CEBOLLA));
+        addNormal(p, ing.get(PEPINILLO));
 
-        addExtra(p, ing.get("Extra queso"), "0.80");
-        addExtra(p, ing.get("Extra jalapeños"), "0.50");
+        addExtra(p, ing.get(EXTRA_QUESO), "0.80");
+        addExtra(p, ing.get(EXTRA_JALAPENOS), "0.50");
     }
 
     private static void recetaPizzaBase(Producto p, Map<String, Ingrediente> ing) {
-        addObligatorio(p, ing.get("Tomate (pizza)"));
-        addObligatorio(p, ing.get("Mozzarella"));
+        addObligatorio(p, ing.get(TOMATE_PIZZA));
+        addObligatorio(p, ing.get(MOZZARELLA));
 
-        addNormal(p, ing.get("Cebolla"));
-        addNormal(p, ing.get("Champiñones"));
-        addNormal(p, ing.get("Aceitunas"));
+        addNormal(p, ing.get(CEBOLLA));
+        addNormal(p, ing.get(CHAMPINONES));
+        addNormal(p, ing.get(ACEITUNAS));
 
-        addExtra(p, ing.get("Extra queso"), "0.80");
-        addExtra(p, ing.get("Extra pepperoni"), "0.90");
-        addExtra(p, ing.get("Extra champiñones"), "0.70");
+        addExtra(p, ing.get(EXTRA_QUESO), "0.80");
+        addExtra(p, ing.get(EXTRA_PEPPERONI), "0.90");
+        addExtra(p, ing.get(EXTRA_CHAMPINONES), "0.70");
     }
 
     private static void setOpcionalPorDefecto(Producto p, Ingrediente i, boolean porDefecto) {
@@ -613,13 +650,18 @@ public class DataInitializer {
         for (Feature feature : Feature.values()) {
 
             featureDatosRepository.findByFeature(feature)
-                    .orElseGet(() -> featureDatosRepository.save(
-                            new FeatureDatos(
-                                    feature,
-                                    new BigDecimal("100.00"),
-                                    generarCodigoFeature(random)
+                    .ifPresentOrElse(
+                            fd -> {
+                                // ya existe → no hacemos nada
+                            },
+                            () -> featureDatosRepository.save(
+                                    new FeatureDatos(
+                                            feature,
+                                            new BigDecimal("100.00"),
+                                            generarCodigoFeature(random)
+                                    )
                             )
-                    ));
+                    );
         }
     }
 
