@@ -4,6 +4,7 @@ import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.seguridad.FeatureService;
 import com.serveat.service.seguridad.FeatureUnlockService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H2;
@@ -154,6 +155,7 @@ public class SuscripcionAdminView extends VerticalLayout {
                 );
 
                 mostrarDialogCodigoGenerado(codigo);
+                // Aquí no hace falta recargar porque el estado de "pagado" no afecta a la caché de features activas
                 renderizar();
 
             } catch (Exception ex) {
@@ -183,7 +185,10 @@ public class SuscripcionAdminView extends VerticalLayout {
                 featureUnlockService.validarCodigoYActivar(feature, campo.getValue());
                 dialog.close();
                 Notification.show("Funcionalidad activada", 2500, Notification.Position.MIDDLE);
-                renderizar();
+                
+                //Recargar página completa para asegurar refresco de caché y UI
+                UI.getCurrent().getPage().reload();
+
             } catch (Exception ex) {
                 Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
             }

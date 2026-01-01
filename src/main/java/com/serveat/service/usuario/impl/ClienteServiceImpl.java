@@ -4,8 +4,6 @@ import com.serveat.domain.usuario.Cliente;
 import com.serveat.repository.usuario.ClienteRepository;
 import com.serveat.service.usuario.ClienteService;
 import com.serveat.service.usuario.exceptions.DuplicadoException;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +27,6 @@ public class ClienteServiceImpl implements ClienteService {
     // LOGIN / SEGURIDAD
     // =========================
     @Override
-    @Cacheable(value = "clientes", key = "#username")
     public Cliente obtenerPorUsername(String username) {
         return clienteRepo.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
@@ -51,7 +48,6 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "clientes", key = "#cliente.username")
     public Cliente guardar(Cliente cliente) {
 
         // =========================
@@ -90,7 +86,6 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "clientes", key = "#cliente.username")
     public void activar(Cliente cliente) {
         cliente.setActivo(true);
         clienteRepo.save(cliente);
@@ -98,7 +93,6 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "clientes", key = "#cliente.username")
     public void desactivar(Cliente cliente) {
         cliente.setActivo(false);
         clienteRepo.save(cliente);
@@ -106,7 +100,6 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "clientes", key = "#cliente.username")
     public void eliminar(Cliente cliente) {
         clienteRepo.delete(cliente);
     }
