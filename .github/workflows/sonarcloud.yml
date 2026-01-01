@@ -33,7 +33,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mvn -B -DskipTests clean verify \
+          mvn -B clean verify \
             org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.projectKey=joseob97_IW2025-2026-PROYECTO-ServEat \
