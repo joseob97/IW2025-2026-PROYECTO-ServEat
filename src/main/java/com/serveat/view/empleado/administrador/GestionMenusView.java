@@ -11,6 +11,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -59,12 +60,53 @@ public class GestionMenusView extends VerticalLayout {
         precio.setMin(0);
         precio.setStep(0.5);
 
+        // 🔹 Listado de menús existentes (para que el admin vea lo creado)
+        H3 tituloListado = new H3("Menús creados");
+        VerticalLayout listadoMenus = new VerticalLayout();
+        listadoMenus.setPadding(false);
+        listadoMenus.setSpacing(false);
+        listadoMenus.getStyle().set("gap", "10px");
+
+        Runnable recargarListado = () -> {
+            listadoMenus.removeAll();
+            List<Menu> menus = menuService.obtenerMenusActivos();
+
+            if (menus.isEmpty()) {
+                listadoMenus.add(new Paragraph("Aún no hay menús creados."));
+                return;
+            }
+
+            for (Menu m : menus) {
+                VerticalLayout card = new VerticalLayout();
+                card.setPadding(true);
+                card.setSpacing(false);
+                card.getStyle().set("gap", "6px");
+                card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
+                card.getStyle().set("border-radius", "12px");
+                card.getStyle().set("background", "var(--lumo-base-color)");
+
+                card.add(
+                        new Paragraph("Nombre: " + m.getNombre()),
+                        new Paragraph("Precio fijo: " + m.getPrecioFijo() + " €")
+                );
+
+                listadoMenus.add(card);
+            }
+        };
+
+        // Cargar listado al entrar
+        recargarListado.run();
+
         Button crearMenu = new Button("Crear menú", event -> {
             try {
                 Menu menu = new Menu();
                 menu.setNombre(nombre.getValue());
                 menu.setDescripcion(descripcion.getValue());
                 menu.setProductos(productos.getValue().stream().toList());
+
+                if (precio.getValue() == null) {
+                    throw new IllegalArgumentException("El precio fijo es obligatorio");
+                }
                 menu.setPrecioFijo(BigDecimal.valueOf(precio.getValue()));
 
                 menuService.crearMenu(menu);
@@ -74,6 +116,9 @@ public class GestionMenusView extends VerticalLayout {
                 descripcion.clear();
                 productos.clear();
                 precio.clear();
+
+                // Recargar listado tras crear
+                recargarListado.run();
 
             } catch (Exception e) {
                 Notification.show(e.getMessage(), 4000, Notification.Position.MIDDLE);
@@ -89,6 +134,6 @@ public class GestionMenusView extends VerticalLayout {
                 crearMenu
         );
 
-        add(titulo, formulario);
+        add(titulo, formulario, tituloListado, listadoMenus);
     }
 }
