@@ -3,6 +3,8 @@ package com.serveat.service.menu.impl;
 import com.serveat.domain.menu.Categoria;
 import com.serveat.repository.menu.CategoriaRepository;
 import com.serveat.service.menu.CategoriaService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +19,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
+    @CacheEvict(value = "categorias", allEntries = true)
     public Categoria crearCategoria(String nombre) {
         Categoria c = new Categoria();
         c.setNombre(nombre);
@@ -30,6 +33,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
+    @Cacheable("categorias")
     public List<Categoria> listarCategorias() {
         return categoriaRepo.findAll();
     }
