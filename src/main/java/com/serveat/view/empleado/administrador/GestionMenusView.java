@@ -9,11 +9,13 @@ import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -29,16 +31,28 @@ import java.util.List;
 @Secured("ROLE_ADMIN")
 public class GestionMenusView extends VerticalLayout {
 
+    private final MenuService menuService;
+    private final ProductoRepository productoRepository;
+    private final FeatureService featureService;
+
+    private final VerticalLayout listadoMenus = new VerticalLayout();
+
     public GestionMenusView(MenuService menuService,
                             ProductoRepository productoRepository,
                             FeatureService featureService) {
 
+        this.menuService = menuService;
+        this.productoRepository = productoRepository;
+        this.featureService = featureService;
+
         setPadding(true);
         setSpacing(true);
+        setMaxWidth("1100px");
+        getStyle().set("margin", "0 auto");
 
         H2 titulo = new H2("Gestión de menús y ofertas");
 
-        // 🔒 Control de feature premium (igual que Promociones)
+        // 🔒 Control de feature
         if (!featureService.tieneFeature(Feature.MENUS_OFERTAS)) {
             add(
                     titulo,
@@ -48,6 +62,10 @@ public class GestionMenusView extends VerticalLayout {
             return;
         }
 
+        // =======================
+        // FORMULARIO CREAR MENÚ
+        // =======================
+
         TextField nombre = new TextField("Nombre del menú");
         TextField descripcion = new TextField("Descripción");
 
@@ -56,46 +74,9 @@ public class GestionMenusView extends VerticalLayout {
         productos.setItems(productoRepository.findAll());
         productos.setItemLabelGenerator(Producto::getNombre);
 
-        NumberField precio = new NumberField("Precio fijo");
+        NumberField precio = new NumberField("Precio fijo (€)");
         precio.setMin(0);
         precio.setStep(0.5);
-
-        // 🔹 Listado de menús existentes (para que el admin vea lo creado)
-        H3 tituloListado = new H3("Menús creados");
-        VerticalLayout listadoMenus = new VerticalLayout();
-        listadoMenus.setPadding(false);
-        listadoMenus.setSpacing(false);
-        listadoMenus.getStyle().set("gap", "10px");
-
-        Runnable recargarListado = () -> {
-            listadoMenus.removeAll();
-            List<Menu> menus = menuService.obtenerMenusActivos();
-
-            if (menus.isEmpty()) {
-                listadoMenus.add(new Paragraph("Aún no hay menús creados."));
-                return;
-            }
-
-            for (Menu m : menus) {
-                VerticalLayout card = new VerticalLayout();
-                card.setPadding(true);
-                card.setSpacing(false);
-                card.getStyle().set("gap", "6px");
-                card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
-                card.getStyle().set("border-radius", "12px");
-                card.getStyle().set("background", "var(--lumo-base-color)");
-
-                card.add(
-                        new Paragraph("Nombre: " + m.getNombre()),
-                        new Paragraph("Precio fijo: " + m.getPrecioFijo() + " €")
-                );
-
-                listadoMenus.add(card);
-            }
-        };
-
-        // Cargar listado al entrar
-        recargarListado.run();
 
         Button crearMenu = new Button("Crear menú", event -> {
             try {
@@ -103,30 +84,29 @@ public class GestionMenusView extends VerticalLayout {
                 menu.setNombre(nombre.getValue());
                 menu.setDescripcion(descripcion.getValue());
                 menu.setProductos(productos.getValue().stream().toList());
-
-                if (precio.getValue() == null) {
-                    throw new IllegalArgumentException("El precio fijo es obligatorio");
-                }
                 menu.setPrecioFijo(BigDecimal.valueOf(precio.getValue()));
 
                 menuService.crearMenu(menu);
 
                 Notification.show("Menú creado correctamente");
+
                 nombre.clear();
                 descripcion.clear();
                 productos.clear();
                 precio.clear();
 
-                // Recargar listado tras crear
-                recargarListado.run();
+                cargarListadoMenus();
 
             } catch (Exception e) {
-                Notification.show(e.getMessage(), 4000, Notification.Position.MIDDLE);
+                Notification.show(
+                        e.getMessage(),
+                        4000,
+                        Notification.Position.MIDDLE
+                );
             }
         });
 
-        FormLayout formulario = new FormLayout();
-        formulario.add(
+        FormLayout formulario = new FormLayout(
                 nombre,
                 descripcion,
                 productos,
@@ -134,6 +114,79 @@ public class GestionMenusView extends VerticalLayout {
                 crearMenu
         );
 
-        add(titulo, formulario, tituloListado, listadoMenus);
+        formulario.setColspan(productos, 2);
+
+        // =======================
+        // LISTADO DE MENÚS
+        // =======================
+
+        H3 subtituloListado = new H3("Menús creados");
+        listadoMenus.setSpacing(true);
+
+        cargarListadoMenus();
+
+        add(
+                titulo,
+                formulario,
+                subtituloListado,
+                listadoMenus
+        );
+    }
+
+    // =======================
+    // MÉTODO DE CARGA LISTADO
+    // =======================
+
+    private void cargarListadoMenus() {
+        listadoMenus.removeAll();
+
+        List<Menu> menus = menuService.obtenerMenusActivos();
+
+        if (menus.isEmpty()) {
+            listadoMenus.add(new Paragraph("Aún no hay menús creados."));
+            return;
+        }
+
+        for (Menu menu : menus) {
+            VerticalLayout card = new VerticalLayout();
+            card.setPadding(true);
+            card.setSpacing(false);
+            card.getStyle().set("gap", "8px");
+            card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
+            card.getStyle().set("border-radius", "12px");
+            card.getStyle().set("background", "var(--lumo-base-color)");
+
+            Paragraph info = new Paragraph(
+                    "Nombre: " + menu.getNombre() +
+                            " | Precio fijo: " + menu.getPrecioFijo() + " €"
+            );
+
+            Button eliminar = new Button("Eliminar");
+            eliminar.getStyle().set("color", "var(--lumo-error-text-color)");
+
+            eliminar.addClickListener(e -> {
+                ConfirmDialog dialog = new ConfirmDialog();
+                dialog.setHeader("Eliminar menú");
+                dialog.setText(
+                        "¿Seguro que deseas eliminar el menú \"" + menu.getNombre() + "\"?"
+                );
+                dialog.setConfirmText("Eliminar");
+                dialog.setCancelable(true);
+
+                dialog.addConfirmListener(ev -> {
+                    menu.setActivo(false);
+                    menuService.crearMenu(menu); // guardamos cambio lógico
+                    Notification.show("Menú eliminado");
+                    cargarListadoMenus();
+                });
+
+                dialog.open();
+            });
+
+            HorizontalLayout acciones = new HorizontalLayout(eliminar);
+
+            card.add(info, acciones);
+            listadoMenus.add(card);
+        }
     }
 }
