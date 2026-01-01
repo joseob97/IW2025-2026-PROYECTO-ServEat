@@ -2,6 +2,8 @@ package com.serveat.service.establecimiento;
 
 import com.serveat.domain.establecimiento.DatosLocal;
 import com.serveat.repository.establecimiento.DatosLocalRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,6 +15,7 @@ public class DatosLocalService {
         this.repository = repository;
     }
 
+    @Cacheable("datos_local")
     public DatosLocal obtenerDatos() {
         return repository.findAll()
                 .stream()
@@ -20,6 +23,7 @@ public class DatosLocalService {
                 .orElseGet(this::crearDatosPorDefecto);
     }
 
+    @CacheEvict(value = "datos_local", allEntries = true)
     public DatosLocal guardar(DatosLocal datos) {
         return repository.save(datos);
     }
