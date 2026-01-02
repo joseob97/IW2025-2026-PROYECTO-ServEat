@@ -4,7 +4,14 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 @Entity
-@Table(name = "clientes")
+@Table(
+        name = "clientes",
+        indexes = {
+                @Index(name = "idx_cliente_email", columnList = "email"),
+                @Index(name = "idx_cliente_username", columnList = "username"),
+                @Index(name = "idx_cliente_activo", columnList = "activo")
+        }
+)
 public class Cliente {
 
     @Id
@@ -137,4 +144,3 @@ public class Cliente {
         this.rol = rol;
     }
 }
-
