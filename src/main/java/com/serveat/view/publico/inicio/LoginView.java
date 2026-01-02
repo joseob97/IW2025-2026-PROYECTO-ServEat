@@ -9,20 +9,25 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Route(value = "login", layout = MainLayout.class)
 @PageTitle("Iniciar Sesión | ServEat")
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
+
+    private static final Logger log = LoggerFactory.getLogger(LoginView.class);
 
     private final LoginForm loginForm = new LoginForm();
     private final Span errorMessage = new Span();
 
     public LoginView() {
 
-        // ===== CONFIGURACIÓN GENERAL =====
+        log.info("Acceso a la vista de login");
+
         setSizeFull();
         setAlignItems(FlexComponent.Alignment.CENTER);
 
-        // ===== CONTENEDOR CENTRADO =====
         VerticalLayout contenedor = new VerticalLayout();
         contenedor.setWidth("400px");
         contenedor.setPadding(true);
@@ -37,17 +42,14 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         H1 title = new H1("Iniciar sesión en ServEat");
         title.getStyle().set("text-align", "center");
 
-        // ===== LOGIN FORM =====
         loginForm.setAction("login");
         loginForm.setForgotPasswordButtonVisible(false);
 
-        // ===== MENSAJE DE ERROR PERSONALIZADO =====
         errorMessage.getStyle().set("color", "red");
         errorMessage.getStyle().set("font-weight", "bold");
         errorMessage.getStyle().set("margin-bottom", "10px");
         errorMessage.setVisible(false);
 
-        // ===== REGISTRO =====
         Span noCuenta = new Span("¿No tienes cuenta aún?");
         RouterLink registrate = new RouterLink(" Regístrate", RegistroClienteView.class);
         registrate.getStyle().set("color", "#0366d6");
@@ -57,7 +59,6 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         registroLayout.setSpacing(false);
         registroLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
 
-        // ===== AÑADIR TODO AL CONTENEDOR =====
         contenedor.add(title, errorMessage, loginForm, registroLayout);
         add(contenedor);
     }
@@ -65,20 +66,19 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
 
-        // Reset
         errorMessage.setVisible(false);
         loginForm.setError(false);
 
         QueryParameters params = event.getLocation().getQueryParameters();
 
         if (params.getParameters().containsKey("disabled")) {
+            log.warn("Intento de inicio de sesión con usuario desactivado");
             errorMessage.setText("Tu usuario está desactivado. Contacta con un administrador.");
             errorMessage.setVisible(true);
-            loginForm.setError(false);
 
         } else if (params.getParameters().containsKey("error")) {
+            log.warn("Error de autenticación en intento de login");
             loginForm.setError(true);
         }
     }
 }
-
