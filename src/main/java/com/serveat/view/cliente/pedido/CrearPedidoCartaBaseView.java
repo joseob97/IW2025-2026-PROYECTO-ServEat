@@ -7,11 +7,13 @@ import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.LineaPedidoIngrediente;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.menu.CategoriaService;
 import com.serveat.service.menu.ProductoService;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
+import com.serveat.service.seguridad.FeatureService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -45,6 +47,7 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
 
     protected final transient ProductoService productoService;
     protected final transient CategoriaService categoriaService;
+    protected final transient FeatureService featureService;
 
     protected Pedido carrito = new Pedido();
 
@@ -64,16 +67,20 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
     private Grid.Column<LineaPedido> colAcciones;
     private final Button btnEditarCarrito = new Button("✏️ Editar carrito");
 
+    private boolean showIngredientes = false;
+
     protected CrearPedidoCartaBaseView(PedidoService pedidoService,
                                        PedidoCarritoService pedidoCarritoService,
                                        PedidoCalculoService pedidoCalculoService,
                                        ProductoService productoService,
-                                       CategoriaService categoriaService) {
+                                       CategoriaService categoriaService,
+                                       FeatureService featureService) {
         this.pedidoService = pedidoService;
         this.pedidoCarritoService = pedidoCarritoService;
         this.pedidoCalculoService = pedidoCalculoService;
         this.productoService = productoService;
         this.categoriaService = categoriaService;
+        this.featureService = featureService;
 
         setWidthFull();
         setPadding(true);
@@ -88,6 +95,8 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
     }
 
     protected void construirUI(String tituloPantalla) {
+
+        showIngredientes = featureService.tieneFeature(Feature.INGREDIENTES);
 
         H3 titulo = new H3(tituloPantalla);
         titulo.getStyle().set("margin", "0");
@@ -207,10 +216,12 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         }
 
         cacheTieneIngredientes.clear();
-        for (Producto p : productos) {
-            String cod = p.getCodigo();
-            if (cod != null && !cod.isBlank()) {
-                cacheTieneIngredientes.put(cod, productoService.productoTieneIngredientes(cod));
+        if (showIngredientes) {
+            for (Producto p : productos) {
+                String cod = p.getCodigo();
+                if (cod != null && !cod.isBlank()) {
+                    cacheTieneIngredientes.put(cod, productoService.productoTieneIngredientes(cod));
+                }
             }
         }
 
@@ -312,7 +323,7 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         add.getElement().getStyle().set("border", "1px solid var(--lumo-success-color)");
         add.setWidth("120px");
 
-        boolean tieneIng = p.getCodigo() != null && cacheTieneIngredientes.getOrDefault(p.getCodigo(), false);
+        boolean tieneIng = showIngredientes && p.getCodigo() != null && cacheTieneIngredientes.getOrDefault(p.getCodigo(), false);
 
         Button personalizar = new Button("⚙ Personalizar");
         personalizar.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
@@ -324,11 +335,17 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         personalizar.getElement().getStyle().set("font-weight", "700");
 
         personalizar.setEnabled(tieneIng);
-        if (!tieneIng) {
+
+        if (!showIngredientes) {
+            personalizar.getElement().setProperty("title", "Personalización desactivada");
+        } else if (!tieneIng) {
             personalizar.getElement().setProperty("title", "Este producto no tiene ingredientes configurados");
         }
 
-        personalizar.addClickListener(e -> abrirDialogoPersonalizar(p.getCodigo(), qty));
+        personalizar.addClickListener(e -> {
+            if (!showIngredientes) return;
+            abrirDialogoPersonalizar(p.getCodigo(), qty);
+        });
 
         HorizontalLayout filaPersonalizar = new HorizontalLayout(personalizar);
         filaPersonalizar.setWidthFull();
@@ -355,9 +372,10 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         return card;
     }
 
-    // ✅ FIX: cada sección tiene SU FormLayout (si no, las filas se renderizan después de los 2 headers)
-    // + (opcional) deduplicamos por ingredienteId para que no salgan repetidos.
+    // Cada sección tiene SU FormLayout
+    // + deduplicamos por ingredienteId para que no salgan repetidos.
     private void abrirDialogoPersonalizar(String codigoProducto, IntegerField qtyField) {
+        if (!showIngredientes) return;
         if (codigoProducto == null || codigoProducto.isBlank()) return;
 
         try {
@@ -369,7 +387,6 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
                 return;
             }
 
-            // Dedup por ingredienteId (evita “Queso cheddar” repetido, etc.)
             Map<UUID, ProductoIngrediente> unique = new LinkedHashMap<>();
             for (ProductoIngrediente pi : recetaRaw) {
                 if (pi == null || pi.getIngrediente() == null || pi.getIngrediente().getId() == null) continue;
@@ -639,12 +656,14 @@ public abstract class CrearPedidoCartaBaseView extends VerticalLayout {
         box.setSpacing(false);
         box.getStyle().set("gap", "4px");
 
-        List<String> detalles = construirDetallePersonalizacion(lp);
-        for (String d : detalles) {
-            Span chip = new Span(d);
-            chip.getStyle().set("font-size", "var(--lumo-font-size-xs)");
-            chip.getStyle().set("color", "var(--lumo-secondary-text-color)");
-            box.add(chip);
+        if (showIngredientes) {
+            List<String> detalles = construirDetallePersonalizacion(lp);
+            for (String d : detalles) {
+                Span chip = new Span(d);
+                chip.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+                chip.getStyle().set("color", "var(--lumo-secondary-text-color)");
+                box.add(chip);
+            }
         }
 
         return box;
