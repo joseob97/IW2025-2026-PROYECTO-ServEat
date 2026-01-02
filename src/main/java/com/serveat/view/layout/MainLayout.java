@@ -15,6 +15,7 @@ import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 
 import com.serveat.view.publico.inicio.InicioView;
 import com.serveat.view.publico.inicio.LoginView;
@@ -52,9 +53,22 @@ public class MainLayout extends AppLayout {
         RouterLink linkInfo = new RouterLink("Información", InformacionSitioView.class);
         RouterLink linkLogin = new RouterLink("Login", LoginView.class);
 
-        Button logout = new Button("Salir", e ->
-                UI.getCurrent().getPage().setLocation("/logout")
-        );
+        /* ================= LOGOUT CON CONFIRMACIÓN ================= */
+        Button logout = new Button("Salir", e -> {
+
+            ConfirmDialog dialog = new ConfirmDialog();
+            dialog.setHeader("Cerrar sesión");
+            dialog.setText("¿Estás seguro de que deseas cerrar sesión?");
+            dialog.setCancelable(true);
+            dialog.setConfirmText("Sí, cerrar sesión");
+            dialog.setCancelText("Cancelar");
+
+            dialog.addConfirmListener(ev ->
+                    UI.getCurrent().getPage().setLocation("/logout")
+            );
+
+            dialog.open();
+        });
 
         /* ================= AUTH ================= */
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
