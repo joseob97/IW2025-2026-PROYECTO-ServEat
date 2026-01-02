@@ -52,7 +52,7 @@ public class GestionMenusView extends VerticalLayout {
 
         H2 titulo = new H2("Gestión de menús y ofertas");
 
-        // 🔒 Control de feature
+        // 🔒 Control de feature premium
         if (!featureService.tieneFeature(Feature.MENUS_OFERTAS)) {
             add(
                     titulo,
@@ -67,19 +67,35 @@ public class GestionMenusView extends VerticalLayout {
         // =======================
 
         TextField nombre = new TextField("Nombre del menú");
+        nombre.setRequired(true);
+        nombre.setHelperText("Nombre visible para los clientes");
+
         TextField descripcion = new TextField("Descripción");
+        descripcion.setHelperText("Descripción opcional del menú");
 
         CheckboxGroup<Producto> productos = new CheckboxGroup<>();
         productos.setLabel("Productos incluidos");
         productos.setItems(productoRepository.findAll());
         productos.setItemLabelGenerator(Producto::getNombre);
+        productos.setHelperText("Selecciona los productos que formarán el menú");
 
         NumberField precio = new NumberField("Precio fijo (€)");
         precio.setMin(0);
         precio.setStep(0.5);
+        precio.setRequiredIndicatorVisible(true);
+        precio.setHelperText("Precio total del menú completo");
 
         Button crearMenu = new Button("Crear menú", event -> {
             try {
+                if (nombre.isEmpty() || precio.isEmpty()) {
+                    Notification.show(
+                            "El nombre y el precio son obligatorios",
+                            3000,
+                            Notification.Position.MIDDLE
+                    );
+                    return;
+                }
+
                 Menu menu = new Menu();
                 menu.setNombre(nombre.getValue());
                 menu.setDescripcion(descripcion.getValue());
@@ -113,7 +129,6 @@ public class GestionMenusView extends VerticalLayout {
                 precio,
                 crearMenu
         );
-
         formulario.setColspan(productos, 2);
 
         // =======================
@@ -134,7 +149,7 @@ public class GestionMenusView extends VerticalLayout {
     }
 
     // =======================
-    // MÉTODO DE CARGA LISTADO
+    // CARGA LISTADO MENÚS
     // =======================
 
     private void cargarListadoMenus() {
@@ -157,8 +172,8 @@ public class GestionMenusView extends VerticalLayout {
             card.getStyle().set("background", "var(--lumo-base-color)");
 
             Paragraph info = new Paragraph(
-                    "Nombre: " + menu.getNombre() +
-                            " | Precio fijo: " + menu.getPrecioFijo() + " €"
+                    "Nombre: " + menu.getNombre()
+                            + " | Precio fijo: " + menu.getPrecioFijo() + " €"
             );
 
             Button eliminar = new Button("Eliminar");
@@ -174,9 +189,9 @@ public class GestionMenusView extends VerticalLayout {
                 dialog.setCancelable(true);
 
                 dialog.addConfirmListener(ev -> {
-                    menu.setActivo(false);
-                    menuService.crearMenu(menu); // guardamos cambio lógico
-                    Notification.show("Menú eliminado");
+                    menu.setActivo(false); // eliminación lógica
+                    menuService.crearMenu(menu);
+                    Notification.show("Menú eliminado correctamente");
                     cargarListadoMenus();
                 });
 
@@ -184,7 +199,6 @@ public class GestionMenusView extends VerticalLayout {
             });
 
             HorizontalLayout acciones = new HorizontalLayout(eliminar);
-
             card.add(info, acciones);
             listadoMenus.add(card);
         }
