@@ -4,7 +4,15 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 @Entity
-@Table(name = "empleados")
+@Table(
+        name = "empleados",
+        indexes = {
+                @Index(name = "idx_empleado_username", columnList = "username"),
+                @Index(name = "idx_empleado_email", columnList = "email"),
+                @Index(name = "idx_empleado_rol", columnList = "rol"),
+                @Index(name = "idx_empleado_enabled", columnList = "enabled")
+        }
+)
 public class Empleado {
 
     @Id
@@ -53,7 +61,16 @@ public class Empleado {
 
     public Empleado() {}
 
-    public Empleado(String nombre, String username, String password,String telefono, String email, String direccion, String rol, boolean enabled) {
+    public Empleado(
+            String nombre,
+            String username,
+            String password,
+            String telefono,
+            String email,
+            String direccion,
+            String rol,
+            boolean enabled
+    ) {
         this.nombre = nombre;
         this.username = username;
         this.password = password;
@@ -63,7 +80,6 @@ public class Empleado {
         this.rol = rol;
         this.enabled = enabled;
     }
-
 
     // ---- GETTERS Y SETTERS ----
 
@@ -127,4 +143,3 @@ public class Empleado {
         this.enabled = enabled;
     }
 }
-

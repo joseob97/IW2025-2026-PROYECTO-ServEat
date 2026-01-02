@@ -16,7 +16,18 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "PEDIDOS")
+@Table(
+        name = "PEDIDOS",
+        indexes = {
+                @Index(name = "idx_pedido_codigo", columnList = "codigo"),
+                @Index(name = "idx_pedido_estado", columnList = "estado"),
+                @Index(name = "idx_pedido_estado_cocina", columnList = "estadoCocina"),
+                @Index(name = "idx_pedido_estado_reparto", columnList = "estado_reparto"),
+                @Index(name = "idx_pedido_fecha_creacion", columnList = "fechaCreacion"),
+                @Index(name = "idx_pedido_cliente", columnList = "cliente_id"),
+                @Index(name = "idx_pedido_repartidor", columnList = "repartidor_id")
+        }
+)
 public class Pedido {
 
     @Id
@@ -92,7 +103,9 @@ public class Pedido {
     public Pedido() {
     }
 
+    // =======================
     // LÓGICA DE DOMINIO
+    // =======================
 
     public void marcarModificado(String username) {
         this.modificadoPor = username;
@@ -108,7 +121,9 @@ public class Pedido {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    // =======================
     // GETTERS Y SETTERS
+    // =======================
 
     public UUID getId() {
         return id;
