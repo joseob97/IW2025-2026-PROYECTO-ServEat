@@ -6,6 +6,7 @@ import com.serveat.service.menu.ProductoService;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
+import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Span;
@@ -22,8 +23,9 @@ public class CrearPedidoRecogerCartaView extends CrearPedidoCartaBaseView {
                                        PedidoCarritoService pedidoCarritoService,
                                        PedidoCalculoService pedidoCalculoService,
                                        ProductoService productoService,
-                                       CategoriaService categoriaService) {
-        super(pedidoService, pedidoCarritoService, pedidoCalculoService, productoService, categoriaService);
+                                       CategoriaService categoriaService,
+                                       FeatureService featureService) {
+        super(pedidoService, pedidoCarritoService, pedidoCalculoService, productoService, categoriaService, featureService);
         construirUI("Pedido para recoger");
     }
 
