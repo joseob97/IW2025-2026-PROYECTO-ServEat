@@ -55,7 +55,6 @@ public class MainLayout extends AppLayout {
 
         /* ================= LOGOUT CON CONFIRMACIÓN ================= */
         Button logout = new Button("Salir", e -> {
-
             ConfirmDialog dialog = new ConfirmDialog();
             dialog.setHeader("Cerrar sesión");
             dialog.setText("¿Estás seguro de que deseas cerrar sesión?");
@@ -158,34 +157,17 @@ public class MainLayout extends AppLayout {
         Span spacer = new Span();
         spacer.getStyle().set("flex-grow", "0.9");
 
-        HorizontalLayout header;
-
-        if (isLogged && linkPanel != null) {
-            header = new HorizontalLayout(
-                    logo,
-                    spacer,
-                    bloqueUsuario,
-                    linkInicio,
-                    linkPanel,
-                    linkCarta,
-                    linkContacto,
-                    linkInfo,
-                    logout
-            );
-        } else {
-            header = new HorizontalLayout(
-                    logo,
-                    spacer,
-                    bloqueUsuario,
-                    linkInicio,
-                    linkPedidos,
-                    linkCarta,
-                    linkContacto,
-                    linkInfo,
-                    linkLogin,
-                    logout
-            );
-        }
+        HorizontalLayout header = new HorizontalLayout(
+                logo,
+                spacer,
+                bloqueUsuario,
+                linkInicio,
+                linkCarta,
+                linkContacto,
+                linkInfo,
+                linkLogin,
+                logout
+        );
 
         header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
         header.setWidthFull();
@@ -194,6 +176,10 @@ public class MainLayout extends AppLayout {
                 .set("flex-wrap", "nowrap")
                 .set("white-space", "nowrap")
                 .set("gap", "10px");
+
+        if (linkPanel != null) {
+            header.addComponentAtIndex(4, linkPanel);
+        }
 
         addToNavbar(header);
     }
