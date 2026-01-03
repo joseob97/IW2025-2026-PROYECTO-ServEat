@@ -14,6 +14,7 @@ import com.vaadin.flow.router.Route;
 public class InformacionSitioView extends VerticalLayout {
 
     public InformacionSitioView(DatosLocalService datosLocalService) {
+
         setPadding(true);
         setSpacing(true);
         setAlignItems(Alignment.CENTER);
@@ -21,9 +22,9 @@ public class InformacionSitioView extends VerticalLayout {
         DatosLocal datos = datosLocalService.obtenerDatos();
 
         add(
-                new H2("Información del sitio"),
-                new Paragraph(datos.getDescripcion()),
-                new Paragraph(datos.getDescripcion2())
+                new H2(getTranslation("info.titulo")),
+                new Paragraph(getTranslation("info.descripcion")),
+                new Paragraph(getTranslation("info.aviso"))
         );
     }
 }

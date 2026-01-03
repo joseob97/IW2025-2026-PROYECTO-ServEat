@@ -14,6 +14,7 @@ import com.vaadin.flow.router.Route;
 public class ContactoView extends VerticalLayout {
 
     public ContactoView(DatosLocalService datosLocalService) {
+
         setPadding(true);
         setSpacing(true);
         setAlignItems(Alignment.CENTER);
@@ -21,11 +22,11 @@ public class ContactoView extends VerticalLayout {
         DatosLocal datos = datosLocalService.obtenerDatos();
 
         add(
-                new H2("Contacto"),
-                new Paragraph("Dirección: " + datos.getDireccion()),
-                new Paragraph("Teléfono: " + datos.getTelefono()),
-                new Paragraph("Horario: " + datos.getHorario()),
-                new Paragraph("Email: " + datos.getEmail())
+                new H2(getTranslation("contacto.titulo")),
+                new Paragraph(getTranslation("contacto.direccion") + ": " + datos.getDireccion()),
+                new Paragraph(getTranslation("contacto.telefono") + ": " + datos.getTelefono()),
+                new Paragraph(getTranslation("contacto.horario") + ": " + datos.getHorario()),
+                new Paragraph(getTranslation("contacto.email") + ": " + datos.getEmail())
         );
     }
 }

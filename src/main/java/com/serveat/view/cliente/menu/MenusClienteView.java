@@ -26,7 +26,6 @@ public class MenusClienteView extends VerticalLayout {
 
         add(new H2("Menús y ofertas"));
 
-        // ✅ CAMBIO CLAVE: usar método con productos cargados
         List<Menu> menus = menuService.obtenerMenusActivosConProductos();
 
         if (menus.isEmpty()) {
