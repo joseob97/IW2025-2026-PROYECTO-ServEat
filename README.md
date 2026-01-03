@@ -85,30 +85,28 @@ Estas variables se configuran en Render mediante el panel de configuración del 
 
 ---
 
-## 🐳 Ejecución en local con Docker
+## ▶️ Ejecución en local (desarrollo)
+
+La forma recomendada de ejecutar la aplicación en local es desde IntelliJ IDEA.
 
 ### Requisitos
-- Docker
-- Docker Compose
+- Java 21
+- PostgreSQL en local
+- IntelliJ IDEA
 
 ### Pasos
-1. Construir la imagen:
-```bash
-   docker build -t serveat .
-```
-2.Ejecutar el contenedor:
-```bash
-    docker run -p 8080:8080 \
-    -e SPRING_PROFILES_ACTIVE=dev \
-    -e DB_URL=jdbc:mysql://localhost:3306/serveat_db \
-    -e DB_USER=root \
-    -e DB_PASS= \
-    -e DEMO_PASSWORD=demo \
-    -e ADMIN_PASSWORD=admin \
-    serveat
-```
-3.Acceder a la aplicación:
-http://localhost:8080
+1. Abrir el proyecto en IntelliJ
+2. Ejecutar la clase `ServEatApplication`
+3. Configurar las variables de entorno en la Run Configuration:
+
+SPRING_PROFILES_ACTIVE=dev  
+DB_URL=jdbc:postgresql://localhost:5432/serveat  
+DB_USER=postgres  
+DB_PASS=postgres  
+DEMO_PASSWORD=demo1234
+
+4. Acceder a:
+   http://localhost:8080
 
 ---
 
