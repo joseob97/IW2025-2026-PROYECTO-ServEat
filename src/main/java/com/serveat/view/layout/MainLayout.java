@@ -17,6 +17,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.server.VaadinSession;
 
 import com.serveat.view.publico.inicio.InicioView;
 import com.serveat.view.publico.inicio.LoginView;
@@ -40,35 +41,39 @@ public class MainLayout extends AppLayout {
 
         /* ================= LOGO ================= */
         Image logoImg = new Image("/images/logo.jpg", "ServEat");
-        logoImg.setHeight("64px");
+        logoImg.setHeight("56px");
 
         H1 logoText = new H1("ServEat");
-        logoText.getStyle().set("font-size", "24px");
+        logoText.getStyle().set("font-size", "22px");
 
         HorizontalLayout logo = new HorizontalLayout(logoImg, logoText);
         logo.setAlignItems(FlexComponent.Alignment.CENTER);
+        logo.setSpacing(true);
 
-        /* ================= SELECTOR IDIOMA ================= */
+        /* ================= IDIOMA ================= */
         ComboBox<Locale> selectorIdioma = new ComboBox<>();
-        selectorIdioma.setItems(
-                new Locale("es", "ES"),
-                Locale.ENGLISH
+        selectorIdioma.setItems(new Locale("es", "ES"), Locale.ENGLISH);
+        selectorIdioma.setItemLabelGenerator(l ->
+                l.getLanguage().equals("es") ? "ES" : "EN"
         );
 
-        selectorIdioma.setItemLabelGenerator(locale ->
-                locale.getLanguage().equals("es") ? "ES" : "EN"
-        );
+        Locale localeActual = VaadinSession.getCurrent().getLocale();
+        selectorIdioma.setValue(localeActual != null ? localeActual : new Locale("es", "ES"));
+        selectorIdioma.setWidth("80px");
 
-        selectorIdioma.setValue(UI.getCurrent().getLocale());
 
-        selectorIdioma.addValueChangeListener(event -> {
-            if (event.getValue() != null) {
-                UI.getCurrent().setLocale(event.getValue());
-                UI.getCurrent().getPage().reload();
+        selectorIdioma.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                VaadinSession.getCurrent().setLocale(e.getValue());
+
+                String rutaActual = UI.getCurrent()
+                        .getInternals()
+                        .getActiveViewLocation()
+                        .getPathWithQueryParameters();
+
+                UI.getCurrent().navigate(rutaActual);
             }
         });
-
-        selectorIdioma.setWidth("80px");
 
         /* ================= LINKS ================= */
         RouterLink linkInicio = new RouterLink(getTranslation("nav.inicio"), InicioView.class);
@@ -78,19 +83,16 @@ public class MainLayout extends AppLayout {
         RouterLink linkInfo = new RouterLink(getTranslation("nav.informacion"), InformacionSitioView.class);
         RouterLink linkLogin = new RouterLink(getTranslation("nav.login"), LoginView.class);
 
-        /* ================= LOGOUT CON CONFIRMACIÓN ================= */
+        /* ================= LOGOUT ================= */
         Button logout = new Button(getTranslation("nav.logout"), e -> {
             ConfirmDialog dialog = new ConfirmDialog();
             dialog.setHeader(getTranslation("logout.titulo"));
             dialog.setText(getTranslation("logout.mensaje"));
-            dialog.setCancelable(true);
             dialog.setConfirmText(getTranslation("logout.confirmar"));
             dialog.setCancelText(getTranslation("logout.cancelar"));
-
             dialog.addConfirmListener(ev ->
                     UI.getCurrent().getPage().setLocation("/logout")
             );
-
             dialog.open();
         });
 
@@ -100,35 +102,23 @@ public class MainLayout extends AppLayout {
                 && auth.isAuthenticated()
                 && !(auth instanceof AnonymousAuthenticationToken);
 
-        /* ================= USUARIO + ICONO ================= */
-        Span usuarioConectado = new Span();
-        usuarioConectado.getStyle()
-                .set("font-weight", "bold")
-                .set("color", "#0366d6");
-
+        /* ================= USUARIO ================= */
+        Span usuario = new Span();
         Icon userIcon = new Icon(VaadinIcon.USER);
-        userIcon.getStyle()
-                .set("margin-left", "6px")
-                .set("cursor", "pointer");
+        RouterLink perfil = new RouterLink("", PerfilView.class);
+        perfil.add(userIcon);
 
-        RouterLink perfilLink = new RouterLink();
-        perfilLink.setRoute(PerfilView.class);
-        perfilLink.add(userIcon);
-
-        HorizontalLayout bloqueUsuario =
-                new HorizontalLayout(usuarioConectado, perfilLink);
+        HorizontalLayout bloqueUsuario = new HorizontalLayout(usuario, perfil);
         bloqueUsuario.setAlignItems(FlexComponent.Alignment.CENTER);
-        bloqueUsuario.setSpacing(false);
+        bloqueUsuario.setSpacing(true);
 
-        /* ================= PANEL POR ROL ================= */
-        RouterLink linkPanel = null;
+        /* ================= PANEL ================= */
+        HorizontalLayout panelContainer = new HorizontalLayout();
+        panelContainer.setAlignItems(FlexComponent.Alignment.CENTER);
 
         if (isLogged) {
 
-            String username = auth.getName();
-            usuarioConectado.setText(getTranslation("nav.conectado") + " " + username);
-            bloqueUsuario.setVisible(true);
-
+            usuario.setText(getTranslation("nav.conectado") + " " + auth.getName());
             linkLogin.setVisible(false);
 
             String role = auth.getAuthorities().iterator().next().getAuthority();
@@ -138,38 +128,25 @@ public class MainLayout extends AppLayout {
                 linkPedidos.setVisible(true);
             }
 
-            boolean esEmpleado = role.startsWith("ROLE_")
-                    && !role.equals("ROLE_CLIENTE");
-
-            if (esEmpleado) {
-                linkCarta.setVisible(false);
-            }
+            RouterLink panel = null;
 
             switch (role) {
-                case "ROLE_ADMIN":
-                    linkPanel = new RouterLink(
-                            getTranslation("nav.panel"),
-                            com.serveat.view.empleado.administrador.PanelAdminView.class
-                    );
-                    break;
-                case "ROLE_CAMARERO":
-                    linkPanel = new RouterLink(
-                            getTranslation("nav.panel"),
-                            com.serveat.view.empleado.camarero.PanelCamareroView.class
-                    );
-                    break;
-                case "ROLE_COCINERO":
-                    linkPanel = new RouterLink(
-                            getTranslation("nav.panel"),
-                            com.serveat.view.empleado.cocinero.PanelCocineroView.class
-                    );
-                    break;
-                case "ROLE_REPARTIDOR":
-                    linkPanel = new RouterLink(
-                            getTranslation("nav.panel"),
-                            com.serveat.view.empleado.repartidor.PanelRepartidorView.class
-                    );
-                    break;
+                case "ROLE_ADMIN" ->
+                        panel = new RouterLink(getTranslation("nav.panel"),
+                                com.serveat.view.empleado.administrador.PanelAdminView.class);
+                case "ROLE_CAMARERO" ->
+                        panel = new RouterLink(getTranslation("nav.panel"),
+                                com.serveat.view.empleado.camarero.PanelCamareroView.class);
+                case "ROLE_COCINERO" ->
+                        panel = new RouterLink(getTranslation("nav.panel"),
+                                com.serveat.view.empleado.cocinero.PanelCocineroView.class);
+                case "ROLE_REPARTIDOR" ->
+                        panel = new RouterLink(getTranslation("nav.panel"),
+                                com.serveat.view.empleado.repartidor.PanelRepartidorView.class);
+            }
+
+            if (panel != null) {
+                panelContainer.add(panel);
             }
 
         } else {
@@ -180,12 +157,13 @@ public class MainLayout extends AppLayout {
 
         /* ================= HEADER ================= */
         Span spacer = new Span();
-        spacer.getStyle().set("flex-grow", "0.9");
+        spacer.getStyle().set("flex-grow", "1");
 
         HorizontalLayout header = new HorizontalLayout(
                 logo,
                 spacer,
                 selectorIdioma,
+                panelContainer,
                 bloqueUsuario,
                 linkInicio,
                 linkCarta,
@@ -195,17 +173,10 @@ public class MainLayout extends AppLayout {
                 logout
         );
 
-        header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
         header.setWidthFull();
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setSpacing(true);
-        header.getStyle()
-                .set("flex-wrap", "nowrap")
-                .set("white-space", "nowrap")
-                .set("gap", "10px");
-
-        if (linkPanel != null) {
-            header.addComponentAtIndex(4, linkPanel);
-        }
+        header.getStyle().set("padding", "0 16px");
 
         addToNavbar(header);
     }

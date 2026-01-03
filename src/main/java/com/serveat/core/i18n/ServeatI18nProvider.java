@@ -10,48 +10,21 @@ import java.util.ResourceBundle;
 @Component
 public class ServeatI18nProvider implements I18NProvider {
 
-    public static final String BUNDLE_PREFIX = "i18n/messages";
+    public static final String BUNDLE_PREFIX = "i18n.messages";
 
-    private static final Locale LOCALE_ES = new Locale("es");
-    private static final Locale LOCALE_EN = Locale.ENGLISH;
-
-    private static final List<Locale> SUPPORTED_LOCALES = List.of(
-            LOCALE_ES,
-            LOCALE_EN
+    private static final List<Locale> LOCALES = List.of(
+            new Locale("es", "ES"),
+            Locale.ENGLISH
     );
 
     @Override
     public List<Locale> getProvidedLocales() {
-        return SUPPORTED_LOCALES;
+        return LOCALES;
     }
 
     @Override
     public String getTranslation(String key, Locale locale, Object... params) {
-
-        if (key == null) {
-            return "";
-        }
-
-        Locale effectiveLocale = locale != null ? locale : LOCALE_ES;
-
-        try {
-            ResourceBundle bundle =
-                    ResourceBundle.getBundle(BUNDLE_PREFIX, effectiveLocale);
-
-            if (!bundle.containsKey(key)) {
-                return "!" + key + "!";
-            }
-
-            String value = bundle.getString(key);
-
-            if (params.length > 0) {
-                return String.format(value, params);
-            }
-
-            return value;
-
-        } catch (Exception e) {
-            return "!" + key + "!";
-        }
+        ResourceBundle bundle = ResourceBundle.getBundle(BUNDLE_PREFIX, locale);
+        return bundle.containsKey(key) ? bundle.getString(key) : key;
     }
 }
