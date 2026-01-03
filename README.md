@@ -129,5 +129,5 @@ DEMO_PASSWORD=demo1234
 
 ## 👨‍💻 Proyecto académico
 
-Este despliegue forma parte del proyecto de la asignatura **Ingeniería Web**.
+Este despliegue en Render forma parte del proyecto de la asignatura **Ingeniería Web**.
 
