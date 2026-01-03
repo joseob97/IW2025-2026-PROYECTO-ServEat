@@ -18,27 +18,16 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
     private static final Logger log =
             LoggerFactory.getLogger(CustomAuthenticationFailureHandler.class);
 
-    // Evita log forging / injection: neutraliza CR/LF/tab y limita longitud
-    private static String sanitizeForLog(String value) {
-        if (value == null) {
-            return "null";
-        }
-        String sanitized = value
-                .replace("\r", "\\r")
-                .replace("\n", "\\n")
-                .replace("\t", "\\t");
-        int maxLen = 64;
-        return sanitized.length() > maxLen ? sanitized.substring(0, maxLen) + "..." : sanitized;
-    }
-
     @Override
     public void onAuthenticationFailure(HttpServletRequest request,
                                         HttpServletResponse response,
                                         AuthenticationException exception)
             throws IOException, ServletException {
 
-        String username = request.getParameter("username");
         String ip = request.getRemoteAddr();
+        String sessionId = (request.getSession(false) != null)
+                ? request.getSession(false).getId()
+                : "no-session";
 
         // ----------------------------------------------------
         // IMPORTANTE: Spring suele envolver DisabledException
@@ -56,26 +45,22 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
             cause = cause.getCause();
         }
 
-        String safeUsername = sanitizeForLog(username);
-
         if (disabled) {
             log.warn(
-                    "Intento de login con usuario DESHABILITADO. username='{}', ip={}",
-                    safeUsername,
+                    "Intento de login con usuario DESHABILITADO. sessionId={}, ip={}",
+                    sessionId,
                     ip
             );
 
-            // Usuario desactivado -> mensaje personalizado
             getRedirectStrategy().sendRedirect(request, response, "/login?disabled");
         } else {
             log.warn(
-                    "Fallo de autenticación. username='{}', ip={}, motivo={}",
-                    safeUsername,
+                    "Fallo de autenticación. sessionId={}, ip={}, motivo={}",
+                    sessionId,
                     ip,
                     exception.getClass().getSimpleName()
             );
 
-            // Error genérico de login
             getRedirectStrategy().sendRedirect(request, response, "/login?error");
         }
     }
