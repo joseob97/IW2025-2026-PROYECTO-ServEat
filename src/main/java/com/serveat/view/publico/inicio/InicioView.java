@@ -18,16 +18,19 @@ import com.vaadin.flow.router.Route;
 public class InicioView extends VerticalLayout implements BeforeEnterObserver {
 
     public InicioView() {
+
         setPadding(true);
         setSpacing(true);
         setAlignItems(Alignment.CENTER);
 
-        H2 titulo = new H2("Bienvenido a ServEat");
+        H2 titulo = new H2(getTranslation("inicio.titulo"));
+
         Paragraph subtitulo = new Paragraph(
-                "Pide a domicilio, recoge en local o gestiona tu pedido en tiempo real."
+                getTranslation("inicio.subtitulo")
         );
 
-        Button verCarta = new Button("Ver carta",
+        Button verCarta = new Button(
+                getTranslation("inicio.verCarta"),
                 e -> getUI().ifPresent(ui -> ui.navigate("carta"))
         );
         verCarta.getStyle().set("margin-top", "12px");
@@ -46,14 +49,14 @@ public class InicioView extends VerticalLayout implements BeforeEnterObserver {
         if (vieneDeLogout) {
 
             Notification notification = Notification.show(
-                    "Has cerrado sesión correctamente",
-                    3000, // 3 segundos
+                    getTranslation("inicio.logout.ok"),
+                    3000,
                     Notification.Position.MIDDLE
             );
 
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
-            //Limpiar la URL (quitar ?logout para que no reaparezca el mensaje)
+            // Limpiar la URL (quitar ?logout)
             UI.getCurrent().getPage().getHistory().replaceState(null, "");
         }
     }
