@@ -10,7 +10,7 @@ El objetivo es demostrar un flujo completo de despliegue continuo (CI/CD) como p
 
 > La aplicación estará disponible en:
 >
-> **https://serveat.onrender.com**
+> https://iw2025-2026-proyecto-serveat.onrender.com
 >
 > *(La primera carga puede tardar unos segundos debido al plan gratuito de Render)*
 
@@ -21,12 +21,21 @@ El objetivo es demostrar un flujo completo de despliegue continuo (CI/CD) como p
 - Java 21
 - Spring Boot
 - Vaadin
-- MySQL
+- PostgreSQL
 - Docker
 - Render
 - GitHub
 
 ---
+
+## 🏗️ Arquitectura de despliegue
+
+- Repositorio GitHub como origen del código
+- Render como plataforma PaaS
+- Aplicación Spring Boot empaquetada en Docker
+- Base de datos PostgreSQL gestionada por Render
+- Variables sensibles gestionadas mediante Environment Variables
+
 
 ## 🔁 Despliegue automático (CI/CD)
 
@@ -43,16 +52,15 @@ No se requiere intervención manual para desplegar nuevas versiones.
 
 ## 🗄️ Base de datos
 
-La aplicación utiliza **MySQL** como sistema gestor de base de datos.
+La aplicación utiliza **PostgreSQL** como sistema gestor de base de datos en el entorno cloud.
 
-- En local: MySQL en `localhost`
-- En Render: MySQL aprovisionado en el entorno cloud
+- En local: MySQL o PostgreSQL (según configuración del perfil)
+- En Render: PostgreSQL gestionado por Render
 
 El esquema de la base de datos se genera automáticamente a partir de las entidades JPA del proyecto (`ddl-auto=update`).
 
 Los datos de demostración se inicializan automáticamente mediante un `DataInitializer` cuando se utiliza el perfil `dev`.
 
----
 
 ## 🔐 Variables de entorno requeridas
 
@@ -68,13 +76,12 @@ Para el correcto funcionamiento de la aplicación, deben definirse las siguiente
     - `dev` → desarrollo y datos de demostración
 
 ### Seguridad
-- `ADMIN_PASSWORD`
 - `DEMO_PASSWORD`
 
 ### Email
 - `SERVEAT_MAIL_PASSWORD`
 
-Estas variables se configuran automáticamente en Render mediante el archivo `render.yaml`.
+Estas variables se configuran en Render mediante el panel de configuración del servicio (Environment Variables).
 
 ---
 
