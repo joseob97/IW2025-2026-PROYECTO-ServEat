@@ -23,8 +23,8 @@ public class InformacionSitioView extends VerticalLayout {
 
         add(
                 new H2(getTranslation("info.titulo")),
-                new Paragraph(datos.getDescripcion()),
-                new Paragraph(datos.getDescripcion2())
+                new Paragraph(getTranslation("info.descripcion")),
+                new Paragraph(getTranslation("info.aviso"))
         );
     }
 }
