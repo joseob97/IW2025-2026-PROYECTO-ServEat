@@ -41,37 +41,33 @@ public class MainLayout extends AppLayout {
 
         /* ================= LOGO ================= */
         Image logoImg = new Image("/images/logo.jpg", "ServEat");
-        logoImg.setHeight("56px");
+        logoImg.setHeight("52px");
 
         H1 logoText = new H1("ServEat");
-        logoText.getStyle().set("font-size", "22px");
+        logoText.getStyle()
+                .set("font-size", "22px")
+                .set("margin", "0");
 
         HorizontalLayout logo = new HorizontalLayout(logoImg, logoText);
         logo.setAlignItems(FlexComponent.Alignment.CENTER);
         logo.setSpacing(true);
 
-        /* ================= IDIOMA ================= */
+        /* ================= SELECTOR IDIOMA ================= */
         ComboBox<Locale> selectorIdioma = new ComboBox<>();
         selectorIdioma.setItems(new Locale("es", "ES"), Locale.ENGLISH);
         selectorIdioma.setItemLabelGenerator(l ->
                 l.getLanguage().equals("es") ? "ES" : "EN"
         );
+        selectorIdioma.setWidth("80px");
 
         Locale localeActual = VaadinSession.getCurrent().getLocale();
         selectorIdioma.setValue(localeActual != null ? localeActual : new Locale("es", "ES"));
-        selectorIdioma.setWidth("80px");
 
-
+        // 🔁 Cambio de idioma + recarga automática
         selectorIdioma.addValueChangeListener(e -> {
             if (e.getValue() != null) {
                 VaadinSession.getCurrent().setLocale(e.getValue());
-
-                String rutaActual = UI.getCurrent()
-                        .getInternals()
-                        .getActiveViewLocation()
-                        .getPathWithQueryParameters();
-
-                UI.getCurrent().navigate(rutaActual);
+                UI.getCurrent().getPage().reload();
             }
         });
 
@@ -90,6 +86,7 @@ public class MainLayout extends AppLayout {
             dialog.setText(getTranslation("logout.mensaje"));
             dialog.setConfirmText(getTranslation("logout.confirmar"));
             dialog.setCancelText(getTranslation("logout.cancelar"));
+
             dialog.addConfirmListener(ev ->
                     UI.getCurrent().getPage().setLocation("/logout")
             );
@@ -104,6 +101,8 @@ public class MainLayout extends AppLayout {
 
         /* ================= USUARIO ================= */
         Span usuario = new Span();
+        usuario.getStyle().set("font-weight", "600");
+
         Icon userIcon = new Icon(VaadinIcon.USER);
         RouterLink perfil = new RouterLink("", PerfilView.class);
         perfil.add(userIcon);
@@ -112,7 +111,7 @@ public class MainLayout extends AppLayout {
         bloqueUsuario.setAlignItems(FlexComponent.Alignment.CENTER);
         bloqueUsuario.setSpacing(true);
 
-        /* ================= PANEL ================= */
+        /* ================= PANEL POR ROL ================= */
         HorizontalLayout panelContainer = new HorizontalLayout();
         panelContainer.setAlignItems(FlexComponent.Alignment.CENTER);
 
