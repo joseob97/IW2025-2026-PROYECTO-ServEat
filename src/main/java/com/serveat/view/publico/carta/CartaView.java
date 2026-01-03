@@ -32,8 +32,11 @@ public class CartaView extends VerticalLayout {
     private final ProductoService productoService;
     private final CategoriaService categoriaService;
 
-    private final ComboBox<String> categoriaFiltro = new ComboBox<>("Categoría");
-    private final TextField buscador = new TextField("Buscar");
+    private final ComboBox<String> categoriaFiltro =
+            new ComboBox<>(getTranslation("carta.filtro.categoria"));
+
+    private final TextField buscador =
+            new TextField(getTranslation("carta.buscador"));
 
     private final VerticalLayout contenido = new VerticalLayout();
 
@@ -48,7 +51,7 @@ public class CartaView extends VerticalLayout {
         getStyle().set("max-width", "1200px");
         getStyle().set("margin", "0 auto");
 
-        H2 titulo = new H2("Carta del restaurante");
+        H2 titulo = new H2(getTranslation("carta.titulo"));
         titulo.getStyle().set("margin", "0");
 
         configurarFiltros();
@@ -81,7 +84,7 @@ public class CartaView extends VerticalLayout {
         categoriaFiltro.setClearButtonVisible(true);
         categoriaFiltro.addValueChangeListener(e -> cargarProductos());
 
-        buscador.setPlaceholder("Buscar por nombre...");
+        buscador.setPlaceholder(getTranslation("carta.buscador.placeholder"));
         buscador.setClearButtonVisible(true);
         buscador.setValueChangeMode(ValueChangeMode.EAGER);
         buscador.addValueChangeListener(e -> cargarProductos());
@@ -109,13 +112,13 @@ public class CartaView extends VerticalLayout {
     private void renderizarPorCategorias(List<Producto> productos) {
         contenido.removeAll();
 
-        // Agrupar por categoría (evita NPEs)
         Map<String, List<Producto>> porCategoria = productos.stream()
                 .collect(Collectors.groupingBy(p ->
-                        p.getCategoria() != null ? p.getCategoria().getNombre() : "Otros"
+                        p.getCategoria() != null
+                                ? p.getCategoria().getNombre()
+                                : getTranslation("carta.categoria.otros")
                 ));
 
-        // Ordenar categorías
         List<String> categoriasOrdenadas = new ArrayList<>(porCategoria.keySet());
         categoriasOrdenadas.sort(String::compareToIgnoreCase);
 
@@ -131,7 +134,10 @@ public class CartaView extends VerticalLayout {
             grid.getStyle().set("align-items", "stretch");
 
             List<Producto> lista = porCategoria.get(nombreCat).stream()
-                    .sorted(Comparator.comparing(Producto::getNombre, Comparator.nullsLast(String::compareToIgnoreCase)))
+                    .sorted(Comparator.comparing(
+                            Producto::getNombre,
+                            Comparator.nullsLast(String::compareToIgnoreCase)
+                    ))
                     .toList();
 
             for (Producto p : lista) {
@@ -142,7 +148,7 @@ public class CartaView extends VerticalLayout {
         }
 
         if (productos.isEmpty()) {
-            Span vacio = new Span("No hay productos con esos filtros.");
+            Span vacio = new Span(getTranslation("carta.vacio"));
             vacio.getStyle().set("color", "var(--lumo-secondary-text-color)");
             contenido.add(vacio);
         }
@@ -151,9 +157,14 @@ public class CartaView extends VerticalLayout {
     private Component crearCardProducto(Producto p) {
 
         Image img = new Image(
-                p.getImagenUrl() != null ? p.getImagenUrl() : "/images/productos/placeholder.png",
-                p.getNombre() != null ? p.getNombre() : "Producto"
+                p.getImagenUrl() != null
+                        ? p.getImagenUrl()
+                        : "/images/productos/placeholder.png",
+                p.getNombre() != null
+                        ? p.getNombre()
+                        : getTranslation("carta.producto.alt")
         );
+
         img.setWidthFull();
         img.setHeight("160px");
         img.getStyle().set("object-fit", "cover");
@@ -175,11 +186,8 @@ public class CartaView extends VerticalLayout {
         card.setSpacing(false);
         card.getStyle().set("gap", "8px");
 
-        // tamaño card (responsive)
         card.getStyle().set("width", "260px");
         card.getStyle().set("min-height", "290px");
-
-        // estilo
         card.getStyle().set("background", "var(--lumo-base-color)");
         card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
         card.getStyle().set("border-radius", "14px");
