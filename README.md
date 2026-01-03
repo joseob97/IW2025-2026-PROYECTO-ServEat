@@ -102,3 +102,27 @@ Estas variables se configuran automáticamente en Render mediante el archivo `re
 ```
 3.Acceder a la aplicación:
 http://localhost:8080
+
+---
+
+## 🧪 Entornos
+
+| Entorno | Perfil | Uso |
+|------|------|----|
+| Local | dev | Desarrollo y pruebas |
+| Render | dev | Entorno remoto de demostración |
+
+---
+
+## 📚 Notas
+
+- El despliegue en Render se utiliza como entorno remoto de desarrollo.
+- El plan gratuito de Render puede suspender la aplicación tras periodos de inactividad.
+- La primera petición tras la suspensión puede tardar unos segundos.
+
+---
+
+## 👨‍💻 Proyecto académico
+
+Este despliegue forma parte del proyecto de la asignatura **Ingeniería Web**.
+
