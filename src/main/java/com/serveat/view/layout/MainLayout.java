@@ -16,6 +16,7 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.combobox.ComboBox;
 
 import com.serveat.view.publico.inicio.InicioView;
 import com.serveat.view.publico.inicio.LoginView;
@@ -26,6 +27,8 @@ import com.serveat.view.publico.informacion.InformacionSitioView;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.Locale;
 
 public class MainLayout extends AppLayout {
 
@@ -45,22 +48,44 @@ public class MainLayout extends AppLayout {
         HorizontalLayout logo = new HorizontalLayout(logoImg, logoText);
         logo.setAlignItems(FlexComponent.Alignment.CENTER);
 
+        /* ================= SELECTOR IDIOMA ================= */
+        ComboBox<Locale> selectorIdioma = new ComboBox<>();
+        selectorIdioma.setItems(
+                new Locale("es", "ES"),
+                Locale.ENGLISH
+        );
+
+        selectorIdioma.setItemLabelGenerator(locale ->
+                locale.getLanguage().equals("es") ? "ES" : "EN"
+        );
+
+        selectorIdioma.setValue(UI.getCurrent().getLocale());
+
+        selectorIdioma.addValueChangeListener(event -> {
+            if (event.getValue() != null) {
+                UI.getCurrent().setLocale(event.getValue());
+                UI.getCurrent().getPage().reload();
+            }
+        });
+
+        selectorIdioma.setWidth("80px");
+
         /* ================= LINKS ================= */
-        RouterLink linkInicio = new RouterLink("Inicio", InicioView.class);
-        RouterLink linkPedidos = new RouterLink("Pedidos", PanelPedidoClienteView.class);
-        RouterLink linkCarta = new RouterLink("Carta", CartaView.class);
-        RouterLink linkContacto = new RouterLink("Contacto", ContactoView.class);
-        RouterLink linkInfo = new RouterLink("Información", InformacionSitioView.class);
-        RouterLink linkLogin = new RouterLink("Login", LoginView.class);
+        RouterLink linkInicio = new RouterLink(getTranslation("nav.inicio"), InicioView.class);
+        RouterLink linkPedidos = new RouterLink(getTranslation("nav.pedidos"), PanelPedidoClienteView.class);
+        RouterLink linkCarta = new RouterLink(getTranslation("nav.carta"), CartaView.class);
+        RouterLink linkContacto = new RouterLink(getTranslation("nav.contacto"), ContactoView.class);
+        RouterLink linkInfo = new RouterLink(getTranslation("nav.informacion"), InformacionSitioView.class);
+        RouterLink linkLogin = new RouterLink(getTranslation("nav.login"), LoginView.class);
 
         /* ================= LOGOUT CON CONFIRMACIÓN ================= */
-        Button logout = new Button("Salir", e -> {
+        Button logout = new Button(getTranslation("nav.logout"), e -> {
             ConfirmDialog dialog = new ConfirmDialog();
-            dialog.setHeader("Cerrar sesión");
-            dialog.setText("¿Estás seguro de que deseas cerrar sesión?");
+            dialog.setHeader(getTranslation("logout.titulo"));
+            dialog.setText(getTranslation("logout.mensaje"));
             dialog.setCancelable(true);
-            dialog.setConfirmText("Sí, cerrar sesión");
-            dialog.setCancelText("Cancelar");
+            dialog.setConfirmText(getTranslation("logout.confirmar"));
+            dialog.setCancelText(getTranslation("logout.cancelar"));
 
             dialog.addConfirmListener(ev ->
                     UI.getCurrent().getPage().setLocation("/logout")
@@ -101,7 +126,7 @@ public class MainLayout extends AppLayout {
         if (isLogged) {
 
             String username = auth.getName();
-            usuarioConectado.setText("Conectado como: " + username);
+            usuarioConectado.setText(getTranslation("nav.conectado") + " " + username);
             bloqueUsuario.setVisible(true);
 
             linkLogin.setVisible(false);
@@ -109,7 +134,7 @@ public class MainLayout extends AppLayout {
             String role = auth.getAuthorities().iterator().next().getAuthority();
 
             if ("ROLE_CLIENTE".equals(role)) {
-                linkInicio = new RouterLink("Inicio", InicioClienteView.class);
+                linkInicio = new RouterLink(getTranslation("nav.inicio"), InicioClienteView.class);
                 linkPedidos.setVisible(true);
             }
 
@@ -123,25 +148,25 @@ public class MainLayout extends AppLayout {
             switch (role) {
                 case "ROLE_ADMIN":
                     linkPanel = new RouterLink(
-                            "Panel",
+                            getTranslation("nav.panel"),
                             com.serveat.view.empleado.administrador.PanelAdminView.class
                     );
                     break;
                 case "ROLE_CAMARERO":
                     linkPanel = new RouterLink(
-                            "Panel",
+                            getTranslation("nav.panel"),
                             com.serveat.view.empleado.camarero.PanelCamareroView.class
                     );
                     break;
                 case "ROLE_COCINERO":
                     linkPanel = new RouterLink(
-                            "Panel",
+                            getTranslation("nav.panel"),
                             com.serveat.view.empleado.cocinero.PanelCocineroView.class
                     );
                     break;
                 case "ROLE_REPARTIDOR":
                     linkPanel = new RouterLink(
-                            "Panel",
+                            getTranslation("nav.panel"),
                             com.serveat.view.empleado.repartidor.PanelRepartidorView.class
                     );
                     break;
@@ -160,6 +185,7 @@ public class MainLayout extends AppLayout {
         HorizontalLayout header = new HorizontalLayout(
                 logo,
                 spacer,
+                selectorIdioma,
                 bloqueUsuario,
                 linkInicio,
                 linkCarta,
