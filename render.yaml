@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: serveat
+    env: docker
+    plan: free
+    autoDeploy: true
+
+    envVars:
+      - key: DB_URL
+        fromDatabase:
+          name: serveat-mysql
+          property: connectionString
+
+      - key: DB_USER
+        fromDatabase:
+          name: serveat-mysql
+          property: user
+
+      - key: DB_PASS
+        fromDatabase:
+          name: serveat-mysql
+          property: password
+
+      - key: SPRING_PROFILES_ACTIVE
+        value: dev
+
+      - key: ADMIN_PASSWORD
+        generateValue: true
+
+      - key: DEMO_PASSWORD
+        generateValue: true
+
+databases:
+  - name: serveat-mysql
+    plan: free
+    databaseName: serveat
+    user: serveat
