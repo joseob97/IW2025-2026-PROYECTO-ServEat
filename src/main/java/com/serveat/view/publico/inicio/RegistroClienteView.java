@@ -20,21 +20,17 @@ import com.vaadin.flow.router.Route;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Route(value = "registro", layout = MainLayout.class)
-@PageTitle("Registro de Cliente | ServEat")
+@PageTitle("Registro | ServEat")
 public class RegistroClienteView extends VerticalLayout {
 
     private final Binder<Cliente> binder = new Binder<>(Cliente.class);
 
     public RegistroClienteView(ClienteRepository clienteRepository) {
 
-        // =========================
-        // CONFIGURACIÓN GENERAL
-        // =========================
         setSizeFull();
         setPadding(true);
         setAlignItems(FlexComponent.Alignment.CENTER);
 
-        // Contenedor centrado
         VerticalLayout contenedor = new VerticalLayout();
         contenedor.setWidth("420px");
         contenedor.setPadding(true);
@@ -44,55 +40,57 @@ public class RegistroClienteView extends VerticalLayout {
                 .set("border-radius", "8px")
                 .set("box-shadow", "0 4px 12px rgba(0,0,0,0.05)");
 
-        H1 title = new H1("Crear cuenta de cliente");
+        H1 title = new H1(getTranslation("registro.titulo"));
         title.getStyle().set("margin-bottom", "1rem");
 
         // =========================
         // CAMPOS
         // =========================
-        TextField nombre = new TextField("Nombre completo");
-        EmailField email = new EmailField("Email");
-        TextField username = new TextField("Usuario");
-        PasswordField password = new PasswordField("Contraseña");
-        TextField telefono = new TextField("Teléfono");
-        TextField direccion = new TextField("Dirección");
+        TextField nombre = new TextField(getTranslation("registro.nombre"));
+        EmailField email = new EmailField(getTranslation("registro.email"));
+        TextField username = new TextField(getTranslation("registro.usuario"));
+        PasswordField password = new PasswordField(getTranslation("registro.password"));
+        TextField telefono = new TextField(getTranslation("registro.telefono"));
+        TextField direccion = new TextField(getTranslation("registro.direccion"));
 
         telefono.setAllowedCharPattern("[0-9]");
         telefono.setMaxLength(15);
-        telefono.setHelperText("Solo números (9–15 dígitos)");
+        telefono.setHelperText(getTranslation("registro.telefono.helper"));
 
-        email.setErrorMessage("Email no válido");
+        email.setErrorMessage(getTranslation("registro.email.error"));
 
         // =========================
         // BINDER / VALIDACIONES
         // =========================
         binder.forField(nombre)
-                .asRequired("El nombre es obligatorio")
+                .asRequired(getTranslation("registro.error.nombre"))
                 .bind(Cliente::getNombre, Cliente::setNombre);
 
         binder.forField(email)
-                .asRequired("El email es obligatorio")
-                .withValidator(new EmailValidator("Formato de email incorrecto"))
+                .asRequired(getTranslation("registro.error.email"))
+                .withValidator(
+                        new EmailValidator(getTranslation("registro.error.email.formato"))
+                )
                 .bind(Cliente::getEmail, Cliente::setEmail);
 
         binder.forField(username)
-                .asRequired("El usuario es obligatorio")
+                .asRequired(getTranslation("registro.error.usuario"))
                 .bind(Cliente::getUsername, Cliente::setUsername);
 
         binder.forField(password)
-                .asRequired("La contraseña es obligatoria")
+                .asRequired(getTranslation("registro.error.password"))
                 .bind(Cliente::getPassword, Cliente::setPassword);
 
         binder.forField(telefono)
-                .asRequired("El teléfono es obligatorio")
+                .asRequired(getTranslation("registro.error.telefono"))
                 .withValidator(
                         t -> t != null && t.matches("^[0-9]{9,15}$"),
-                        "El teléfono debe tener entre 9 y 15 dígitos"
+                        getTranslation("registro.error.telefono.formato")
                 )
                 .bind(Cliente::getTelefono, Cliente::setTelefono);
 
         binder.forField(direccion)
-                .asRequired("La dirección es obligatoria")
+                .asRequired(getTranslation("registro.error.direccion"))
                 .bind(Cliente::getDireccion, Cliente::setDireccion);
 
         // =========================
@@ -108,7 +106,7 @@ public class RegistroClienteView extends VerticalLayout {
         // =========================
         // BOTÓN
         // =========================
-        Button btnRegistrar = new Button("Registrarse");
+        Button btnRegistrar = new Button(getTranslation("registro.boton"));
         btnRegistrar.setWidthFull();
         btnRegistrar.getStyle()
                 .set("background-color", "#0366d6")
@@ -120,7 +118,7 @@ public class RegistroClienteView extends VerticalLayout {
 
             if (!binder.writeBeanIfValid(nuevo)) {
                 Notification.show(
-                        "Corrige los errores del formulario",
+                        getTranslation("registro.error.formulario"),
                         3000,
                         Notification.Position.MIDDLE
                 ).addThemeVariants(NotificationVariant.LUMO_ERROR);
@@ -128,24 +126,30 @@ public class RegistroClienteView extends VerticalLayout {
             }
 
             if (clienteRepository.findByUsername(nuevo.getUsername()).isPresent()) {
-                Notification.show("El nombre de usuario ya existe",
-                                3000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                Notification.show(
+                        getTranslation("registro.error.usuarioExiste"),
+                        3000,
+                        Notification.Position.MIDDLE
+                ).addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
 
             if (clienteRepository.findByEmail(nuevo.getEmail()).isPresent()) {
-                Notification.show("El email ya está registrado",
-                                3000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                Notification.show(
+                        getTranslation("registro.error.emailExiste"),
+                        3000,
+                        Notification.Position.MIDDLE
+                ).addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
 
-            nuevo.setPassword(new BCryptPasswordEncoder().encode(nuevo.getPassword()));
+            nuevo.setPassword(
+                    new BCryptPasswordEncoder().encode(nuevo.getPassword())
+            );
             clienteRepository.save(nuevo);
 
             Notification.show(
-                    "Cuenta creada correctamente",
+                    getTranslation("registro.exito"),
                     3000,
                     Notification.Position.MIDDLE
             ).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
