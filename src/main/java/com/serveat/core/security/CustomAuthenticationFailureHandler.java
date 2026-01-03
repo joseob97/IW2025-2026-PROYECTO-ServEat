@@ -24,8 +24,10 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
                                         AuthenticationException exception)
             throws IOException, ServletException {
 
-        String username = request.getParameter("username");
         String ip = request.getRemoteAddr();
+        String sessionId = (request.getSession(false) != null)
+                ? request.getSession(false).getId()
+                : "no-session";
 
         // ----------------------------------------------------
         // IMPORTANTE: Spring suele envolver DisabledException
@@ -45,22 +47,20 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
         if (disabled) {
             log.warn(
-                    "Intento de login con usuario DESHABILITADO. username='{}', ip={}",
-                    username,
+                    "Intento de login con usuario DESHABILITADO. sessionId={}, ip={}",
+                    sessionId,
                     ip
             );
 
-            // Usuario desactivado -> mensaje personalizado
             getRedirectStrategy().sendRedirect(request, response, "/login?disabled");
         } else {
             log.warn(
-                    "Fallo de autenticación. username='{}', ip={}, motivo={}",
-                    username,
+                    "Fallo de autenticación. sessionId={}, ip={}, motivo={}",
+                    sessionId,
                     ip,
                     exception.getClass().getSimpleName()
             );
 
-            // Error genérico de login
             getRedirectStrategy().sendRedirect(request, response, "/login?error");
         }
     }
