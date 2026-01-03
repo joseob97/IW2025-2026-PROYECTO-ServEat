@@ -103,8 +103,7 @@ SPRING_PROFILES_ACTIVE=dev
 DB_URL=jdbc:postgresql://localhost:5432/serveat  
 DB_USER=postgres  
 DB_PASS=postgres  
-DEMO_PASSWORD=demo  
-ADMIN_PASSWORD=admin
+DEMO_PASSWORD=demo1234
 
 4. Acceder a:
    http://localhost:8080
