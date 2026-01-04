@@ -11,6 +11,7 @@ import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -183,14 +184,29 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
             borrar.addClickListener(e -> {
                 if (pedidoEditable == null) return;
 
-                try {
-                    pedidoService.eliminarLinea(pedidoEditable, lp.getCodigo());
-                    marcarCambio();
-                    refrescarLineas();
-                } catch (Exception ex) {
-                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
-                }
+                ConfirmDialog dialog = new ConfirmDialog();
+                dialog.setHeader("Cancelar producto");
+                dialog.setText("¿Seguro que deseas eliminar este producto del pedido?\nEsta acción no se puede deshacer.");
+
+                dialog.setConfirmText("Sí, eliminar");
+                dialog.setCancelText("Cancelar");
+
+                dialog.setConfirmButtonTheme("error primary");
+                dialog.setCancelable(true);
+
+                dialog.addConfirmListener(ev -> {
+                    try {
+                        pedidoService.eliminarLinea(pedidoEditable, lp.getCodigo());
+                        marcarCambio();
+                        refrescarLineas();
+                    } catch (Exception ex) {
+                        Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                    }
+                });
+
+                dialog.open();
             });
+
             return borrar;
         }).setHeader("Eliminar").setAutoWidth(true).setFlexGrow(0);
     }

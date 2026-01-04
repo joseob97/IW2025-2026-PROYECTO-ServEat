@@ -12,6 +12,7 @@ import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -404,15 +405,37 @@ public class PedidosCamareroView extends VerticalLayout {
         cancelar.setEnabled(puede);
         cancelar.getStyle().set("font-weight", "800");
         cancelar.addClickListener(e -> {
-            try {
-                pedidoService.cancelarPedidoCamarero(pedido.getCodigo(), "Cancelado por camarero");
-                Notification.show("Pedido cancelado", 2500, Notification.Position.BOTTOM_START);
-                dialog.close();
-                cargarPagina(pageIndex);
-            } catch (Exception ex) {
-                Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
-            }
+
+            ConfirmDialog confirm = new ConfirmDialog();
+            confirm.setHeader("Cancelar pedido");
+            confirm.setText(
+                    "¿Seguro que deseas cancelar este pedido?\n" +
+                            "Esta acción no se puede deshacer."
+            );
+
+            confirm.setConfirmText("Sí, cancelar pedido");
+            confirm.setCancelText("Volver");
+
+            confirm.setConfirmButtonTheme("error primary");
+            confirm.setCancelable(true);
+
+            confirm.addConfirmListener(ev -> {
+                try {
+                    pedidoService.cancelarPedidoCamarero(
+                            pedido.getCodigo(),
+                            "Cancelado por camarero"
+                    );
+                    Notification.show("Pedido cancelado", 2500, Notification.Position.BOTTOM_START);
+                    dialog.close();
+                    cargarPagina(pageIndex);
+                } catch (Exception ex) {
+                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                }
+            });
+
+            confirm.open();
         });
+
 
         box.add(download, generarTicket, editar, cancelar);
         return box;
