@@ -2,9 +2,10 @@ package com.serveat.view.empleado.cocinero;
 
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
-import com.serveat.domain.pedido.TipoPedidoCliente;
 import com.serveat.service.cocina.CocineroService;
+import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
@@ -23,14 +24,16 @@ import com.vaadin.flow.router.Route;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-@Route("cocinero/pendientes")
+@Route(value = "empleado/cocinero/pendientes", layout = MainLayout.class)
 @PageTitle("Pedidos pendientes | Cocina")
+@Secured("ROLE_COCINERO")
 public class PedidosPendientesCocinaView extends VerticalLayout {
 
     private final transient CocineroService cocineroService;
@@ -58,12 +61,28 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
 
         setPadding(true);
         setSpacing(false);
-        setSizeFull();
-        getStyle().set("gap", "14px");
+        setWidthFull();
+        getStyle().set("gap", "16px");
         getStyle().set("max-width", "1280px");
         getStyle().set("margin", "0 auto");
 
-        add(new H2("Pedidos pendientes de aceptación"));
+        // 🔝 CABECERA (igual que histórico)
+        H2 titulo = new H2("Pedidos pendientes de aceptación");
+        titulo.getStyle().set("margin", "0");
+
+        Button verHoy = new Button("📆 Ver pedidos de hoy");
+        verHoy.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        verHoy.getStyle().set("font-weight", "700");
+        verHoy.addClickListener(e ->
+                UI.getCurrent().navigate("empleado/cocinero/hoy")
+        );
+
+        HorizontalLayout header = new HorizontalLayout(titulo, verHoy);
+        header.setWidthFull();
+        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        add(header);
 
         add(crearBloqueFiltros());
         add(crearBloqueGrid());
@@ -102,10 +121,8 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
         fila1.getStyle().set("gap", "12px");
 
         HorizontalLayout fila2 = new HorizontalLayout(btnBuscar, btnLimpiar);
-        fila2.setWidthFull();
         fila2.setSpacing(false);
         fila2.getStyle().set("gap", "12px");
-        fila2.setAlignItems(Alignment.END);
 
         card.add(fila1, fila2);
         return card;
@@ -154,16 +171,10 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setFlexGrow(0);
 
-        grid.addColumn(p -> {
-                    if (p.getTipoPedido() == null) return "Cliente";
-                    return switch (p.getTipoPedido()) {
-                        case DOMICILIO -> "Domicilio";
-                        case RECOGER -> "Recogida";
-                        default -> (p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa() != null)
+        grid.addColumn(p ->
+                        p.getReservaMesa() != null
                                 ? "Mesa " + p.getReservaMesa().getNumeroMesa()
-                                : "Mesa";
-                    };
-                })
+                                : "Recogida / Domicilio")
                 .setHeader("Origen")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -177,10 +188,8 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
             descartar.addThemeVariants(ButtonVariant.LUMO_ERROR);
             descartar.addClickListener(e -> descartar(p));
 
-            HorizontalLayout hl = new HorizontalLayout(aceptar, descartar);
-            hl.setSpacing(true);
-            return hl;
-        }).setHeader("Acción").setAutoWidth(true).setFlexGrow(0);
+            return new HorizontalLayout(aceptar, descartar);
+        }).setHeader("Acción").setAutoWidth(true);
 
         grid.addComponentColumn(p -> {
             VerticalLayout l = new VerticalLayout();
@@ -190,10 +199,9 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
 
             if (p.getLineaPedidos() != null) {
                 for (LineaPedido lp : p.getLineaPedidos()) {
-                    String nombre = (lp.getProducto() != null && lp.getProducto().getNombre() != null)
-                            ? lp.getProducto().getNombre()
-                            : "-";
-                    l.add(new Span(nombre + " x" + lp.getCantidad()));
+                    l.add(new Span(
+                            lp.getProducto().getNombre() + " x" + lp.getCantidad()
+                    ));
                 }
             }
             return l;
@@ -222,13 +230,8 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
             infoPagina.setText("Mostrando " + from + "-" + to + " de " + totalItems);
 
         } catch (Exception ex) {
-            totalItems = 0;
-            grid.setItems();
-            prev.setEnabled(false);
-            next.setEnabled(false);
-            infoPagina.setText("");
-            Notification.show("Error cargando pedidos: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            Notification.show("Error cargando pedidos: " + ex.getMessage(), 4000,
+                    Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
 
@@ -236,38 +239,31 @@ public class PedidosPendientesCocinaView extends VerticalLayout {
         try {
             String user = SecurityContextHolder.getContext().getAuthentication().getName();
             cocineroService.aceptarPedido(p.getCodigo(), user);
-
             cargarPagina(pageIndex);
-
-            Notification.show("Pedido " + p.getCodigo() + " aceptado correctamente.", 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            Notification.show("Pedido aceptado", 3000,
+                    Notification.Position.BOTTOM_START).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
         } catch (Exception e) {
-            Notification.show("Error al aceptar el pedido: " + e.getMessage(), 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            Notification.show(e.getMessage(), 3000,
+                    Notification.Position.BOTTOM_START).addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
 
     private void descartar(Pedido p) {
         ConfirmDialog dialog = new ConfirmDialog();
-        dialog.setHeader("Descartar Pedido");
-        dialog.setText("¿Estás seguro de que quieres descartar el pedido " + p.getCodigo() + "? Esta acción no se puede deshacer.");
-        dialog.setCancelable(true);
+        dialog.setHeader("Descartar pedido");
+        dialog.setText("¿Seguro que deseas descartar el pedido " + p.getCodigo() + "?");
         dialog.setConfirmText("Descartar");
-        dialog.setConfirmButtonTheme("error primary");
         dialog.setCancelText("Cancelar");
+        dialog.setConfirmButtonTheme("error primary");
 
-        dialog.addConfirmListener(event -> {
+        dialog.addConfirmListener(e -> {
             try {
                 String user = SecurityContextHolder.getContext().getAuthentication().getName();
                 cocineroService.cancelarDesdeCocina(p.getCodigo(), "Descartado por cocina", user);
-
                 cargarPagina(pageIndex);
-
-                Notification.show("Pedido " + p.getCodigo() + " descartado.", 3000, Notification.Position.BOTTOM_START)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            } catch (Exception e) {
-                Notification.show("Error al descartar el pedido: " + e.getMessage(), 3000, Notification.Position.BOTTOM_START)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            } catch (Exception ex) {
+                Notification.show(ex.getMessage(), 3000,
+                        Notification.Position.BOTTOM_START).addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
 
