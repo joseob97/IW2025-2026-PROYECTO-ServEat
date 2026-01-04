@@ -6,6 +6,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 public class DatosLocalService {
 
@@ -19,6 +21,7 @@ public class DatosLocalService {
     public DatosLocal obtenerDatos() {
         return repository.findAll()
                 .stream()
+                .filter(Objects::nonNull)
                 .findFirst()
                 .orElseGet(this::crearDatosPorDefecto);
     }
