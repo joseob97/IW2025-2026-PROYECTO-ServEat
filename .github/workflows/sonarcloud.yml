@@ -38,4 +38,5 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.projectKey=joseob97_IW2025-2026-PROYECTO-ServEat \
             -Dsonar.organization=iw2025-2026-proyecto-serveat \
-            -Dsonar.token=$SONAR_TOKEN
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
