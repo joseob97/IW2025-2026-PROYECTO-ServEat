@@ -20,6 +20,14 @@
     <properties>
         <java.version>21</java.version>
         <vaadin.version>24.7.14</vaadin.version>
+
+        <jacoco.version>0.8.12</jacoco.version>
+
+        <!-- un único fichero para acumular unit + IT -->
+        <jacoco.destFile>${project.build.directory}/jacoco.exec</jacoco.destFile>
+
+        <!--para que el IDE no subraye argLine si lo usa -->
+        <argLine></argLine>
     </properties>
 
     <dependencies>
@@ -93,7 +101,6 @@
     </dependencyManagement>
 
     <build>
-
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -102,13 +109,13 @@
         </resources>
 
         <plugins>
-            <!-- Plugin Spring Boot -->
+            <!-- Spring Boot -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- Plugin Vaadin -->
+            <!-- Vaadin -->
             <plugin>
                 <groupId>com.vaadin</groupId>
                 <artifactId>vaadin-maven-plugin</artifactId>
@@ -129,10 +136,16 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.4</version>
                 <configuration>
+                    <!-- IMPORTANTE: mantener lo que ya hubiera + jacoco -->
+                    <argLine>@{argLine}</argLine>
+
                     <includes>
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
                     </includes>
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
 
@@ -147,45 +160,63 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
-                        <configuration>
-                            <includes>
-                                <include>**/*IT.java</include>
-                            </includes>
-                        </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <!-- idem: conservar flags previas + jacoco -->
+                    <argLine>@{argLine}</argLine>
+
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                </configuration>
             </plugin>
 
-            <!-- 3) JaCoCo: cobertura para unit + IT y report final en verify -->
+            <!-- 3) JaCoCo -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.12</version>
+                <version>${jacoco.version}</version>
                 <executions>
-                    <!-- engancha agente para unit tests -->
+
+                    <!-- inyecta -javaagent en la propiedad estándar ${argLine} -->
                     <execution>
                         <id>prepare-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <destFile>${jacoco.destFile}</destFile>
+                            <append>true</append>
+                        </configuration>
                     </execution>
 
-                    <!-- engancha agente para integration tests -->
+                    <!-- también para IT (mismo exec, append=true) -->
                     <execution>
                         <id>prepare-agent-integration</id>
                         <goals>
                             <goal>prepare-agent-integration</goal>
                         </goals>
+                        <configuration>
+                            <destFile>${jacoco.destFile}</destFile>
+                            <append>true</append>
+                        </configuration>
                     </execution>
 
-                    <!-- report FINAL (unit + IT) -->
+                    <!-- Report final en verify -->
                     <execution>
                         <id>report</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
+                        <configuration>
+                            <dataFile>${jacoco.destFile}</dataFile>
+                            <!-- deja target/site/jacoco/jacoco.xml -->
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
+                        </configuration>
                     </execution>
+
                 </executions>
             </plugin>
 
