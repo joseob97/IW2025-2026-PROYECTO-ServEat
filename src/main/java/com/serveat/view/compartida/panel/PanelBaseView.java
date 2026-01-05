@@ -6,6 +6,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -13,9 +14,12 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.RouterLink;
 
 import java.util.List;
-/*
- * Base para los paneles del camarero, cocinero y repartidor
- */
+
+/* Base reutilizable para paneles
+* Para el panel del cliente, administrador, cocinero,
+* camarero y repartidor
+*/
+
 public abstract class PanelBaseView extends VerticalLayout {
 
     protected PanelBaseView() {
@@ -109,39 +113,6 @@ public abstract class PanelBaseView extends VerticalLayout {
             return link;
         }
 
-        public static VerticalLayout renderEnFilasDeDos(List<Component> cards, String cardWidth) {
-            VerticalLayout contenedor = new VerticalLayout();
-            contenedor.setPadding(false);
-            contenedor.setSpacing(true);
-            contenedor.setWidthFull();
-
-            for (int i = 0; i < cards.size(); i += 2) {
-                HorizontalLayout fila = new HorizontalLayout();
-                fila.setWidthFull();
-                fila.setSpacing(true);
-                fila.getStyle().set("justify-content", "center");
-
-                Component izquierda = cards.get(i);
-                fila.add(izquierda);
-
-                if (i + 1 < cards.size()) {
-                    Component derecha = cards.get(i + 1);
-                    fila.add(derecha);
-                } else {
-                    VerticalLayout spacer = new VerticalLayout();
-                    spacer.setWidth(cardWidth);
-                    spacer.setPadding(false);
-                    spacer.setSpacing(false);
-                    spacer.getStyle().set("visibility", "hidden");
-                    fila.add(spacer);
-                }
-
-                contenedor.add(fila);
-            }
-
-            return contenedor;
-        }
-
         public static VerticalLayout cardAccionPro(String titulo,
                                                    String descripcion,
                                                    Class<? extends Component> destino,
@@ -174,7 +145,91 @@ public abstract class PanelBaseView extends VerticalLayout {
 
             VerticalLayout card = cardBase();
             card.add(h3, p, filaBoton);
+            card.setWidth("520px");
             return card;
+        }
+
+        // Variante para Admin con icono en el titulo
+        public static VerticalLayout cardAccionProConIcono(Icon icon,
+                                                           String titulo,
+                                                           String descripcion,
+                                                           Class<? extends Component> destino,
+                                                           boolean habilitado,
+                                                           String textoBoton) {
+
+            icon.getStyle().set("margin-right", "10px");
+            icon.getStyle().set("flex-shrink", "0");
+
+            Span t = new Span(titulo);
+            t.getStyle().set("font-weight", "700");
+
+            HorizontalLayout header = new HorizontalLayout(icon, t);
+            header.setPadding(false);
+            header.setSpacing(true);
+            header.setAlignItems(FlexComponent.Alignment.CENTER);
+            header.setWidthFull();
+
+            Paragraph desc = new Paragraph(descripcion);
+            desc.getStyle().set("opacity", "0.75");
+            desc.getStyle().set("margin", "0");
+
+            Button btn = new Button(textoBoton);
+            btn.setEnabled(habilitado);
+            btn.setWidth("140px");
+
+            if (habilitado) {
+                btn.addClickListener(e -> UI.getCurrent().navigate(destino));
+            } else {
+                btn.addClickListener(e ->
+                        Notification.show("Funcionalidad disponible con plan PRO", 3000, Notification.Position.MIDDLE)
+                );
+            }
+
+            VerticalLayout card = new VerticalLayout(header, desc, btn);
+            card.setPadding(true);
+            card.setSpacing(true);
+
+            card.setWidth("520px");
+            card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
+            card.getStyle().set("border-radius", "12px");
+            card.getStyle().set("box-shadow", "0 4px 12px rgba(0,0,0,0.08)");
+            card.getStyle().set("min-height", "150px");
+            card.getStyle().set("justify-content", "space-between");
+
+            return card;
+        }
+
+        public static VerticalLayout renderEnFilasDeDos(List<Component> cards, String cardWidth) {
+            VerticalLayout contenedor = new VerticalLayout();
+            contenedor.setPadding(false);
+            contenedor.setSpacing(true);
+            contenedor.setWidthFull();
+
+            for (int i = 0; i < cards.size(); i += 2) {
+                HorizontalLayout fila = new HorizontalLayout();
+                fila.setWidthFull();
+                fila.setSpacing(true);
+                fila.getStyle().set("justify-content", "center");
+
+                Component izquierda = cards.get(i);
+                fila.add(izquierda);
+
+                if (i + 1 < cards.size()) {
+                    Component derecha = cards.get(i + 1);
+                    fila.add(derecha);
+                } else {
+                    VerticalLayout spacer = new VerticalLayout();
+                    spacer.setWidth(cardWidth);
+                    spacer.setPadding(false);
+                    spacer.setSpacing(false);
+                    spacer.getStyle().set("visibility", "hidden");
+                    fila.add(spacer);
+                }
+
+                contenedor.add(fila);
+            }
+
+            return contenedor;
         }
 
         private static VerticalLayout cardBase() {
