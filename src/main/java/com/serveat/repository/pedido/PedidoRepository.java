@@ -226,15 +226,15 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "pago"
     })
     @Query("""
-    select p
-    from Pedido p
-    left join p.reservaMesa rm
-    where (:desde is null or p.fechaCreacion >= :desde)
-      and (:hasta is null or p.fechaCreacion <= :hasta)
-      and (:estadoPedido is null or p.estado = :estadoPedido)
-      and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
-      and (:mesa is null or rm.numeroMesa = :mesa)
-    order by p.fechaCreacion desc
+        select p
+        from Pedido p
+        left join p.reservaMesa rm
+        where p.fechaCreacion >= coalesce(:desde, p.fechaCreacion)
+          and p.fechaCreacion <= coalesce(:hasta, p.fechaCreacion)
+          and p.estado = coalesce(:estadoPedido, p.estado)
+          and p.estadoCocina = coalesce(:estadoCocina, p.estadoCocina)
+          and (:mesa is null or rm.numeroMesa = :mesa)
+        order by p.fechaCreacion desc
     """)
     Page<Pedido> buscarPedidosFiltrados(@Param("desde") LocalDateTime desde,
                                         @Param("hasta") LocalDateTime hasta,
@@ -249,14 +249,14 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "lineaPedidos.productos"
     })
     @Query("""
-    select p
-    from Pedido p
-    left join p.reservaMesa rm
-    where (:desde is null or p.fechaCreacion >= :desde)
-      and (:hasta is null or p.fechaCreacion <= :hasta)
-      and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
-      and (:mesa is null or rm.numeroMesa = :mesa)
-    order by p.fechaCreacion desc
+        select p
+        from Pedido p
+        left join p.reservaMesa rm
+        where p.fechaCreacion >= coalesce(:desde, p.fechaCreacion)
+          and p.fechaCreacion <= coalesce(:hasta, p.fechaCreacion)
+          and p.estadoCocina = coalesce(:estadoCocina, p.estadoCocina)
+          and (:mesa is null or rm.numeroMesa = :mesa)
+        order by p.fechaCreacion desc
     """)
     Page<Pedido> buscarPedidosCocinaHistorico(@Param("desde") LocalDateTime desde,
                                               @Param("hasta") LocalDateTime hasta,
@@ -264,22 +264,20 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
                                               @Param("mesa") Integer mesa,
                                               Pageable pageable);
 
-
-
     @EntityGraph(attributePaths = {
             "reservaMesa",
             "lineaPedidos",
             "lineaPedidos.productos"
     })
     @Query("""
-    select p
-    from Pedido p
-    left join p.reservaMesa rm
-    where (:desde is null or p.fechaCreacion >= :desde)
-      and (:hasta is null or p.fechaCreacion <= :hasta)
-      and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
-      and (:mesa is null or rm.numeroMesa = :mesa)
-    order by p.fechaCreacion asc
+        select p
+        from Pedido p
+        left join p.reservaMesa rm
+        where p.fechaCreacion >= coalesce(:desde, p.fechaCreacion)
+          and p.fechaCreacion <= coalesce(:hasta, p.fechaCreacion)
+          and p.estadoCocina = coalesce(:estadoCocina, p.estadoCocina)
+          and (:mesa is null or rm.numeroMesa = :mesa)
+        order by p.fechaCreacion asc
     """)
     Page<Pedido> buscarPedidosCocinaHoy(@Param("desde") LocalDateTime desde,
                                         @Param("hasta") LocalDateTime hasta,
@@ -298,13 +296,13 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "repartidor"
     })
     @Query("""
-    select p
-    from Pedido p
-    where p.tipoPedido = com.serveat.domain.pedido.TipoPedidoCliente.DOMICILIO
-      and p.estadoReparto = com.serveat.domain.pedido.EstadoReparto.PENDIENTE_ASIGNACION
-      and (:desde is null or p.fechaCreacion >= :desde)
-      and (:hasta is null or p.fechaCreacion <= :hasta)
-    order by p.fechaCreacion desc
+        select p
+        from Pedido p
+        where p.tipoPedido = com.serveat.domain.pedido.TipoPedidoCliente.DOMICILIO
+          and p.estadoReparto = com.serveat.domain.pedido.EstadoReparto.PENDIENTE_ASIGNACION
+          and p.fechaCreacion >= coalesce(:desde, p.fechaCreacion)
+          and p.fechaCreacion <= coalesce(:hasta, p.fechaCreacion)
+        order by p.fechaCreacion desc
     """)
     Page<Pedido> buscarPedidosDisponiblesRepartidor(@Param("desde") LocalDateTime desde,
                                                     @Param("hasta") LocalDateTime hasta,
@@ -321,13 +319,13 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
             "repartidor"
     })
     @Query("""
-    select p
-    from Pedido p
-    where p.repartidor.username = :username
-      and (:desde is null or p.fechaCreacion >= :desde)
-      and (:hasta is null or p.fechaCreacion <= :hasta)
-      and (:estadoReparto is null or p.estadoReparto = :estadoReparto)
-    order by p.fechaCreacion desc
+        select p
+        from Pedido p
+        where p.repartidor.username = :username
+          and p.fechaCreacion >= coalesce(:desde, p.fechaCreacion)
+          and p.fechaCreacion <= coalesce(:hasta, p.fechaCreacion)
+          and p.estadoReparto = coalesce(:estadoReparto, p.estadoReparto)
+        order by p.fechaCreacion desc
     """)
     Page<Pedido> buscarMisRepartosFiltrados(@Param("username") String username,
                                             @Param("desde") LocalDateTime desde,
