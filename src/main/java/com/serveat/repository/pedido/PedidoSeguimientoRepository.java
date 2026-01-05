@@ -23,8 +23,8 @@ public interface PedidoSeguimientoRepository extends JpaRepository<Pedido, UUID>
         where p.cliente.username = :username
           and p.estado <> com.serveat.domain.pedido.EstadoPedido.ANULADO
           and p.fechaEntrega is null
-          and (:desde is null or p.fechaCreacion >= :desde)
-          and (:hasta is null or p.fechaCreacion <= :hasta)
+          and p.fechaCreacion >= coalesce(:desde, p.fechaCreacion)
+          and p.fechaCreacion <= coalesce(:hasta, p.fechaCreacion)
           and (:estadoPedido is null or p.estado = :estadoPedido)
           and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
           and (:estadoReparto is null or p.estadoReparto = :estadoReparto)
@@ -43,8 +43,8 @@ public interface PedidoSeguimientoRepository extends JpaRepository<Pedido, UUID>
         select p from Pedido p
         where p.cliente.username = :username
           and (p.estado = com.serveat.domain.pedido.EstadoPedido.ANULADO or p.fechaEntrega is not null)
-          and (:desde is null or p.fechaCreacion >= :desde)
-          and (:hasta is null or p.fechaCreacion <= :hasta)
+          and p.fechaCreacion >= coalesce(:desde, p.fechaCreacion)
+          and p.fechaCreacion <= coalesce(:hasta, p.fechaCreacion)
           and (:estadoPedido is null or p.estado = :estadoPedido)
           and (:estadoCocina is null or p.estadoCocina = :estadoCocina)
           and (:estadoReparto is null or p.estadoReparto = :estadoReparto)
