@@ -85,10 +85,12 @@ public class MainLayout extends AppLayout {
             dialog.setText(getTranslation("logout.mensaje"));
             dialog.setConfirmText(getTranslation("logout.confirmar"));
             dialog.setCancelText(getTranslation("logout.cancelar"));
+            dialog.setCancelable(true); // ✅ FIX: permite cancelar sin cerrar sesión
 
             dialog.addConfirmListener(ev ->
                     UI.getCurrent().getPage().setLocation("/logout")
             );
+
             dialog.open();
         });
 
@@ -160,13 +162,11 @@ public class MainLayout extends AppLayout {
         HorizontalLayout header = new HorizontalLayout(
                 logo,
                 spacer,
-
-                // 🔹 NUEVO ORDEN
                 selectorIdioma,
+                panelContainer,
                 bloqueUsuario,
                 linkInicio,
                 linkCarta,
-                panelContainer,
                 linkContacto,
                 linkInfo,
                 linkLogin,
@@ -181,3 +181,4 @@ public class MainLayout extends AppLayout {
         addToNavbar(header);
     }
 }
+
