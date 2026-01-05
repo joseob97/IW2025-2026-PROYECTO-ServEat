@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @PageTitle("Seguimiento | Cliente")
 @Route(value = "cliente/pedidos/seguimiento/activos", layout = MainLayout.class)
 @Secured("ROLE_CLIENTE")
-public class SeguimientoPedidosActivosView extends SeguimientoPedidosAbstractaView {
+public class SeguimientoPedidosActivosView extends SeguimientoPedidosBaseView {
 
     private final Button btnAnteriores = new Button("Pedidos anteriores");
     private final Button btnVolver = new Button("Volver a mis pedidos");

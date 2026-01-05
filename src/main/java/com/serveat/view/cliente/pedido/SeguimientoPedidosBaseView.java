@@ -28,7 +28,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-public abstract class SeguimientoPedidosAbstractaView extends VerticalLayout {
+public abstract class SeguimientoPedidosBaseView extends VerticalLayout {
 
     protected final transient PedidoSeguimientoService seguimientoService;
 
@@ -57,7 +57,7 @@ public abstract class SeguimientoPedidosAbstractaView extends VerticalLayout {
 
     protected static final DateTimeFormatter FECHA_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    protected SeguimientoPedidosAbstractaView(PedidoSeguimientoService seguimientoService) {
+    protected SeguimientoPedidosBaseView(PedidoSeguimientoService seguimientoService) {
         this.seguimientoService = seguimientoService;
     }
 
