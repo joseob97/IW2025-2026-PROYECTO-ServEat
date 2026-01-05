@@ -63,7 +63,6 @@ public class MainLayout extends AppLayout {
         Locale localeActual = VaadinSession.getCurrent().getLocale();
         selectorIdioma.setValue(localeActual != null ? localeActual : new Locale("es", "ES"));
 
-        // 🔁 Cambio de idioma + recarga automática
         selectorIdioma.addValueChangeListener(e -> {
             if (e.getValue() != null) {
                 VaadinSession.getCurrent().setLocale(e.getValue());
@@ -161,11 +160,13 @@ public class MainLayout extends AppLayout {
         HorizontalLayout header = new HorizontalLayout(
                 logo,
                 spacer,
+
+                // 🔹 NUEVO ORDEN
                 selectorIdioma,
-                panelContainer,
                 bloqueUsuario,
                 linkInicio,
                 linkCarta,
+                panelContainer,
                 linkContacto,
                 linkInfo,
                 linkLogin,
