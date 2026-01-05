@@ -9,10 +9,12 @@ import com.serveat.service.pedido.PedidoCarritoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.service.seguridad.FeatureService;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -22,6 +24,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class IniciarPedidoViewTest {
+
+    @BeforeEach
+    void setupUi() {
+        UI ui = new UI();
+        UI.setCurrent(ui);
+    }
 
     @Test
     void constructor_no_revienta_y_estado_inicial_sin_pedido() {
@@ -42,6 +50,7 @@ class IniciarPedidoViewTest {
                 categoriaService,
                 featureService
         );
+        UI.getCurrent().add(view);
 
         assertNotNull(view);
 
@@ -81,6 +90,7 @@ class IniciarPedidoViewTest {
                 categoriaService,
                 featureService
         );
+        UI.getCurrent().add(view);
 
         boolean out = (boolean) invokePrivateAndReturn(view, "personalizacionHabilitada");
 
@@ -107,6 +117,7 @@ class IniciarPedidoViewTest {
                 categoriaService,
                 featureService
         );
+        UI.getCurrent().add(view);
 
         IntegerField mesa = findIntegerFieldByLabel(view, "Número de mesa");
         assertNotNull(mesa);
@@ -136,6 +147,7 @@ class IniciarPedidoViewTest {
                 categoriaService,
                 featureService
         );
+        UI.getCurrent().add(view);
 
         invokePrivate(view, "setUiPedidoCreado",
                 new Class<?>[]{boolean.class},
@@ -166,6 +178,7 @@ class IniciarPedidoViewTest {
                 categoriaService,
                 featureService
         );
+        UI.getCurrent().add(view);
 
         invokePrivate(view, "setUiPedidoConfirmado");
 
@@ -205,6 +218,7 @@ class IniciarPedidoViewTest {
                 categoriaService,
                 featureService
         );
+        UI.getCurrent().add(view);
 
         IntegerField mesa = findIntegerFieldByLabel(view, "Número de mesa");
         TextField codigo = findTextFieldByLabel(view, "Código pedido");
@@ -219,8 +233,6 @@ class IniciarPedidoViewTest {
         verify(pedidoService, atLeastOnce()).crearPedidoMesa(7);
         assertEquals("P-123", codigo.getValue());
     }
-
-    // Helpers
 
     private static H3 findH3ByText(Component root, String text) {
         for (Component c : flatten(root)) {
@@ -260,12 +272,11 @@ class IniciarPedidoViewTest {
 
     private static List<Component> flatten(Component c) {
         List<Component> out = new ArrayList<>();
+        if (c == null) return out;
         out.add(c);
         c.getChildren().forEach(child -> out.addAll(flatten(child)));
         return out;
     }
-
-    // Reflection solo para invocar métodos private
 
     private static void invokePrivate(Object target, String methodName) throws Exception {
         var m = target.getClass().getDeclaredMethod(methodName);

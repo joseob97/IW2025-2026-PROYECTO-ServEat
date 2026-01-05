@@ -4,6 +4,7 @@ import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.service.pedido.TicketService;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -11,6 +12,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.textfield.IntegerField;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -21,10 +23,17 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 class PedidosCamareroViewTest {
+
+    @BeforeEach
+    void setupUi() {
+        UI ui = new UI();
+        UI.setCurrent(ui);
+    }
 
     @Test
     void constructor_no_revienta_y_carga_pagina_inicial() {
@@ -38,6 +47,7 @@ class PedidosCamareroViewTest {
         )).thenReturn((Page) emptyPage);
 
         PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService);
+        UI.getCurrent().add(view);
 
         assertNotNull(view);
 
@@ -68,7 +78,7 @@ class PedidosCamareroViewTest {
     }
 
     @Test
-    void cargar_pagina_si_el_servicio_lanza_excepcion_no_revienta() throws Exception {
+    void cargar_pagina_si_el_servicio_lanza_excepcion_no_revienta() {
         PedidoService pedidoService = mock(PedidoService.class);
         PedidoCalculoService calculoService = mock(PedidoCalculoService.class);
         TicketService ticketService = mock(TicketService.class);
@@ -78,92 +88,69 @@ class PedidosCamareroViewTest {
         )).thenThrow(new RuntimeException("boom"));
 
         PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService);
-
-        invokePrivate(view, "cargarPagina",
-                new Class<?>[]{int.class},
-                new Object[]{0}
-        );
+        UI.getCurrent().add(view);
 
         assertNotNull(view);
-    }
 
-    // Helpers
+        verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(
+                any(), any(), any(), any(), any(), any()
+        );
+    }
 
     private static H3 findH3ByText(Component root, String text) {
         for (Component c : flatten(root)) {
-            if (c instanceof H3 h3 && text.equals(h3.getText())) {
-                return h3;
-            }
+            if (c instanceof H3 h3 && text.equals(h3.getText())) return h3;
         }
         return null;
     }
 
     private static Button findButtonByText(Component root, String text) {
         for (Component c : flatten(root)) {
-            if (c instanceof Button b && text.equals(b.getText())) {
-                return b;
-            }
+            if (c instanceof Button b && text.equals(b.getText())) return b;
         }
         return null;
     }
 
     private static DatePicker findDatePickerByLabel(Component root, String label) {
         for (Component c : flatten(root)) {
-            if (c instanceof DatePicker dp && label.equals(dp.getLabel())) {
-                return dp;
-            }
+            if (c instanceof DatePicker dp && label.equals(dp.getLabel())) return dp;
         }
         return null;
     }
 
     private static ComboBox<?> findComboBoxByLabel(Component root, String label) {
         for (Component c : flatten(root)) {
-            if (c instanceof ComboBox<?> cb && label.equals(cb.getLabel())) {
-                return cb;
-            }
+            if (c instanceof ComboBox<?> cb && label.equals(cb.getLabel())) return cb;
         }
         return null;
     }
 
     private static IntegerField findIntegerFieldByLabel(Component root, String label) {
         for (Component c : flatten(root)) {
-            if (c instanceof IntegerField f && label.equals(f.getLabel())) {
-                return f;
-            }
+            if (c instanceof IntegerField f && label.equals(f.getLabel())) return f;
         }
         return null;
     }
 
     private static Grid<?> findFirstGrid(Component root) {
         for (Component c : flatten(root)) {
-            if (c instanceof Grid<?> g) {
-                return g;
-            }
+            if (c instanceof Grid<?> g) return g;
         }
         return null;
     }
 
     private static Span findSpanContainingText(Component root, String partial) {
         for (Component c : flatten(root)) {
-            if (c instanceof Span s && s.getText() != null && s.getText().contains(partial)) {
-                return s;
-            }
+            if (c instanceof Span s && s.getText() != null && s.getText().contains(partial)) return s;
         }
         return null;
     }
 
     private static List<Component> flatten(Component c) {
         List<Component> out = new ArrayList<>();
+        if (c == null) return out;
         out.add(c);
         c.getChildren().forEach(child -> out.addAll(flatten(child)));
         return out;
-    }
-
-    // Reflection solo para invocar métodos private
-
-    private static void invokePrivate(Object target, String methodName, Class<?>[] argTypes, Object[] args) throws Exception {
-        var m = target.getClass().getDeclaredMethod(methodName, argTypes);
-        m.setAccessible(true);
-        m.invoke(target, args);
     }
 }
