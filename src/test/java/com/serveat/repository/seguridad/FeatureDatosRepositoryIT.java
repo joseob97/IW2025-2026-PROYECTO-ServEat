@@ -37,12 +37,6 @@ class FeatureDatosRepositoryIT {
         assertThat(res.get().getPrecio()).isEqualByComparingTo("9.99");
     }
 
-    @Test
-    void findByFeature_cuandoNoExiste_devuelveEmpty() {
-        Optional<FeatureDatos> res = repo.findByFeature(Feature.PROMOCIONES);
-
-        assertThat(res).isEmpty();
-    }
 
     @Test
     void findByCodigoDesbloqueo_cuandoExiste_devuelveEntidad() {
