@@ -5,9 +5,11 @@ import com.serveat.domain.pedido.EstadoPedido;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.LineaPedidoIngrediente;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.service.pedido.TicketService;
+import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -48,8 +50,10 @@ public class PedidosCamareroView extends VerticalLayout {
     private final transient PedidoService pedidoService;
     private final transient PedidoCalculoService calculoService;
     private final transient TicketService ticketService;
+    private final transient FeatureService featureService;
 
-    // Filtros
+    private final boolean ingredientesHabilitados;
+
     private final DatePicker desde = new DatePicker("Desde");
     private final DatePicker hasta = new DatePicker("Hasta");
     private final ComboBox<EstadoPedido> filtroEstadoPedido = new ComboBox<>("Estado pedido");
@@ -59,7 +63,6 @@ public class PedidosCamareroView extends VerticalLayout {
     private final Button btnBuscar = new Button("Buscar");
     private final Button btnLimpiar = new Button("Limpiar");
 
-    // Grid + paginación
     private final Grid<Pedido> grid = new Grid<>(Pedido.class, false);
     private final Button prev = new Button("◀ Anterior");
     private final Button next = new Button("Siguiente ▶");
@@ -73,10 +76,14 @@ public class PedidosCamareroView extends VerticalLayout {
 
     public PedidosCamareroView(PedidoService pedidoService,
                                PedidoCalculoService calculoService,
-                               TicketService ticketService) {
+                               TicketService ticketService,
+                               FeatureService featureService) {
         this.pedidoService = pedidoService;
         this.calculoService = calculoService;
         this.ticketService = ticketService;
+        this.featureService = featureService;
+
+        this.ingredientesHabilitados = featureService.tieneFeature(Feature.INGREDIENTES);
 
         setPadding(true);
         setSpacing(false);
@@ -244,7 +251,7 @@ public class PedidosCamareroView extends VerticalLayout {
             prev.setEnabled(index > 0);
             next.setEnabled(index < maxPage);
 
-            long from = totalItems == 0 ? 0 : (index * pageSize + 1);
+            long from = totalItems == 0 ? 0 : (index * pageSize + 1L);
             long to = Math.min(totalItems, (long) (index + 1) * pageSize);
             infoPagina.setText("Mostrando " + from + "-" + to + " de " + totalItems);
 
@@ -321,28 +328,32 @@ public class PedidosCamareroView extends VerticalLayout {
                 })
                 .setHeader("Precio ud.").setAutoWidth(true).setFlexGrow(0);
 
-        g.addComponentColumn(lp -> {
-                    VerticalLayout box = new VerticalLayout();
-                    box.setPadding(false);
-                    box.setSpacing(false);
-                    box.getStyle().set("gap", "4px");
+        // Los ingredientes solo deben mostrarse si el feature INGREDIENTES está activo.
+        // Si no está activo, no se añade la columna y no se filtra información sensible al usuario.
+        if (ingredientesHabilitados) {
+            g.addComponentColumn(lp -> {
+                        VerticalLayout box = new VerticalLayout();
+                        box.setPadding(false);
+                        box.setSpacing(false);
+                        box.getStyle().set("gap", "4px");
 
-                    List<String> det = construirDetalleIngredientes(lp.getIngredientes());
-                    if (det.isEmpty()) {
-                        Span s = new Span("-");
-                        s.getStyle().set("color", "var(--lumo-secondary-text-color)");
-                        box.add(s);
-                    } else {
-                        for (String d : det) {
-                            Span s = new Span(d);
-                            s.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+                        List<String> det = construirDetalleIngredientes(lp.getIngredientes());
+                        if (det.isEmpty()) {
+                            Span s = new Span("-");
                             s.getStyle().set("color", "var(--lumo-secondary-text-color)");
                             box.add(s);
+                        } else {
+                            for (String d : det) {
+                                Span s = new Span(d);
+                                s.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+                                s.getStyle().set("color", "var(--lumo-secondary-text-color)");
+                                box.add(s);
+                            }
                         }
-                    }
-                    return box;
-                })
-                .setHeader("Ingredientes").setFlexGrow(1);
+                        return box;
+                    })
+                    .setHeader("Ingredientes").setFlexGrow(1);
+        }
 
         g.addColumn(lp -> calculoService.calcularPrecioLinea(lp) + " €")
                 .setHeader("Subtotal").setAutoWidth(true).setFlexGrow(0);
@@ -363,12 +374,11 @@ public class PedidosCamareroView extends VerticalLayout {
         box.setSpacing(false);
         box.getStyle().set("gap", "10px");
 
-        //  Ticket
         Button generarTicket = new Button("🧾 Generar ticket");
         generarTicket.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         generarTicket.getStyle().set("font-weight", "800");
 
-        Anchor download = new Anchor(); // Anchor (A mayúscula)
+        Anchor download = new Anchor();
         download.getStyle().set("display", "none");
         download.getElement().setAttribute("download", true);
 
@@ -389,7 +399,6 @@ public class PedidosCamareroView extends VerticalLayout {
             }
         });
 
-        // Editar / Cancelar (usando los nuevos métodos del servicio)
         boolean puede = pedidoService.puedeEditarOCancelarCamarero(pedido);
 
         Button editar = new Button("✏️ Editar pedido");
@@ -405,13 +414,9 @@ public class PedidosCamareroView extends VerticalLayout {
         cancelar.setEnabled(puede);
         cancelar.getStyle().set("font-weight", "800");
         cancelar.addClickListener(e -> {
-
             ConfirmDialog confirm = new ConfirmDialog();
             confirm.setHeader("Cancelar pedido");
-            confirm.setText(
-                    "¿Seguro que deseas cancelar este pedido?\n" +
-                            "Esta acción no se puede deshacer."
-            );
+            confirm.setText("¿Seguro que deseas cancelar este pedido?\nEsta acción no se puede deshacer.");
 
             confirm.setConfirmText("Sí, cancelar pedido");
             confirm.setCancelText("Volver");
@@ -421,10 +426,7 @@ public class PedidosCamareroView extends VerticalLayout {
 
             confirm.addConfirmListener(ev -> {
                 try {
-                    pedidoService.cancelarPedidoCamarero(
-                            pedido.getCodigo(),
-                            "Cancelado por camarero"
-                    );
+                    pedidoService.cancelarPedidoCamarero(pedido.getCodigo(), "Cancelado por camarero");
                     Notification.show("Pedido cancelado", 2500, Notification.Position.BOTTOM_START);
                     dialog.close();
                     cargarPagina(pageIndex);
@@ -435,7 +437,6 @@ public class PedidosCamareroView extends VerticalLayout {
 
             confirm.open();
         });
-
 
         box.add(download, generarTicket, editar, cancelar);
         return box;
