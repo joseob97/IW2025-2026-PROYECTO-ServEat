@@ -41,32 +41,29 @@ public class GestionEmpleadosView extends VerticalLayout {
 
         H2 titulo = new H2("Gestión de empleados");
 
+        Button nuevoEmpleado = new Button("➕ Añadir empleado", e ->
+                UI.getCurrent().navigate(
+                        "empleado/admin/gestion-empleados/nuevo-empleado"
+                )
+        );
+        nuevoEmpleado.getStyle()
+                .set("background", "var(--lumo-primary-color)")
+                .set("color", "white");
+
         configurarGrid();
         cargarEmpleados();
 
-        HorizontalLayout cabecera = crearCabecera();
         HorizontalLayout filtros = crearFiltros();
 
-        add(titulo, cabecera, filtros, grid);
-    }
-
-    /* =========================
-       CABECERA (BOTÓN NUEVO)
-       ========================= */
-    private HorizontalLayout crearCabecera() {
-
-        Button btnNuevo = new Button("➕ Añadir empleado");
-        btnNuevo.getStyle().set("font-weight", "600");
-        btnNuevo.addClickListener(e ->
-                UI.getCurrent().navigate("empleado/admin/gestion-empleados/nuevo")
+        HorizontalLayout cabecera = new HorizontalLayout(
+                titulo,
+                nuevoEmpleado
         );
-
-        HorizontalLayout cabecera = new HorizontalLayout();
         cabecera.setWidthFull();
-        cabecera.setJustifyContentMode(JustifyContentMode.END);
-        cabecera.add(btnNuevo);
+        cabecera.setAlignItems(Alignment.CENTER);
+        cabecera.expand(titulo);
 
-        return cabecera;
+        add(cabecera, filtros, grid);
     }
 
     /* =========================
@@ -105,7 +102,7 @@ public class GestionEmpleadosView extends VerticalLayout {
 
         grid.addComponentColumn(this::crearAcciones)
                 .setHeader("Acciones")
-                .setWidth("300px")
+                .setWidth("320px")
                 .setFlexGrow(0);
 
         grid.setSizeFull();
@@ -163,9 +160,12 @@ public class GestionEmpleadosView extends VerticalLayout {
                 )
         );
 
-        HorizontalLayout acciones = new HorizontalLayout(editar, cambiarEstado, eliminar);
-        acciones.setSpacing(true);
+        HorizontalLayout acciones = new HorizontalLayout(
+                editar, cambiarEstado, eliminar
+        );
         acciones.setAlignItems(Alignment.CENTER);
+        acciones.setSpacing(true);
+        acciones.getStyle().set("flex-wrap", "nowrap");
 
         return acciones;
     }
