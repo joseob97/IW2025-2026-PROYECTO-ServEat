@@ -11,5 +11,6 @@ public interface FeatureActivaRepository extends JpaRepository<FeatureActiva, UU
     Optional<FeatureActiva> findByFeature(Feature feature);
 
     boolean existsByFeature(Feature feature);
+    boolean existsByFeatureAndActivaTrue(Feature feature);
 
 }
