@@ -12,6 +12,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.textfield.IntegerField;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
@@ -24,15 +25,18 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 class PedidosCamareroViewTest {
 
     @BeforeEach
     void setupUi() {
-        UI ui = new UI();
-        UI.setCurrent(ui);
+        UI.setCurrent(new UI());
+    }
+
+    @AfterEach
+    void tearDownUi() {
+        UI.setCurrent(null);
     }
 
     @Test
@@ -42,18 +46,15 @@ class PedidosCamareroViewTest {
         TicketService ticketService = mock(TicketService.class);
 
         Page<?> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
-        when(pedidoService.buscarPedidosFiltrados(
-                any(), any(), any(), any(), any(), any()
-        )).thenReturn((Page) emptyPage);
+        when(pedidoService.buscarPedidosFiltrados(any(), any(), any(), any(), any(), any()))
+                .thenReturn((Page) emptyPage);
 
         PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService);
-        UI.getCurrent().add(view);
+        attachToUi(view);
 
         assertNotNull(view);
 
-        verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(
-                any(), any(), any(), any(), any(), any()
-        );
+        verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(any(), any(), any(), any(), any(), any());
 
         assertNotNull(findH3ByText(view, "Pedidos (Camarero)"));
 
@@ -83,18 +84,24 @@ class PedidosCamareroViewTest {
         PedidoCalculoService calculoService = mock(PedidoCalculoService.class);
         TicketService ticketService = mock(TicketService.class);
 
-        when(pedidoService.buscarPedidosFiltrados(
-                any(), any(), any(), any(), any(), any()
-        )).thenThrow(new RuntimeException("boom"));
+        when(pedidoService.buscarPedidosFiltrados(any(), any(), any(), any(), any(), any()))
+                .thenThrow(new RuntimeException("boom"));
 
         PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService);
-        UI.getCurrent().add(view);
+        attachToUi(view);
 
         assertNotNull(view);
 
-        verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(
-                any(), any(), any(), any(), any(), any()
-        );
+        verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(any(), any(), any(), any(), any(), any());
+    }
+
+    private static void attachToUi(Component view) {
+        UI ui = UI.getCurrent();
+        if (ui == null) {
+            UI.setCurrent(new UI());
+            ui = UI.getCurrent();
+        }
+        ui.add(view);
     }
 
     private static H3 findH3ByText(Component root, String text) {
