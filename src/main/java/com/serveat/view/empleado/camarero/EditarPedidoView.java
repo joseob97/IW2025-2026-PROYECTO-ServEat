@@ -5,8 +5,10 @@ import com.serveat.domain.menu.ProductoIngrediente;
 import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.LineaPedidoIngrediente;
 import com.serveat.domain.pedido.Pedido;
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
+import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -24,12 +26,13 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.*;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @PageTitle("Editar Pedido | Camarero")
 @Route(value = "empleado/camarero/pedidos/editar", layout = MainLayout.class)
@@ -38,6 +41,7 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
 
     private final transient PedidoService pedidoService;
     private final transient PedidoCalculoService calculoService;
+    private final transient FeatureService featureService;
 
     private transient Pedido pedidoEditable;
     private boolean hayCambios = false;
@@ -50,9 +54,11 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
     private static final DateTimeFormatter FECHA_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public EditarPedidoView(PedidoService pedidoService,
-                            PedidoCalculoService calculoService) {
+                            PedidoCalculoService calculoService,
+                            FeatureService featureService) {
         this.pedidoService = pedidoService;
         this.calculoService = calculoService;
+        this.featureService = featureService;
 
         setPadding(true);
         setSpacing(false);
@@ -84,6 +90,10 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
 
         add(titulo, info, barraTop, crearCard(gridLineas));
         bloquearEdicion();
+    }
+
+    private boolean personalizacionHabilitada() {
+        return featureService != null && featureService.tieneFeature(Feature.INGREDIENTES);
     }
 
     @Override
@@ -153,6 +163,10 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
         }).setHeader("Cantidad").setAutoWidth(true).setFlexGrow(0);
 
         gridLineas.addComponentColumn(lp -> {
+            if (!personalizacionHabilitada()) {
+                return new Span("");
+            }
+
             boolean tieneIngredientes;
             try {
                 tieneIngredientes = !pedidoService.obtenerIngredientesDisponiblesLinea(lp).isEmpty();
@@ -222,6 +236,11 @@ public class EditarPedidoView extends VerticalLayout implements HasUrlParameter<
 
     private void abrirEditorIngredientes(LineaPedido lp) {
         if (lp == null || pedidoEditable == null) return;
+
+        if (!personalizacionHabilitada()) {
+            Notification.show("La personalización de ingredientes requiere el módulo de ingredientes activo.", 3500, Notification.Position.MIDDLE);
+            return;
+        }
 
         Dialog dialog = new Dialog();
         dialog.setWidth("860px");

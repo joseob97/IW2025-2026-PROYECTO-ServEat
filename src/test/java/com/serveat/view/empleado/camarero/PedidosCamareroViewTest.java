@@ -1,8 +1,10 @@
 package com.serveat.view.empleado.camarero;
 
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
 import com.serveat.service.pedido.TicketService;
+import com.serveat.service.seguridad.FeatureService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -40,20 +42,24 @@ class PedidosCamareroViewTest {
     }
 
     @Test
-    void constructor_no_revienta_y_carga_pagina_inicial() {
+    void constructor_no_revienta_y_carga_pagina_inicial_con_feature_ingredientes_desactivada() {
         PedidoService pedidoService = mock(PedidoService.class);
         PedidoCalculoService calculoService = mock(PedidoCalculoService.class);
         TicketService ticketService = mock(TicketService.class);
+        FeatureService featureService = mock(FeatureService.class);
+
+        when(featureService.tieneFeature(Feature.INGREDIENTES)).thenReturn(false);
 
         Page<?> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
         when(pedidoService.buscarPedidosFiltrados(any(), any(), any(), any(), any(), any()))
                 .thenReturn((Page) emptyPage);
 
-        PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService);
+        PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService, featureService);
         attachToUi(view);
 
         assertNotNull(view);
 
+        verify(featureService, atLeastOnce()).tieneFeature(Feature.INGREDIENTES);
         verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(any(), any(), any(), any(), any(), any());
 
         assertNotNull(findH3ByText(view, "Pedidos (Camarero)"));
@@ -79,19 +85,45 @@ class PedidosCamareroViewTest {
     }
 
     @Test
-    void cargar_pagina_si_el_servicio_lanza_excepcion_no_revienta() {
+    void constructor_no_revienta_y_carga_pagina_inicial_con_feature_ingredientes_activada() {
         PedidoService pedidoService = mock(PedidoService.class);
         PedidoCalculoService calculoService = mock(PedidoCalculoService.class);
         TicketService ticketService = mock(TicketService.class);
+        FeatureService featureService = mock(FeatureService.class);
 
+        when(featureService.tieneFeature(Feature.INGREDIENTES)).thenReturn(true);
+
+        Page<?> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 10), 0);
         when(pedidoService.buscarPedidosFiltrados(any(), any(), any(), any(), any(), any()))
-                .thenThrow(new RuntimeException("boom"));
+                .thenReturn((Page) emptyPage);
 
-        PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService);
+        PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService, featureService);
         attachToUi(view);
 
         assertNotNull(view);
 
+        verify(featureService, atLeastOnce()).tieneFeature(Feature.INGREDIENTES);
+        verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void cargar_pagina_si_el_servicio_lanza_excepcion_no_revienta() {
+        PedidoService pedidoService = mock(PedidoService.class);
+        PedidoCalculoService calculoService = mock(PedidoCalculoService.class);
+        TicketService ticketService = mock(TicketService.class);
+        FeatureService featureService = mock(FeatureService.class);
+
+        when(featureService.tieneFeature(Feature.INGREDIENTES)).thenReturn(false);
+
+        when(pedidoService.buscarPedidosFiltrados(any(), any(), any(), any(), any(), any()))
+                .thenThrow(new RuntimeException("boom"));
+
+        PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService, featureService);
+        attachToUi(view);
+
+        assertNotNull(view);
+
+        verify(featureService, atLeastOnce()).tieneFeature(Feature.INGREDIENTES);
         verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(any(), any(), any(), any(), any(), any());
     }
 

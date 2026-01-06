@@ -30,6 +30,7 @@ public class FeatureUnlockService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
     public BigDecimal obtenerPrecioFeature(Feature feature) {
         return featureDatosRepository.findByFeature(feature)
                 .orElseThrow(() -> new IllegalStateException(
@@ -38,12 +39,11 @@ public class FeatureUnlockService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
     public boolean isFeaturePagada(Feature feature) {
-
         FeatureDatos datos = featureDatosRepository.findByFeature(feature)
                 .orElseThrow(() -> new IllegalStateException(
                         "No existen datos para la feature " + feature));
-
         return datos.isPagada();
     }
 
@@ -54,12 +54,15 @@ public class FeatureUnlockService {
                 .orElseThrow(() -> new IllegalStateException(
                         "No existen datos para la feature " + feature));
 
-        if (featureActivaRepository.existsByFeature(feature)) {
+        // Activa de verdad (no solo "existe la fila")
+        if (featureActivaRepository.existsByFeatureAndActivaTrue(feature)) {
             throw new IllegalStateException("La feature ya está activa");
         }
 
+        // Si ya está pagada, no se vuelve a pagar, pero NO es un error para el flujo real:
+        // devolvemos el código existente para que el admin pueda activarla.
         if (datos.isPagada()) {
-            throw new IllegalStateException("La feature ya ha sido pagada");
+            return datos.getCodigoDesbloqueo();
         }
 
         // Marcar como pagada
@@ -68,12 +71,11 @@ public class FeatureUnlockService {
 
         String codigo = datos.getCodigoDesbloqueo();
 
-        // 👉 SOLO enviar push si NOTIFICACIONES está activa
-        if (featureActivaRepository.existsByFeature(Feature.NOTIFICACIONES)) {
-
+        // Solo enviar push si NOTIFICACIONES está activa (activa=true)
+        if (featureActivaRepository.existsByFeatureAndActivaTrue(Feature.NOTIFICACIONES)) {
             String mensaje = """
                 Pago realizado correctamente.
-                
+
                 Código de desbloqueo para %s:
                 %s
                 """.formatted(feature.name(), codigo);
@@ -84,10 +86,8 @@ public class FeatureUnlockService {
             );
         }
 
-        // 👉 SIEMPRE devolver el código (la vista decide qué hacer con él)
         return codigo;
     }
-
 
     @PreAuthorize("hasRole('ADMIN')")
     public void validarCodigoYActivar(Feature feature, String codigoIntroducido) {
@@ -104,15 +104,20 @@ public class FeatureUnlockService {
             throw new IllegalStateException("La feature aún no ha sido pagada");
         }
 
-        if (!datos.getCodigoDesbloqueo().equals(codigoIntroducido)) {
+        if (datos.getCodigoDesbloqueo() == null || !datos.getCodigoDesbloqueo().equals(codigoIntroducido)) {
             throw new IllegalArgumentException("Código de desbloqueo incorrecto");
         }
 
-        if (featureActivaRepository.existsByFeature(feature)) {
+        // Si ya está activa (activa=true), no permitimos reactivar
+        if (featureActivaRepository.existsByFeatureAndActivaTrue(feature)) {
             throw new IllegalStateException("La feature ya está activa");
         }
 
-        FeatureActiva activa = new FeatureActiva(feature);
+        // Evitar duplicados:
+        // si existe fila con activa=false, la reutilizamos; si no existe, la creamos.
+        FeatureActiva activa = featureActivaRepository.findByFeature(feature)
+                .orElseGet(() -> new FeatureActiva(feature));
+
         activa.setActiva(true);
         activa.setActivadaEn(LocalDateTime.now());
 
