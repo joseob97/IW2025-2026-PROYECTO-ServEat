@@ -12,68 +12,46 @@ import com.serveat.service.pedido.TicketService;
 import com.serveat.service.repartidor.RepartidorService;
 import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
-import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @PageTitle("Mis repartos | Repartidor")
 @Route(value = "empleado/repartidor/mis-repartos", layout = MainLayout.class)
 @Secured("ROLE_REPARTIDOR")
-public class MisRepartosView extends VerticalLayout {
+public class MisRepartosView extends RepartidorPedidosBaseView {
 
     private final transient RepartidorService repartidorService;
     private final transient PedidoCalculoService pedidoCalculoService;
     private final transient TicketService ticketService;
     private final transient FeatureService featureService;
 
-    // filtros
-    private final DatePicker desde = new DatePicker("Desde");
-    private final DatePicker hasta = new DatePicker("Hasta");
     private final ComboBox<EstadoReparto> filtroEstado = new ComboBox<>("Estado reparto");
-    private final Button btnBuscar = new Button("Buscar");
-    private final Button btnLimpiar = new Button("Limpiar");
-    private final Button refrescar = new Button("🔄 Refrescar");
-
-    // grid + paginación
-    private final Grid<Pedido> grid = new Grid<>(Pedido.class, false);
-    private final Button prev = new Button("◀ Anterior");
-    private final Button next = new Button("Siguiente ▶");
-    private final Span infoPagina = new Span("");
-
-    private int pageIndex = 0;
-    private final int pageSize = 10;
-    private long totalItems = 0;
-
-    private final Span info = new Span("Aquí verás los pedidos asignados a ti.");
 
     private static final DateTimeFormatter FECHA_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
@@ -81,110 +59,39 @@ public class MisRepartosView extends VerticalLayout {
                            PedidoCalculoService pedidoCalculoService,
                            TicketService ticketService,
                            FeatureService featureService) {
-
         this.repartidorService = repartidorService;
         this.pedidoCalculoService = pedidoCalculoService;
         this.ticketService = ticketService;
         this.featureService = featureService;
 
-        setPadding(true);
-        setSpacing(false);
-        setWidthFull();
-        getStyle().set("gap", "16px");
-        getStyle().set("max-width", "1100px");
-        getStyle().set("margin", "0 auto");
-
-        H3 titulo = new H3("Mis repartos");
-        titulo.getStyle().set("margin", "0");
-
-        info.getStyle().set("color", "var(--lumo-secondary-text-color)");
-
-        add(titulo, crearBloqueFiltros(), crearBloqueGrid(), crearBloquePaginacion());
-
-        configurarGrid();
-    }
-
-    @Override
-    protected void onAttach(AttachEvent attachEvent) {
-        super.onAttach(attachEvent);
-        cargarPagina(0);
-    }
-
-    private Component crearBloqueFiltros() {
-        VerticalLayout card = crearCard();
-
         filtroEstado.setItems(EstadoReparto.values());
         filtroEstado.setClearButtonVisible(true);
 
-        btnBuscar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        btnBuscar.getStyle().set("font-weight", "700");
-        btnBuscar.addClickListener(e -> {
-            pageIndex = 0;
-            cargarPagina(pageIndex);
-        });
-
-        btnLimpiar.addClickListener(e -> {
-            desde.clear();
-            hasta.clear();
-            filtroEstado.clear();
-            pageIndex = 0;
-            cargarPagina(pageIndex);
-        });
-
-        refrescar.addClickListener(e -> cargarPagina(pageIndex));
-
-        HorizontalLayout fila = new HorizontalLayout(desde, hasta, filtroEstado, btnBuscar, btnLimpiar);
-        fila.setWidthFull();
-        fila.setSpacing(false);
-        fila.getStyle().set("gap", "12px");
-        fila.setAlignItems(Alignment.END);
-
-        HorizontalLayout barra = new HorizontalLayout(refrescar);
-        barra.setWidthFull();
-        barra.setJustifyContentMode(JustifyContentMode.END);
-
-        card.add(info, fila, barra);
-        return card;
+        initBase();
     }
 
-    private Component crearBloqueGrid() {
-        VerticalLayout card = crearCard();
-        grid.setWidthFull();
-        grid.setHeight("520px");
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        grid.getStyle().set("border-radius", "10px");
-        grid.getStyle().set("overflow", "hidden");
-        card.add(grid);
-        return card;
+    @Override
+    protected String tituloPantalla() {
+        return "Mis repartos";
     }
 
-    private Component crearBloquePaginacion() {
-        HorizontalLayout barra = new HorizontalLayout(prev, infoPagina, next);
-        barra.setWidthFull();
-        barra.setAlignItems(Alignment.CENTER);
-        barra.setJustifyContentMode(JustifyContentMode.CENTER);
-        barra.setSpacing(false);
-        barra.getStyle().set("gap", "12px");
-
-        prev.addClickListener(e -> {
-            if (pageIndex > 0) {
-                pageIndex--;
-                cargarPagina(pageIndex);
-            }
-        });
-
-        next.addClickListener(e -> {
-            int maxPage = (int) Math.max(0, (totalItems - 1) / pageSize);
-            if (pageIndex < maxPage) {
-                pageIndex++;
-                cargarPagina(pageIndex);
-            }
-        });
-
-        return barra;
+    @Override
+    protected String textoInfo() {
+        return "Aquí verás los pedidos asignados a ti.";
     }
 
-    private void configurarGrid() {
+    @Override
+    protected Component filtroExtra() {
+        return filtroEstado;
+    }
+
+    @Override
+    protected void limpiarFiltroExtra() {
+        filtroEstado.clear();
+    }
+
+    @Override
+    protected void configurarGrid() {
         grid.removeAllColumns();
 
         grid.addColumn(Pedido::getCodigo)
@@ -231,7 +138,6 @@ public class MisRepartosView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setFlexGrow(0);
 
-        // Un solo botón
         grid.addComponentColumn(p -> {
             Button acciones = new Button("⚙ Acciones");
             acciones.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
@@ -241,44 +147,16 @@ public class MisRepartosView extends VerticalLayout {
         }).setHeader("Acciones").setAutoWidth(true).setFlexGrow(0);
     }
 
-    private void cargarPagina(int index) {
-        try {
-            Pageable pageable = PageRequest.of(index, pageSize);
-
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            LocalDateTime d = toStartOfDay(desde.getValue());
-            LocalDateTime h = toEndOfDay(hasta.getValue());
-            EstadoReparto estado = filtroEstado.getValue();
-
-            Page<Pedido> page = repartidorService.buscarMisRepartos(username, d, h, estado, pageable);
-
-            totalItems = page.getTotalElements();
-            grid.setItems(page.getContent());
-
-            int maxPage = (int) Math.max(0, (totalItems - 1) / pageSize);
-            prev.setEnabled(index > 0);
-            next.setEnabled(index < maxPage);
-
-            long from = totalItems == 0 ? 0 : (index * pageSize + 1L);
-            long to = Math.min(totalItems, (long) (index + 1) * pageSize);
-            infoPagina.setText("Mostrando " + from + "-" + to + " de " + totalItems);
-
-        } catch (Exception ex) {
-            totalItems = 0;
-            grid.setItems();
-            prev.setEnabled(false);
-            next.setEnabled(false);
-            infoPagina.setText("");
-            Notification.show(ex.getMessage(), 4500, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-        }
+    @Override
+    protected Page<Pedido> buscarPage(LocalDateTime d, LocalDateTime h, Pageable pageable) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        EstadoReparto estado = filtroEstado.getValue();
+        return repartidorService.buscarMisRepartos(username, d, h, estado, pageable);
     }
 
-    // ACCIONES
+    // Acciones
 
-    private void abrirAccionesPedido(Pedido pedidoGrid) {
-        Pedido pedido = pedidoGrid;
-
+    private void abrirAccionesPedido(Pedido pedido) {
         Dialog dialog = new Dialog();
         dialog.setWidth("980px");
         dialog.setHeaderTitle("Pedido: " + safe(pedido.getCodigo()));
@@ -290,8 +168,6 @@ public class MisRepartosView extends VerticalLayout {
 
         content.add(crearResumenPedido(pedido));
         content.add(crearGridLineas(pedido));
-
-        // acciones (estado reparto)
         content.add(crearAccionesReparto(dialog, pedido));
 
         dialog.add(content);
@@ -310,8 +186,11 @@ public class MisRepartosView extends VerticalLayout {
         Span estado = chip("🚚 " + (pedido.getEstadoReparto() != null ? pedido.getEstadoReparto().name() : "-"));
 
         BigDecimal total;
-        try { total = pedidoCalculoService.calcularTotalPedido(pedido); }
-        catch (Exception ex) { total = BigDecimal.ZERO; }
+        try {
+            total = pedidoCalculoService.calcularTotalPedido(pedido);
+        } catch (Exception ex) {
+            total = BigDecimal.ZERO;
+        }
         Span tot = chipTotal("💶 " + total + " €");
 
         row.add(fecha, cliente, estado, tot);
@@ -331,21 +210,26 @@ public class MisRepartosView extends VerticalLayout {
         g.setItems(items);
 
         g.addColumn(lp -> lp.getProducto() != null ? safe(lp.getProducto().getNombre()) : "-")
-                .setHeader("Producto").setFlexGrow(1);
+                .setHeader("Producto")
+                .setFlexGrow(1);
 
         g.addColumn(LineaPedido::getCantidad)
-                .setHeader("Cant.").setAutoWidth(true).setFlexGrow(0);
+                .setHeader("Cant.")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         g.addColumn(lp -> {
                     BigDecimal unit = (lp.getPrecioUnitario() != null) ? lp.getPrecioUnitario()
-                            : (lp.getProducto() != null && lp.getProducto().getPrecio() != null ? lp.getProducto().getPrecio() : BigDecimal.ZERO);
+                            : (lp.getProducto() != null && lp.getProducto().getPrecio() != null
+                            ? lp.getProducto().getPrecio()
+                            : BigDecimal.ZERO);
                     return unit + " €";
                 })
-                .setHeader("Precio ud.").setAutoWidth(true).setFlexGrow(0);
+                .setHeader("Precio ud.")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
-        // Ingredientes SOLO si feature activa
         boolean showIngredientes = featureService.tieneFeature(Feature.INGREDIENTES);
-
         if (showIngredientes) {
             g.addComponentColumn(lp -> {
                         VerticalLayout box = new VerticalLayout();
@@ -368,14 +252,19 @@ public class MisRepartosView extends VerticalLayout {
                         }
                         return box;
                     })
-                    .setHeader("Ingredientes").setFlexGrow(1);
+                    .setHeader("Ingredientes")
+                    .setFlexGrow(1);
         }
 
         g.addColumn(lp -> pedidoCalculoService.calcularPrecioLinea(lp) + " €")
-                .setHeader("Subtotal").setAutoWidth(true).setFlexGrow(0);
+                .setHeader("Subtotal")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         BigDecimal total = BigDecimal.ZERO;
-        try { total = pedidoCalculoService.calcularTotalPedido(pedido); } catch (Exception ignored) {}
+        try {
+            total = pedidoCalculoService.calcularTotalPedido(pedido);
+        } catch (Exception ignored) { }
         Span totalSpan = new Span("TOTAL: " + total + " €");
         totalSpan.getStyle().set("font-weight", "800");
 
@@ -396,7 +285,6 @@ public class MisRepartosView extends VerticalLayout {
         row.setWidthFull();
         row.setSpacing(true);
 
-        // acciones por estado
         if (pedido.getEstadoReparto() == EstadoReparto.ASIGNADO) {
             Button salir = new Button("🚚 Salir a reparto");
             salir.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -409,15 +297,16 @@ public class MisRepartosView extends VerticalLayout {
             row.add(entregar);
         }
 
-        if (pedido.getEstadoReparto() == EstadoReparto.ASIGNADO || pedido.getEstadoReparto() == EstadoReparto.EN_REPARTO) {
+        if (pedido.getEstadoReparto() == EstadoReparto.ASIGNADO
+                || pedido.getEstadoReparto() == EstadoReparto.EN_REPARTO) {
             Button incidencia = new Button("⚠ Incidencia");
             incidencia.addThemeVariants(ButtonVariant.LUMO_ERROR);
             incidencia.addClickListener(e -> confirmarIncidencia(pedido));
             row.add(incidencia);
         }
 
-        // Ticket SOLO si feature activa
         boolean ticketActivo = featureService.tieneFeature(Feature.FACTURACION_TICKET);
+
         Anchor download = new Anchor();
         download.getStyle().set("display", "none");
         download.getElement().setAttribute("download", true);
@@ -448,12 +337,11 @@ public class MisRepartosView extends VerticalLayout {
 
         HorizontalLayout row2 = new HorizontalLayout(ticket, cerrar);
         row2.setWidthFull();
-        row2.setJustifyContentMode(JustifyContentMode.END);
+        row2.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
 
         box.add(download, row, row2);
         return box;
     }
-
 
     private void confirmarCambioEstado(Pedido p, String accion) {
         ConfirmDialog dialog = new ConfirmDialog();
@@ -479,6 +367,7 @@ public class MisRepartosView extends VerticalLayout {
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
+
         dialog.open();
     }
 
@@ -502,23 +391,11 @@ public class MisRepartosView extends VerticalLayout {
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
+
         dialog.open();
     }
 
-    // HELPERS UI + INGREDIENTES
-
-    private VerticalLayout crearCard() {
-        VerticalLayout card = new VerticalLayout();
-        card.setPadding(true);
-        card.setSpacing(false);
-        card.setWidthFull();
-        card.getStyle().set("background", "var(--lumo-base-color)");
-        card.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
-        card.getStyle().set("border-radius", "14px");
-        card.getStyle().set("box-shadow", "0 6px 18px rgba(0,0,0,0.06)");
-        card.getStyle().set("gap", "12px");
-        return card;
-    }
+    // Helpers
 
     private Span chip(String text) {
         Span s = new Span(text);
@@ -580,13 +457,5 @@ public class MisRepartosView extends VerticalLayout {
 
     private String safe(String s) {
         return (s == null) ? "-" : s;
-    }
-
-    private LocalDateTime toStartOfDay(LocalDate d) {
-        return d == null ? null : d.atStartOfDay();
-    }
-
-    private LocalDateTime toEndOfDay(LocalDate d) {
-        return d == null ? null : d.atTime(LocalTime.MAX);
     }
 }
