@@ -1,7 +1,6 @@
 package com.serveat.view.layout;
 
 import com.serveat.view.cliente.inicio.InicioClienteView;
-import com.serveat.view.cliente.pedido.PanelPedidoClienteView;
 import com.serveat.view.perfil.PerfilView;
 
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -70,24 +69,33 @@ public class MainLayout extends AppLayout {
             }
         });
 
-        /* ================= LINKS (CREADOS UNA SOLA VEZ) ================= */
+        /* ================= LINKS ================= */
         RouterLink linkInicio = new RouterLink(getTranslation("nav.inicio"), InicioView.class);
         RouterLink linkCarta = new RouterLink(getTranslation("nav.carta"), CartaView.class);
         RouterLink linkContacto = new RouterLink(getTranslation("nav.contacto"), ContactoView.class);
         RouterLink linkInfo = new RouterLink(getTranslation("nav.informacion"), InformacionSitioView.class);
         RouterLink linkLogin = new RouterLink(getTranslation("nav.login"), LoginView.class);
 
-        /* ================= LOGOUT ================= */
+        /* ================= LOGOUT (CORREGIDO) ================= */
         Button logout = new Button(getTranslation("nav.logout"), e -> {
+
             ConfirmDialog dialog = new ConfirmDialog();
             dialog.setHeader(getTranslation("logout.titulo"));
             dialog.setText(getTranslation("logout.mensaje"));
+
             dialog.setConfirmText(getTranslation("logout.confirmar"));
             dialog.setCancelText(getTranslation("logout.cancelar"));
 
+            dialog.setCancelable(true);
+
+            // ✅ Confirmar → cerrar sesión
             dialog.addConfirmListener(ev ->
                     UI.getCurrent().getPage().setLocation("/logout")
             );
+
+            // ✅ Cancelar → cerrar diálogo (NO hace nada más)
+            dialog.addCancelListener(ev -> dialog.close());
+
             dialog.open();
         });
 
@@ -120,7 +128,6 @@ public class MainLayout extends AppLayout {
 
             String role = auth.getAuthorities().iterator().next().getAuthority();
 
-            // Cliente → inicio específico
             if ("ROLE_CLIENTE".equals(role)) {
                 linkInicio.setRoute(InicioClienteView.class);
             }
@@ -151,7 +158,7 @@ public class MainLayout extends AppLayout {
             logout.setVisible(false);
         }
 
-        /* ================= HEADER (ORDEN FIJO) ================= */
+        /* ================= HEADER ================= */
         Span spacer = new Span();
         spacer.getStyle().set("flex-grow", "1");
 
@@ -159,21 +166,13 @@ public class MainLayout extends AppLayout {
                 logo,
                 spacer,
 
-                // 1️⃣ Idioma
                 selectorIdioma,
-
-                // 2️⃣ Navegación principal
                 linkInicio,
                 linkCarta,
-
-                // 3️⃣ Panel
                 panelContainer,
-
-                // 4️⃣ Público
                 linkContacto,
                 linkInfo,
 
-                // 5️⃣ Usuario
                 bloqueUsuario,
                 linkLogin,
                 logout
