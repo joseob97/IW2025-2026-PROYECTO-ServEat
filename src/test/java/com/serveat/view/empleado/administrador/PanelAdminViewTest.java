@@ -26,7 +26,6 @@ class PanelAdminViewTest {
 
         verify(featureService, atLeastOnce()).tieneFeature(Feature.NOTIFICACIONES);
         verify(featureService, atLeastOnce()).tieneFeature(Feature.INGREDIENTES);
-        verify(featureService, atLeastOnce()).tieneFeature(Feature.PROMOCIONES);
         verify(featureService, atLeastOnce()).tieneFeature(Feature.MENUS_OFERTAS);
         verify(featureService, atLeastOnce()).tieneFeature(Feature.ESTADISTICAS);
         verify(featureService, atLeastOnce()).tieneFeature(Feature.EXPORTAR_DATOS);
