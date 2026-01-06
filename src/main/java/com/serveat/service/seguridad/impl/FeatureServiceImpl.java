@@ -18,8 +18,7 @@ import java.util.Set;
 @Transactional
 public class FeatureServiceImpl implements FeatureService {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(FeatureServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(FeatureServiceImpl.class);
 
     private final FeatureActivaRepository featureRepo;
 
@@ -34,7 +33,7 @@ public class FeatureServiceImpl implements FeatureService {
                 .map(FeatureActiva::isActiva)
                 .orElse(false);
 
-        log.debug("Consulta feature {} → activa={}", feature, activa);
+        log.debug("Consulta feature {} -> activa={}", feature, activa);
         return activa;
     }
 
@@ -53,7 +52,6 @@ public class FeatureServiceImpl implements FeatureService {
 
         fa.setActiva(true);
         fa.setActivadaEn(LocalDateTime.now());
-
         featureRepo.save(fa);
 
         log.info("Feature {} ACTIVADA correctamente", feature);
@@ -62,10 +60,7 @@ public class FeatureServiceImpl implements FeatureService {
     @Override
     public void desactivarFeature(Feature feature) {
         FeatureActiva fa = featureRepo.findByFeature(feature)
-                .orElseThrow(() -> {
-                    log.error("Intento de desactivar feature no inicializada: {}", feature);
-                    return new IllegalStateException("Feature no inicializada");
-                });
+                .orElseThrow(() -> new IllegalStateException("Feature no inicializada"));
 
         if (!fa.isActiva()) {
             log.warn("Intento de desactivar feature ya inactiva: {}", feature);
@@ -74,7 +69,6 @@ public class FeatureServiceImpl implements FeatureService {
 
         fa.setActiva(false);
         fa.setActivadaEn(null);
-
         featureRepo.save(fa);
 
         log.info("Feature {} DESACTIVADA correctamente", feature);
@@ -86,7 +80,7 @@ public class FeatureServiceImpl implements FeatureService {
         Set<Feature> activos = new LinkedHashSet<>();
 
         for (FeatureActiva fa : featureRepo.findAll()) {
-            if (fa.isActiva()) {
+            if (fa != null && fa.isActiva() && fa.getFeature() != null) {
                 activos.add(fa.getFeature());
             }
         }
@@ -98,12 +92,10 @@ public class FeatureServiceImpl implements FeatureService {
     @Override
     @Transactional(readOnly = true)
     public List<Feature> listarTodas() {
-        List<Feature> todas = featureRepo.findAll()
+        return featureRepo.findAll()
                 .stream()
                 .map(FeatureActiva::getFeature)
+                .filter(f -> f != null)
                 .toList();
-
-        log.debug("Listado completo de features: {}", todas);
-        return todas;
     }
 }
