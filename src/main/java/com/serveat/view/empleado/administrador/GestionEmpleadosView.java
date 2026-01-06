@@ -44,9 +44,29 @@ public class GestionEmpleadosView extends VerticalLayout {
         configurarGrid();
         cargarEmpleados();
 
+        HorizontalLayout cabecera = crearCabecera();
         HorizontalLayout filtros = crearFiltros();
 
-        add(titulo, filtros, grid);
+        add(titulo, cabecera, filtros, grid);
+    }
+
+    /* =========================
+       CABECERA (BOTÓN NUEVO)
+       ========================= */
+    private HorizontalLayout crearCabecera() {
+
+        Button btnNuevo = new Button("➕ Añadir empleado");
+        btnNuevo.getStyle().set("font-weight", "600");
+        btnNuevo.addClickListener(e ->
+                UI.getCurrent().navigate("empleado/admin/gestion-empleados/nuevo")
+        );
+
+        HorizontalLayout cabecera = new HorizontalLayout();
+        cabecera.setWidthFull();
+        cabecera.setJustifyContentMode(JustifyContentMode.END);
+        cabecera.add(btnNuevo);
+
+        return cabecera;
     }
 
     /* =========================
@@ -56,7 +76,6 @@ public class GestionEmpleadosView extends VerticalLayout {
 
         grid.setWidthFull();
 
-        // Columnas flexibles (se adaptan al tamaño de pantalla)
         grid.addColumn(Empleado::getNombre)
                 .setHeader("Nombre")
                 .setFlexGrow(1);
@@ -69,7 +88,6 @@ public class GestionEmpleadosView extends VerticalLayout {
                 .setHeader("Email")
                 .setFlexGrow(1);
 
-        // Columnas semi-fijas
         grid.addColumn(Empleado::getTelefono)
                 .setHeader("Teléfono")
                 .setWidth("130px")
@@ -85,7 +103,6 @@ public class GestionEmpleadosView extends VerticalLayout {
                 .setWidth("110px")
                 .setFlexGrow(0);
 
-        // Acciones siempre visibles
         grid.addComponentColumn(this::crearAcciones)
                 .setHeader("Acciones")
                 .setWidth("300px")
@@ -93,8 +110,6 @@ public class GestionEmpleadosView extends VerticalLayout {
 
         grid.setSizeFull();
     }
-
-
 
     /* =========================
        ACCIONES
@@ -105,7 +120,6 @@ public class GestionEmpleadosView extends VerticalLayout {
         Button cambiarEstado = new Button();
         Button eliminar = new Button("Eliminar");
 
-        // TEXTO Y COLOR SEGÚN ESTADO
         if (empleado.isEnabled()) {
             cambiarEstado.setText("Desactivar");
             cambiarEstado.getStyle().set("background", "#d9534f");
@@ -151,9 +165,7 @@ public class GestionEmpleadosView extends VerticalLayout {
 
         HorizontalLayout acciones = new HorizontalLayout(editar, cambiarEstado, eliminar);
         acciones.setSpacing(true);
-        acciones.setPadding(false);
         acciones.setAlignItems(Alignment.CENTER);
-        acciones.getStyle().set("flex-wrap", "nowrap"); // evita que se rompan en líneas
 
         return acciones;
     }
@@ -178,12 +190,12 @@ public class GestionEmpleadosView extends VerticalLayout {
 
         filtroEstado = new ComboBox<>();
         filtroEstado.setItems("Todos", "Activos", "Inactivos");
-        filtroEstado.setValue("Estados");
+        filtroEstado.setValue("Todos");
         filtroEstado.setWidth("150px");
 
         filtroRol = new ComboBox<>();
         filtroRol.setItems("Todos", "ADMIN", "CAMARERO", "COCINERO", "REPARTIDOR");
-        filtroRol.setValue("Roles");
+        filtroRol.setValue("Todos");
         filtroRol.setWidth("170px");
 
         buscador.addValueChangeListener(e -> aplicarFiltros());
