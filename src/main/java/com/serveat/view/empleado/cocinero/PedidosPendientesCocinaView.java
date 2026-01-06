@@ -5,7 +5,6 @@ import com.serveat.domain.pedido.LineaPedido;
 import com.serveat.domain.pedido.Pedido;
 import com.serveat.service.cocina.CocineroService;
 import com.serveat.view.layout.MainLayout;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
@@ -34,7 +33,6 @@ public class PedidosPendientesCocinaView extends PedidosCocinaAbstractaView {
         this.pageSize = 10;
 
         Button verHoy = navButton("Ver pedidos de hoy", "empleado/cocinero/hoy");
-
         initView("Pedidos pendientes de aceptación", verHoy, "520px");
     }
 

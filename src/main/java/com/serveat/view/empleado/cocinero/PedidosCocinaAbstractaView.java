@@ -26,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Base reutilizable para vistas de cocina con:
@@ -42,22 +43,19 @@ public abstract class PedidosCocinaAbstractaView extends VerticalLayout {
     protected final transient CocineroService cocineroService;
     protected final transient PedidoCalculoService pedidoCalculoService;
 
-    // Filtros comunes
     protected final DatePicker desde = new DatePicker("Desde");
     protected final DatePicker hasta = new DatePicker("Hasta");
     protected final IntegerField filtroMesa = new IntegerField("Mesa");
 
-    // Filtro opcional
     protected final ComboBox<EstadoCocina> filtroEstado = new ComboBox<>("Estado cocina");
 
     protected final Button btnBuscar = new Button("Buscar");
     protected final Button btnLimpiar = new Button("Limpiar");
 
-    // Grid y paginación
     protected final Grid<Pedido> grid = new Grid<>(Pedido.class, false);
     protected final Button prev = new Button("Anterior");
     protected final Button next = new Button("Siguiente");
-    protected final Span infoPagina = new Span("");
+    protected final com.vaadin.flow.component.html.Span infoPagina = new com.vaadin.flow.component.html.Span("");
 
     protected int pageIndex = 0;
     protected int pageSize = 10;
@@ -76,7 +74,6 @@ public abstract class PedidosCocinaAbstractaView extends VerticalLayout {
         getStyle().set("margin", "0 auto");
     }
 
-    // Inicializa la vista completa en las subclases tras configurar pageSize, alturas, etc.
     protected final void initView(String titulo, Component accionHeaderDerecha, String gridHeightPx) {
         add(crearHeader(titulo, accionHeaderDerecha));
         add(crearBloqueFiltros());
@@ -92,22 +89,15 @@ public abstract class PedidosCocinaAbstractaView extends VerticalLayout {
 
     protected abstract boolean usarFiltroEstado();
 
-    // Acción de limpiar filtros definida por cada pantalla
     protected abstract void limpiarFiltros();
 
-    // Configura columnas del grid
     protected abstract void configurarGridColumnas();
 
-    // Consulta paginada específica por pantalla
     protected abstract Page<Pedido> buscar(Pageable pageable,
                                            LocalDateTime desde,
                                            LocalDateTime hasta,
                                            EstadoCocina estado,
                                            Integer mesa);
-
-    protected void onRowAction(Pedido pedido) {
-        // Hook opcional para acciones comunes
-    }
 
     protected void notifyError(String msg) {
         Notification.show(msg, 4500, Notification.Position.MIDDLE)
@@ -141,6 +131,84 @@ public abstract class PedidosCocinaAbstractaView extends VerticalLayout {
         return card;
     }
 
+    protected final Button navButton(String texto, String route) {
+        Button b = new Button(texto);
+        b.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        b.getStyle().set("font-weight", "700");
+        b.addClickListener(e -> UI.getCurrent().navigate(route));
+        return b;
+    }
+
+    /**
+     * Configura el conjunto de columnas común para vistas de cocina (Hoy e Histórico).
+     * Esto reduce duplicidad: fecha/hora, código, origen, estado, total y botón de detalle.
+     */
+    protected final void configurarColumnasCocinaBase(DateTimeFormatter fmtFecha,
+                                                      String headerFecha,
+                                                      String textoAccion) {
+
+        grid.addColumn(p -> p.getFechaCreacion() != null ? p.getFechaCreacion().format(fmtFecha) : "-")
+                .setHeader(headerFecha)
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addColumn(Pedido::getCodigo)
+                .setHeader("Código")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addColumn(this::origenPedido)
+                .setHeader("Origen")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addColumn(p -> p.getEstadoCocina() != null ? p.getEstadoCocina().name() : "-")
+                .setHeader("Estado cocina")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addColumn(p -> {
+                    try {
+                        if (pedidoCalculoService == null) return "-";
+                        return pedidoCalculoService.calcularTotalPedido(p) + " €";
+                    } catch (Exception ex) {
+                        return "-";
+                    }
+                })
+                .setHeader("Total")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addComponentColumn(p -> {
+            Button ver = new Button(textoAccion);
+            ver.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            ver.getStyle().set("font-weight", "700");
+            ver.addClickListener(e -> {
+                if (p.getId() == null) {
+                    notifyError("Pedido sin ID");
+                    return;
+                }
+                UI.getCurrent().navigate(DetalleComandaView.class, p.getId().toString());
+            });
+            return ver;
+        }).setHeader("Acciones").setAutoWidth(true).setFlexGrow(0);
+    }
+
+    /**
+     * Devuelve el texto de origen para un pedido: domicilio, recogida o mesa.
+     * Centralizado para evitar duplicidad entre vistas.
+     */
+    protected final String origenPedido(Pedido p) {
+        if (p == null || p.getTipoPedido() == null) return "Cliente";
+        return switch (p.getTipoPedido()) {
+            case DOMICILIO -> "Domicilio";
+            case RECOGER -> "Recogida";
+            default -> (p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa() != null)
+                    ? "Mesa " + p.getReservaMesa().getNumeroMesa()
+                    : "Mesa";
+        };
+    }
+
     private Component crearHeader(String titulo, Component accionDerecha) {
         H3 h = new H3(titulo);
         h.getStyle().set("margin", "0");
@@ -158,7 +226,6 @@ public abstract class PedidosCocinaAbstractaView extends VerticalLayout {
     }
 
     private Component crearBloqueFiltros() {
-        // Fila 1: fechas, estado opcional, mesa
         HorizontalLayout fila1 = new HorizontalLayout();
         fila1.setWidthFull();
         fila1.setSpacing(false);
@@ -171,7 +238,6 @@ public abstract class PedidosCocinaAbstractaView extends VerticalLayout {
             fila1.add(desde, hasta, filtroMesa);
         }
 
-        // Fila 2: acciones
         btnBuscar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnBuscar.getStyle().set("font-weight", "700");
         btnBuscar.addClickListener(e -> {
@@ -279,13 +345,5 @@ public abstract class PedidosCocinaAbstractaView extends VerticalLayout {
             infoPagina.setText("");
             notifyError("Error cargando pedidos: " + ex.getMessage());
         }
-    }
-
-    protected final Button navButton(String texto, String route) {
-        Button b = new Button(texto);
-        b.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        b.getStyle().set("font-weight", "700");
-        b.addClickListener(e -> UI.getCurrent().navigate(route));
-        return b;
     }
 }
