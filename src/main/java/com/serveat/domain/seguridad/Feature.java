@@ -2,7 +2,7 @@ package com.serveat.domain.seguridad;
 
 public enum Feature {
     // Comercial
-    PROMOCIONES,
+
     MENUS_OFERTAS,
 
     // Pagos y documentos
