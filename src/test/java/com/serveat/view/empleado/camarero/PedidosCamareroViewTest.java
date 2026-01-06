@@ -1,5 +1,7 @@
 package com.serveat.view.empleado.camarero;
 
+
+import com.github.mvysny.kaributesting.v10.MockVaadin;
 import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.service.pedido.PedidoService;
@@ -14,9 +16,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.textfield.IntegerField;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -32,13 +32,13 @@ import static org.mockito.Mockito.*;
 class PedidosCamareroViewTest {
 
     @BeforeEach
-    void setupUi() {
-        UI.setCurrent(new UI());
+    void setupVaadin() {
+        MockVaadin.setup(); // crea UI + VaadinSession + VaadinService + CurrentInstances
     }
 
     @AfterEach
-    void tearDownUi() {
-        UI.setCurrent(null);
+    void tearDownVaadin() {
+        MockVaadin.tearDown();
     }
 
     @Test
@@ -55,7 +55,7 @@ class PedidosCamareroViewTest {
                 .thenReturn((Page) emptyPage);
 
         PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService, featureService);
-        attachToUi(view);
+        UI.getCurrent().add(view);
 
         assertNotNull(view);
 
@@ -63,21 +63,15 @@ class PedidosCamareroViewTest {
         verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(any(), any(), any(), any(), any(), any());
 
         assertNotNull(findH3ByText(view, "Pedidos (Camarero)"));
-
         assertNotNull(findDatePickerByLabel(view, "Desde"));
         assertNotNull(findDatePickerByLabel(view, "Hasta"));
-
         assertNotNull(findComboBoxByLabel(view, "Estado pedido"));
         assertNotNull(findComboBoxByLabel(view, "Estado cocina"));
-
         assertNotNull(findIntegerFieldByLabel(view, "Mesa"));
-
         assertNotNull(findButtonByText(view, "Buscar"));
         assertNotNull(findButtonByText(view, "Limpiar"));
-
         assertNotNull(findButtonByText(view, "◀ Anterior"));
         assertNotNull(findButtonByText(view, "Siguiente ▶"));
-
         assertNotNull(findFirstGrid(view));
 
         Span infoPagina = findSpanContainingText(view, "Mostrando");
@@ -98,7 +92,7 @@ class PedidosCamareroViewTest {
                 .thenReturn((Page) emptyPage);
 
         PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService, featureService);
-        attachToUi(view);
+        UI.getCurrent().add(view);
 
         assertNotNull(view);
 
@@ -119,7 +113,7 @@ class PedidosCamareroViewTest {
                 .thenThrow(new RuntimeException("boom"));
 
         PedidosCamareroView view = new PedidosCamareroView(pedidoService, calculoService, ticketService, featureService);
-        attachToUi(view);
+        UI.getCurrent().add(view);
 
         assertNotNull(view);
 
@@ -127,14 +121,7 @@ class PedidosCamareroViewTest {
         verify(pedidoService, atLeastOnce()).buscarPedidosFiltrados(any(), any(), any(), any(), any(), any());
     }
 
-    private static void attachToUi(Component view) {
-        UI ui = UI.getCurrent();
-        if (ui == null) {
-            UI.setCurrent(new UI());
-            ui = UI.getCurrent();
-        }
-        ui.add(view);
-    }
+    // Helpers tal cual los tienes
 
     private static H3 findH3ByText(Component root, String text) {
         for (Component c : flatten(root)) {
