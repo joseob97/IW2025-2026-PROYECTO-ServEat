@@ -8,15 +8,15 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.VaadinSession;
 
 import com.serveat.view.publico.inicio.InicioView;
@@ -70,9 +70,8 @@ public class MainLayout extends AppLayout {
             }
         });
 
-        /* ================= LINKS ================= */
+        /* ================= LINKS (CREADOS UNA SOLA VEZ) ================= */
         RouterLink linkInicio = new RouterLink(getTranslation("nav.inicio"), InicioView.class);
-        RouterLink linkPedidos = new RouterLink(getTranslation("nav.pedidos"), PanelPedidoClienteView.class);
         RouterLink linkCarta = new RouterLink(getTranslation("nav.carta"), CartaView.class);
         RouterLink linkContacto = new RouterLink(getTranslation("nav.contacto"), ContactoView.class);
         RouterLink linkInfo = new RouterLink(getTranslation("nav.informacion"), InformacionSitioView.class);
@@ -85,12 +84,10 @@ public class MainLayout extends AppLayout {
             dialog.setText(getTranslation("logout.mensaje"));
             dialog.setConfirmText(getTranslation("logout.confirmar"));
             dialog.setCancelText(getTranslation("logout.cancelar"));
-            dialog.setCancelable(true); // ✅ FIX: permite cancelar sin cerrar sesión
 
             dialog.addConfirmListener(ev ->
                     UI.getCurrent().getPage().setLocation("/logout")
             );
-
             dialog.open();
         });
 
@@ -123,9 +120,9 @@ public class MainLayout extends AppLayout {
 
             String role = auth.getAuthorities().iterator().next().getAuthority();
 
+            // Cliente → inicio específico
             if ("ROLE_CLIENTE".equals(role)) {
-                linkInicio = new RouterLink(getTranslation("nav.inicio"), InicioClienteView.class);
-                linkPedidos.setVisible(true);
+                linkInicio.setRoute(InicioClienteView.class);
             }
 
             RouterLink panel = null;
@@ -152,23 +149,32 @@ public class MainLayout extends AppLayout {
         } else {
             bloqueUsuario.setVisible(false);
             logout.setVisible(false);
-            linkPedidos.setVisible(false);
         }
 
-        /* ================= HEADER ================= */
+        /* ================= HEADER (ORDEN FIJO) ================= */
         Span spacer = new Span();
         spacer.getStyle().set("flex-grow", "1");
 
         HorizontalLayout header = new HorizontalLayout(
                 logo,
                 spacer,
+
+                // 1️⃣ Idioma
                 selectorIdioma,
-                panelContainer,
-                bloqueUsuario,
+
+                // 2️⃣ Navegación principal
                 linkInicio,
                 linkCarta,
+
+                // 3️⃣ Panel
+                panelContainer,
+
+                // 4️⃣ Público
                 linkContacto,
                 linkInfo,
+
+                // 5️⃣ Usuario
+                bloqueUsuario,
                 linkLogin,
                 logout
         );
@@ -181,4 +187,3 @@ public class MainLayout extends AppLayout {
         addToNavbar(header);
     }
 }
-
