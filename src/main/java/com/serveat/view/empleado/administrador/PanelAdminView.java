@@ -32,7 +32,10 @@ public class PanelAdminView extends PanelBaseView {
 
         List<Component> cardsOrdenadas = new ArrayList<>();
 
-        // Bloques basicos
+        // =======================
+        // BLOQUES BÁSICOS
+        // =======================
+
         cardsOrdenadas.add(Cards.cardAccionProConIcono(
                 VaadinIcon.USERS.create(),
                 "Gestión de empleados",
@@ -87,7 +90,10 @@ public class PanelAdminView extends PanelBaseView {
                 "Abrir"
         ));
 
-        // Bloques premium
+        // =======================
+        // BLOQUES PREMIUM (SIN PROMOCIONES)
+        // =======================
+
         List<PremiumCard> premium = List.of(
                 new PremiumCard(
                         Feature.NOTIFICACIONES,
@@ -102,13 +108,6 @@ public class PanelAdminView extends PanelBaseView {
                         "Ingredientes",
                         "Ingredientes por producto, alérgenos y base para stock.",
                         GestionIngredientesView.class
-                ),
-                new PremiumCard(
-                        Feature.PROMOCIONES,
-                        VaadinIcon.GIFT.create(),
-                        "Promociones",
-                        "Cupones, descuentos, 2x1, campañas visibles en la web.",
-                        GestionPromosView.class
                 ),
                 new PremiumCard(
                         Feature.MENUS_OFERTAS,
@@ -153,6 +152,10 @@ public class PanelAdminView extends PanelBaseView {
 
         add(Cards.renderEnFilasDeDos(cardsOrdenadas, "520px"));
     }
+
+    // =======================
+    // CLASE INTERNA
+    // =======================
 
     private static class PremiumCard {
         private final Feature feature;
