@@ -14,6 +14,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,8 +28,12 @@ class IniciarPedidoViewTest {
 
     @BeforeEach
     void setupUi() {
-        UI ui = new UI();
-        UI.setCurrent(ui);
+        UI.setCurrent(new UI());
+    }
+
+    @AfterEach
+    void tearDownUi() {
+        UI.setCurrent(null);
     }
 
     @Test
@@ -43,16 +48,11 @@ class IniciarPedidoViewTest {
         when(featureService.tieneFeature(any())).thenReturn(false);
 
         IniciarPedidoView view = new IniciarPedidoView(
-                pedidoService,
-                carritoService,
-                calculoService,
-                productoService,
-                categoriaService,
-                featureService
+                pedidoService, carritoService, calculoService, productoService, categoriaService, featureService
         );
-        UI.getCurrent().add(view);
 
         assertNotNull(view);
+        attachToUi(view);
 
         assertNotNull(findH3ByText(view, "Iniciar pedido de mesa"));
 
@@ -83,14 +83,9 @@ class IniciarPedidoViewTest {
         when(featureService.tieneFeature(Feature.INGREDIENTES)).thenReturn(true);
 
         IniciarPedidoView view = new IniciarPedidoView(
-                pedidoService,
-                carritoService,
-                calculoService,
-                productoService,
-                categoriaService,
-                featureService
+                pedidoService, carritoService, calculoService, productoService, categoriaService, featureService
         );
-        UI.getCurrent().add(view);
+        attachToUi(view);
 
         boolean out = (boolean) invokePrivateAndReturn(view, "personalizacionHabilitada");
 
@@ -110,14 +105,9 @@ class IniciarPedidoViewTest {
         when(featureService.tieneFeature(any())).thenReturn(false);
 
         IniciarPedidoView view = new IniciarPedidoView(
-                pedidoService,
-                carritoService,
-                calculoService,
-                productoService,
-                categoriaService,
-                featureService
+                pedidoService, carritoService, calculoService, productoService, categoriaService, featureService
         );
-        UI.getCurrent().add(view);
+        attachToUi(view);
 
         IntegerField mesa = findIntegerFieldByLabel(view, "Número de mesa");
         assertNotNull(mesa);
@@ -140,19 +130,11 @@ class IniciarPedidoViewTest {
         when(featureService.tieneFeature(any())).thenReturn(false);
 
         IniciarPedidoView view = new IniciarPedidoView(
-                pedidoService,
-                carritoService,
-                calculoService,
-                productoService,
-                categoriaService,
-                featureService
+                pedidoService, carritoService, calculoService, productoService, categoriaService, featureService
         );
-        UI.getCurrent().add(view);
+        attachToUi(view);
 
-        invokePrivate(view, "setUiPedidoCreado",
-                new Class<?>[]{boolean.class},
-                new Object[]{false}
-        );
+        invokePrivate(view, "setUiPedidoCreado", new Class<?>[]{boolean.class}, new Object[]{false});
 
         Button confirmar = findButtonByText(view, "Confirmar pedido (Enviar a cocina)");
         assertNotNull(confirmar);
@@ -171,14 +153,9 @@ class IniciarPedidoViewTest {
         when(featureService.tieneFeature(any())).thenReturn(false);
 
         IniciarPedidoView view = new IniciarPedidoView(
-                pedidoService,
-                carritoService,
-                calculoService,
-                productoService,
-                categoriaService,
-                featureService
+                pedidoService, carritoService, calculoService, productoService, categoriaService, featureService
         );
-        UI.getCurrent().add(view);
+        attachToUi(view);
 
         invokePrivate(view, "setUiPedidoConfirmado");
 
@@ -211,14 +188,9 @@ class IniciarPedidoViewTest {
         when(pedidoService.crearPedidoMesa(7)).thenReturn(pedido);
 
         IniciarPedidoView view = new IniciarPedidoView(
-                pedidoService,
-                carritoService,
-                calculoService,
-                productoService,
-                categoriaService,
-                featureService
+                pedidoService, carritoService, calculoService, productoService, categoriaService, featureService
         );
-        UI.getCurrent().add(view);
+        attachToUi(view);
 
         IntegerField mesa = findIntegerFieldByLabel(view, "Número de mesa");
         TextField codigo = findTextFieldByLabel(view, "Código pedido");
@@ -234,38 +206,39 @@ class IniciarPedidoViewTest {
         assertEquals("P-123", codigo.getValue());
     }
 
+    private static void attachToUi(Component view) {
+        UI ui = UI.getCurrent();
+        if (ui == null) {
+            UI.setCurrent(new UI());
+            ui = UI.getCurrent();
+        }
+        ui.add(view);
+    }
+
     private static H3 findH3ByText(Component root, String text) {
         for (Component c : flatten(root)) {
-            if (c instanceof H3 h3 && text.equals(h3.getText())) {
-                return h3;
-            }
+            if (c instanceof H3 h3 && text.equals(h3.getText())) return h3;
         }
         return null;
     }
 
     private static Button findButtonByText(Component root, String text) {
         for (Component c : flatten(root)) {
-            if (c instanceof Button b && text.equals(b.getText())) {
-                return b;
-            }
+            if (c instanceof Button b && text.equals(b.getText())) return b;
         }
         return null;
     }
 
     private static IntegerField findIntegerFieldByLabel(Component root, String label) {
         for (Component c : flatten(root)) {
-            if (c instanceof IntegerField f && label.equals(f.getLabel())) {
-                return f;
-            }
+            if (c instanceof IntegerField f && label.equals(f.getLabel())) return f;
         }
         return null;
     }
 
     private static TextField findTextFieldByLabel(Component root, String label) {
         for (Component c : flatten(root)) {
-            if (c instanceof TextField tf && label.equals(tf.getLabel())) {
-                return tf;
-            }
+            if (c instanceof TextField tf && label.equals(tf.getLabel())) return tf;
         }
         return null;
     }
