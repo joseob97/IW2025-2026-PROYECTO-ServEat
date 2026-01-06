@@ -6,9 +6,7 @@ import com.serveat.service.cocina.CocineroService;
 import com.serveat.service.pedido.PedidoCalculoService;
 import com.serveat.view.layout.MainLayout;
 import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.data.domain.Page;
@@ -32,7 +30,6 @@ public class PedidosCocinaHoyView extends PedidosCocinaAbstractaView {
         this.pageSize = 10;
 
         Button irHistorico = navButton("Ver histórico", "empleado/cocinero/historico");
-
         initView("Pedidos de hoy (Cocina)", irHistorico, "520px");
     }
 
@@ -40,10 +37,7 @@ public class PedidosCocinaHoyView extends PedidosCocinaAbstractaView {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
 
-        LocalDate hoy = LocalDate.now();
-        desde.setValue(hoy);
-        hasta.setValue(hoy);
-
+        aplicarHoyEnFechas();
         pageIndex = 0;
         cargarPagina(pageIndex);
     }
@@ -55,68 +49,14 @@ public class PedidosCocinaHoyView extends PedidosCocinaAbstractaView {
 
     @Override
     protected void limpiarFiltros() {
-        LocalDate hoy = LocalDate.now();
-        desde.setValue(hoy);
-        hasta.setValue(hoy);
+        aplicarHoyEnFechas();
         filtroEstado.clear();
         filtroMesa.clear();
     }
 
     @Override
     protected void configurarGridColumnas() {
-        grid.addColumn(p -> p.getFechaCreacion() != null ? p.getFechaCreacion().format(HORA_FMT) : "-")
-                .setHeader("Hora")
-                .setAutoWidth(true)
-                .setFlexGrow(0);
-
-        grid.addColumn(Pedido::getCodigo)
-                .setHeader("Código")
-                .setAutoWidth(true)
-                .setFlexGrow(0);
-
-        grid.addColumn(p -> {
-                    if (p.getTipoPedido() == null) return "Cliente";
-                    return switch (p.getTipoPedido()) {
-                        case DOMICILIO -> "Domicilio";
-                        case RECOGER -> "Recogida";
-                        default -> (p.getReservaMesa() != null && p.getReservaMesa().getNumeroMesa() != null)
-                                ? "Mesa " + p.getReservaMesa().getNumeroMesa()
-                                : "Mesa";
-                    };
-                })
-                .setHeader("Origen")
-                .setAutoWidth(true)
-                .setFlexGrow(0);
-
-        grid.addColumn(p -> p.getEstadoCocina() != null ? p.getEstadoCocina().name() : "-")
-                .setHeader("Estado cocina")
-                .setAutoWidth(true)
-                .setFlexGrow(0);
-
-        grid.addColumn(p -> {
-                    try {
-                        return pedidoCalculoService.calcularTotalPedido(p) + " €";
-                    } catch (Exception ex) {
-                        return "-";
-                    }
-                })
-                .setHeader("Total")
-                .setAutoWidth(true)
-                .setFlexGrow(0);
-
-        grid.addComponentColumn(p -> {
-            Button ver = new Button("Actualizar");
-            ver.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-            ver.getStyle().set("font-weight", "700");
-            ver.addClickListener(e -> {
-                if (p.getId() == null) {
-                    notifyError("Pedido sin ID");
-                    return;
-                }
-                UI.getCurrent().navigate(DetalleComandaView.class, p.getId().toString());
-            });
-            return ver;
-        }).setHeader("Acciones").setAutoWidth(true).setFlexGrow(0);
+        configurarColumnasCocinaBase(HORA_FMT, "Hora", "Actualizar");
     }
 
     @Override
@@ -126,5 +66,11 @@ public class PedidosCocinaHoyView extends PedidosCocinaAbstractaView {
                                   EstadoCocina estado,
                                   Integer mesa) {
         return cocineroService.buscarPedidosCocinaHoy(desde, hasta, estado, mesa, pageable);
+    }
+
+    private void aplicarHoyEnFechas() {
+        LocalDate hoy = LocalDate.now();
+        desde.setValue(hoy);
+        hasta.setValue(hoy);
     }
 }
