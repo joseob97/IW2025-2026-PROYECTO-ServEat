@@ -351,27 +351,27 @@ class ProductoServiceImplTest {
     }
 
     @Test
-    void buscarPorNombreParcial_usa_like_con_wildcards() {
-        when(productoRepo.findByNombreLike("%bur%")).thenReturn(List.of());
+    void buscarPorNombreParcial_usa_containing_ignore_case() {
+        when(productoRepo.findByNombreContainingIgnoreCase("bur")).thenReturn(List.of());
 
         List<Producto> res = service.buscarPorNombreParcial("bur");
 
         assertThat(res).isEmpty();
 
-        verify(productoRepo).findByNombreLike("%bur%");
+        verify(productoRepo).findByNombreContainingIgnoreCase("bur");
         verifyNoMoreInteractions(productoRepo);
         verifyNoInteractions(categoriaRepo, ingredienteRepo);
     }
 
     @Test
-    void buscarPorDescripcionParcial_usa_like_con_wildcards() {
-        when(productoRepo.findByDescripcionLike("%queso%")).thenReturn(List.of());
+    void buscarPorDescripcionParcial_usa_containing_ignore_case() {
+        when(productoRepo.findByDescripcionContainingIgnoreCase("queso")).thenReturn(List.of());
 
         List<Producto> res = service.buscarPorDescripcionParcial("queso");
 
         assertThat(res).isEmpty();
 
-        verify(productoRepo).findByDescripcionLike("%queso%");
+        verify(productoRepo).findByDescripcionContainingIgnoreCase("queso");
         verifyNoMoreInteractions(productoRepo);
         verifyNoInteractions(categoriaRepo, ingredienteRepo);
     }
