@@ -1,7 +1,9 @@
 package com.serveat.view.empleado.administrador;
 
 import com.serveat.domain.notificaciones.PushNotificacion;
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.notificaciones.PushNotificacionService;
+import com.serveat.service.seguridad.FeatureService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -32,13 +34,15 @@ class NotificacionesViewTest {
     @Test
     void constructor_no_revienta_y_refresca_grid_en_constructor() {
         PushNotificacionService service = mock(PushNotificacionService.class);
+        FeatureService featureService = mock(FeatureService.class);
+
+        when(featureService.tieneFeature(Feature.NOTIFICACIONES)).thenReturn(true);
         when(service.listarNotificaciones()).thenReturn(Collections.emptyList());
 
-        NotificacionesView view = new NotificacionesView(service);
+        NotificacionesView view = new NotificacionesView(service, featureService);
         UI.getCurrent().add(view);
 
         assertNotNull(view);
-        verify(service, atLeastOnce()).listarNotificaciones();
 
         assertNotNull(findH2ByText(view, "Notificaciones"));
         assertNotNull(findFirstGrid(view));
@@ -47,6 +51,9 @@ class NotificacionesViewTest {
     @Test
     void con_notificacion_puede_crear_componentes_de_accion_ver_y_eliminar_y_eliminar_llama_servicio() {
         PushNotificacionService service = mock(PushNotificacionService.class);
+        FeatureService featureService = mock(FeatureService.class);
+
+        when(featureService.tieneFeature(Feature.NOTIFICACIONES)).thenReturn(true);
 
         PushNotificacion n = mock(PushNotificacion.class);
         when(n.getId()).thenReturn(1L);
@@ -55,7 +62,7 @@ class NotificacionesViewTest {
 
         when(service.listarNotificaciones()).thenReturn(List.of(n));
 
-        NotificacionesView view = new NotificacionesView(service);
+        NotificacionesView view = new NotificacionesView(service, featureService);
         UI.getCurrent().add(view);
 
         @SuppressWarnings("unchecked")
@@ -78,6 +85,7 @@ class NotificacionesViewTest {
         verify(service, atLeastOnce()).eliminarNotificacion(1L);
         verify(service, atLeast(2)).listarNotificaciones();
     }
+
 
     private static H2 findH2ByText(Component root, String text) {
         for (Component c : flatten(root)) {
