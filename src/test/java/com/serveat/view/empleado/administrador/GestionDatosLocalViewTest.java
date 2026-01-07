@@ -1,5 +1,6 @@
 package com.serveat.view.empleado.administrador;
 
+import com.github.mvysny.kaributesting.v10.MockVaadin;
 import com.serveat.domain.establecimiento.DatosLocal;
 import com.serveat.service.establecimiento.DatosLocalService;
 import com.vaadin.flow.component.Component;
@@ -10,9 +11,11 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,9 +25,13 @@ import static org.mockito.Mockito.*;
 class GestionDatosLocalViewTest {
 
     @BeforeEach
-    void setupUi() {
-        UI ui = new UI();
-        UI.setCurrent(ui);
+    void setupVaadin() {
+        MockVaadin.setup();
+    }
+
+    @AfterEach
+    void tearDownVaadin() {
+        MockVaadin.tearDown();
     }
 
     @Test
@@ -62,24 +69,29 @@ class GestionDatosLocalViewTest {
         setTextAreaValue(view, "Descripción principal", "Desc");
         setTextAreaValue(view, "Descripción secundaria", "Desc2");
 
-        invokePrivate(view, "guardar");
+        invokePrivateNoArgs(view, "guardar");
 
         verify(datosLocalService, atLeastOnce()).guardar(any(DatosLocal.class));
     }
 
+    // Helpers
+
     private static void setTextFieldValue(Component root, String label, String value) {
         TextField tf = findTextFieldByLabel(root, label);
-        if (tf != null) tf.setValue(value);
+        assertNotNull(tf, "No se encontró TextField con label: " + label);
+        tf.setValue(value);
     }
 
     private static void setEmailFieldValue(Component root, String label, String value) {
         EmailField ef = findEmailFieldByLabel(root, label);
-        if (ef != null) ef.setValue(value);
+        assertNotNull(ef, "No se encontró EmailField con label: " + label);
+        ef.setValue(value);
     }
 
     private static void setTextAreaValue(Component root, String label, String value) {
         TextArea ta = findTextAreaByLabel(root, label);
-        if (ta != null) ta.setValue(value);
+        assertNotNull(ta, "No se encontró TextArea con label: " + label);
+        ta.setValue(value);
     }
 
     private static H2 findH2ByText(Component root, String text) {
@@ -132,9 +144,15 @@ class GestionDatosLocalViewTest {
         return out;
     }
 
-    private static void invokePrivate(Object target, String methodName) throws Exception {
-        var m = target.getClass().getDeclaredMethod(methodName);
+    private static void invokePrivateNoArgs(Object target, String methodName) throws Exception {
+        Method m = target.getClass().getDeclaredMethod(methodName);
         m.setAccessible(true);
-        m.invoke(target);
+        try {
+            m.invoke(target);
+        } catch (Exception e) {
+            // si por dentro lanza excepción, queremos ver la causa real en el test
+            if (e.getCause() != null) throw (e.getCause() instanceof Exception ex) ? ex : e;
+            throw e;
+        }
     }
 }
