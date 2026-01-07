@@ -1,12 +1,17 @@
 package com.serveat.view.empleado.administrador.productos;
 
 import com.serveat.domain.menu.Ingrediente;
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.menu.IngredienteService;
+import com.serveat.service.seguridad.FeatureService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -25,23 +30,31 @@ import java.util.UUID;
 public class GestionIngredientesView extends VerticalLayout {
 
     private final transient IngredienteService ingredienteService;
+    private final transient FeatureService featureService;
 
     private final Grid<Ingrediente> grid = new Grid<>(Ingrediente.class, false);
     private final TextField filtroNombre = new TextField("Buscar por nombre");
 
-    public GestionIngredientesView(IngredienteService ingredienteService) {
+    public GestionIngredientesView(IngredienteService ingredienteService,
+                                   FeatureService featureService) {
         this.ingredienteService = ingredienteService;
+        this.featureService = featureService;
 
         setPadding(true);
         setSpacing(true);
 
         add(new H2("Gestión de ingredientes"));
 
+        if (!featureService.tieneFeature(Feature.INGREDIENTES)) {
+            add(bloqueado());
+            return;
+        }
+
         configurarToolbar();
         configurarGrid();
-
         refrescar();
     }
+
 
     private void configurarToolbar() {
         filtroNombre.setPlaceholder("Escribe para filtrar...");
@@ -148,5 +161,24 @@ public class GestionIngredientesView extends VerticalLayout {
 
         dialog.add(content);
         dialog.open();
+    }
+
+    private Component bloqueado() {
+        VerticalLayout card = new VerticalLayout();
+        card.setPadding(true);
+        card.setSpacing(false);
+        card.getStyle().set("gap", "10px");
+
+        H3 h3 = new H3("Funcionalidad no disponible");
+        h3.getStyle().set("margin", "0");
+
+        Span p1 = new Span("Esta funcionalidad requiere el plan PRO.");
+        p1.getStyle().set("color", "var(--lumo-secondary-text-color)");
+
+        Span p2 = new Span("Ve a “Suscripción / Plan” para activarla.");
+        p2.getStyle().set("color", "var(--lumo-secondary-text-color)");
+
+        card.add(h3, p1, p2);
+        return card;
     }
 }
