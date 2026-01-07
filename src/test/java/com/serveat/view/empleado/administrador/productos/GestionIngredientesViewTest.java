@@ -1,7 +1,9 @@
 package com.serveat.view.empleado.administrador.productos;
 
 import com.serveat.domain.menu.Ingrediente;
+import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.menu.IngredienteService;
+import com.serveat.service.seguridad.FeatureService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -29,12 +31,19 @@ class GestionIngredientesViewTest {
     @Test
     void constructor_no_revienta_y_refresca_grid_con_filtro_inicial() {
         IngredienteService ingredienteService = mock(IngredienteService.class);
+        FeatureService featureService = mock(FeatureService.class);
+
+        when(featureService.tieneFeature(Feature.INGREDIENTES)).thenReturn(true);
         when(ingredienteService.buscarPorNombre(any())).thenReturn(Collections.emptyList());
 
-        GestionIngredientesView view = new GestionIngredientesView(ingredienteService);
+        GestionIngredientesView view =
+                new GestionIngredientesView(ingredienteService, featureService);
+
         UI.getCurrent().add(view);
 
         assertNotNull(view);
+
+        verify(featureService).tieneFeature(Feature.INGREDIENTES);
         verify(ingredienteService, atLeastOnce()).buscarPorNombre("");
 
         assertNotNull(findH2ByText(view, "Gestión de ingredientes"));
@@ -50,15 +59,26 @@ class GestionIngredientesViewTest {
     @Test
     void abrir_dialogo_no_revienta() throws Exception {
         IngredienteService ingredienteService = mock(IngredienteService.class);
+        FeatureService featureService = mock(FeatureService.class);
+
+        when(featureService.tieneFeature(Feature.INGREDIENTES)).thenReturn(true);
         when(ingredienteService.buscarPorNombre(any())).thenReturn(Collections.emptyList());
 
-        GestionIngredientesView view = new GestionIngredientesView(ingredienteService);
+        GestionIngredientesView view =
+                new GestionIngredientesView(ingredienteService, featureService);
+
         UI.getCurrent().add(view);
 
         assertDoesNotThrow(() ->
-                invokePrivate(view, "abrirDialogo", new Class<?>[]{Ingrediente.class}, new Object[]{null})
+                invokePrivate(
+                        view,
+                        "abrirDialogo",
+                        new Class<?>[]{Ingrediente.class},
+                        new Object[]{null}
+                )
         );
     }
+
 
     private static H2 findH2ByText(Component root, String text) {
         for (Component c : flatten(root)) {
@@ -96,13 +116,22 @@ class GestionIngredientesViewTest {
         return out;
     }
 
-    private static void invokePrivate(Object target, String methodName, Class<?>[] argTypes, Object[] args) throws Exception {
+    private static void invokePrivate(
+            Object target,
+            String methodName,
+            Class<?>[] argTypes,
+            Object[] args
+    ) throws Exception {
+
         var m = target.getClass().getDeclaredMethod(methodName, argTypes);
         m.setAccessible(true);
+
         try {
             m.invoke(target, args);
         } catch (java.lang.reflect.InvocationTargetException ite) {
-            if (ite.getCause() != null) throw new RuntimeException(ite.getCause());
+            if (ite.getCause() != null) {
+                throw new RuntimeException(ite.getCause());
+            }
             throw ite;
         }
     }
