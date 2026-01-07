@@ -68,7 +68,6 @@ public class FeatureServiceImpl implements FeatureService {
         }
 
         fa.setActiva(false);
-        fa.setActivadaEn(null);
         featureRepo.save(fa);
 
         log.info("Feature {} DESACTIVADA correctamente", feature);
@@ -97,5 +96,13 @@ public class FeatureServiceImpl implements FeatureService {
                 .map(FeatureActiva::getFeature)
                 .filter(f -> f != null)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean fueActivadaAlgunaVez(Feature feature) {
+        return featureRepo.findByFeature(feature)
+                .map(fa -> fa.getActivadaEn() != null)
+                .orElse(false);
     }
 }

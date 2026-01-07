@@ -5,7 +5,9 @@ import com.serveat.domain.seguridad.FeatureActiva;
 import com.serveat.repository.seguridad.FeatureActivaRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -38,7 +40,7 @@ class FeatureServiceImplTest {
 
     @Test
     void tieneFeature_si_existe_y_inactiva_devuelve_false() {
-        FeatureActiva fa = featureActiva(Feature.INGREDIENTES, false, null);
+        FeatureActiva fa = featureActiva(Feature.INGREDIENTES, false, LocalDateTime.now().minusDays(1));
         when(featureRepo.findByFeature(Feature.INGREDIENTES)).thenReturn(Optional.of(fa));
 
         boolean res = service.tieneFeature(Feature.INGREDIENTES);
@@ -86,7 +88,7 @@ class FeatureServiceImplTest {
 
     @Test
     void activarFeature_si_existe_y_esta_inactiva_la_activa_setea_fecha_y_guarda() {
-        FeatureActiva fa = featureActiva(Feature.PAGO_ONLINE, false, null);
+        FeatureActiva fa = featureActiva(Feature.PAGO_ONLINE, false, LocalDateTime.now().minusDays(5));
         when(featureRepo.findByFeature(Feature.PAGO_ONLINE)).thenReturn(Optional.of(fa));
 
         service.activarFeature(Feature.PAGO_ONLINE);
@@ -109,32 +111,33 @@ class FeatureServiceImplTest {
 
     @Test
     void desactivarFeature_si_existe_pero_ya_inactiva_no_guarda() {
-        FeatureActiva fa = featureActiva(Feature.EXPORTAR_DATOS, false, null);
+        FeatureActiva fa = featureActiva(Feature.EXPORTAR_DATOS, false, LocalDateTime.now().minusDays(2));
         when(featureRepo.findByFeature(Feature.EXPORTAR_DATOS)).thenReturn(Optional.of(fa));
 
         service.desactivarFeature(Feature.EXPORTAR_DATOS);
 
         verify(featureRepo, never()).save(any());
         assertThat(fa.isActiva()).isFalse();
-        assertThat(fa.getActivadaEn()).isNull();
+        assertThat(fa.getActivadaEn()).isNotNull();
     }
 
     @Test
-    void desactivarFeature_si_existe_y_activa_la_desactiva_limpia_fecha_y_guarda() {
-        FeatureActiva fa = featureActiva(Feature.EXPORTAR_DATOS, true, LocalDateTime.now().minusDays(3));
+    void desactivarFeature_si_existe_y_activa_la_desactiva_y_guarda_sin_borrar_fecha() {
+        LocalDateTime fecha = LocalDateTime.now().minusDays(3);
+        FeatureActiva fa = featureActiva(Feature.EXPORTAR_DATOS, true, fecha);
         when(featureRepo.findByFeature(Feature.EXPORTAR_DATOS)).thenReturn(Optional.of(fa));
 
         service.desactivarFeature(Feature.EXPORTAR_DATOS);
 
         verify(featureRepo).save(fa);
         assertThat(fa.isActiva()).isFalse();
-        assertThat(fa.getActivadaEn()).isNull();
+        assertThat(fa.getActivadaEn()).isEqualTo(fecha);
     }
 
     @Test
     void listarFeaturesActivos_devuelve_solo_las_activas_y_sin_duplicados() {
         FeatureActiva f1 = featureActiva(Feature.INGREDIENTES, true, LocalDateTime.now());
-        FeatureActiva f2 = featureActiva(Feature.PAGO_ONLINE, false, null);
+        FeatureActiva f2 = featureActiva(Feature.PAGO_ONLINE, false, LocalDateTime.now().minusDays(1));
         FeatureActiva f3 = featureActiva(Feature.NOTIFICACIONES, true, LocalDateTime.now());
 
         when(featureRepo.findAll()).thenReturn(List.of(f1, f2, f3));
@@ -148,7 +151,7 @@ class FeatureServiceImplTest {
     @Test
     void listarTodas_devuelve_todas_las_features_en_el_orden_del_repo() {
         FeatureActiva f1 = featureActiva(Feature.INGREDIENTES, true, LocalDateTime.now());
-        FeatureActiva f2 = featureActiva(Feature.PAGO_ONLINE, false, null);
+        FeatureActiva f2 = featureActiva(Feature.PAGO_ONLINE, false, LocalDateTime.now().minusDays(1));
 
         when(featureRepo.findAll()).thenReturn(List.of(f1, f2));
 
@@ -156,6 +159,39 @@ class FeatureServiceImplTest {
 
         assertThat(res).containsExactly(Feature.INGREDIENTES, Feature.PAGO_ONLINE);
         verify(featureRepo).findAll();
+    }
+
+
+    @Test
+    void fueActivadaAlgunaVez_si_no_existe_devuelve_false() {
+        when(featureRepo.findByFeature(Feature.INGREDIENTES)).thenReturn(Optional.empty());
+
+        boolean res = service.fueActivadaAlgunaVez(Feature.INGREDIENTES);
+
+        assertThat(res).isFalse();
+        verify(featureRepo).findByFeature(Feature.INGREDIENTES);
+    }
+
+    @Test
+    void fueActivadaAlgunaVez_si_existe_con_fecha_devuelve_true() {
+        FeatureActiva fa = featureActiva(Feature.INGREDIENTES, false, LocalDateTime.now().minusDays(10));
+        when(featureRepo.findByFeature(Feature.INGREDIENTES)).thenReturn(Optional.of(fa));
+
+        boolean res = service.fueActivadaAlgunaVez(Feature.INGREDIENTES);
+
+        assertThat(res).isTrue();
+        verify(featureRepo).findByFeature(Feature.INGREDIENTES);
+    }
+
+    @Test
+    void fueActivadaAlgunaVez_si_existe_sin_fecha_devuelve_false() {
+        FeatureActiva fa = featureActiva(Feature.INGREDIENTES, false, null);
+        when(featureRepo.findByFeature(Feature.INGREDIENTES)).thenReturn(Optional.of(fa));
+
+        boolean res = service.fueActivadaAlgunaVez(Feature.INGREDIENTES);
+
+        assertThat(res).isFalse();
+        verify(featureRepo).findByFeature(Feature.INGREDIENTES);
     }
 
     private static FeatureActiva featureActiva(Feature feature, boolean activa, LocalDateTime activadaEn) {

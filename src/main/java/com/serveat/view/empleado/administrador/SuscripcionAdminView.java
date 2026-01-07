@@ -4,6 +4,7 @@ import com.serveat.domain.seguridad.Feature;
 import com.serveat.service.seguridad.FeatureService;
 import com.serveat.service.seguridad.FeatureUnlockService;
 import com.serveat.view.layout.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -99,19 +100,45 @@ public class SuscripcionAdminView extends VerticalLayout {
     }
 
     /* ===================== ACCIÓN ===================== */
+    private Component crearAccion(Feature feature, Set<Feature> activas) {
 
-    private Button crearAccion(Feature feature, Set<Feature> activas) {
+        boolean estaActiva = activas.contains(feature);
 
-        if (activas.contains(feature)) {
-            Button activa = new Button("Activa");
-            activa.setEnabled(false);
-            activa.getStyle().set("color", "var(--lumo-success-text-color)");
-            return activa;
+        if (estaActiva) {
+            Button desactivar = new Button("Desactivar");
+            desactivar.getStyle().set("color", "var(--lumo-error-text-color)");
+            desactivar.addClickListener(e -> {
+                try {
+                    featureService.desactivarFeature(feature);
+                    Notification.show("Módulo desactivado", 2500, Notification.Position.MIDDLE);
+                    renderizar();
+                } catch (Exception ex) {
+                    Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                }
+            });
+            return desactivar;
         }
 
         if (featureUnlockService.isFeaturePagada(feature)) {
+            boolean yaSeActivoAlgunaVez = featureService.fueActivadaAlgunaVez(feature);
+
             Button activar = new Button("Activar");
-            activar.addClickListener(e -> mostrarDialogCodigo(feature));
+            activar.getStyle().set("color", "var(--lumo-success-text-color)");
+
+            if (yaSeActivoAlgunaVez) {
+                activar.addClickListener(e -> {
+                    try {
+                        featureService.activarFeature(feature);
+                        Notification.show("Módulo activado", 2500, Notification.Position.MIDDLE);
+                        renderizar();
+                    } catch (Exception ex) {
+                        Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                    }
+                });
+            } else {
+                activar.addClickListener(e -> mostrarDialogCodigo(feature));
+            }
+
             return activar;
         }
 
@@ -133,10 +160,17 @@ public class SuscripcionAdminView extends VerticalLayout {
         Button cancelar = new Button("Cancelar", e -> dialog.close());
         Button confirmar = new Button("Pagar", e -> {
             try {
-                featureUnlockService.simularPagoYObtenerCodigo(feature);
+                String codigo = featureUnlockService.simularPagoYObtenerCodigo(feature);
+
                 dialog.close();
+
                 Notification.show("Pago registrado correctamente", 2500, Notification.Position.MIDDLE);
+
+                // Abre el dialogo de activación con el código ya rellenado
+                mostrarDialogCodigo(feature, codigo);
+
                 renderizar();
+
             } catch (Exception ex) {
                 Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
             }
@@ -149,25 +183,70 @@ public class SuscripcionAdminView extends VerticalLayout {
 
     private void mostrarDialogCodigo(Feature feature) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Introducir código");
+        dialog.setHeaderTitle("Introducir código de desbloqueo");
 
-        var campo = new com.vaadin.flow.component.textfield.TextField("Código");
+        com.vaadin.flow.component.textfield.TextField campo =
+                new com.vaadin.flow.component.textfield.TextField("Código");
+        campo.setWidthFull();
+
+        Paragraph info = new Paragraph("Introduce el código que obtuviste al realizar el pago.");
 
         Button cancelar = new Button("Cancelar", e -> dialog.close());
+
         Button activar = new Button("Activar", e -> {
             try {
                 featureUnlockService.validarCodigoYActivar(feature, campo.getValue());
                 dialog.close();
-                UI.getCurrent().getPage().reload();
+
+                Notification.show("Módulo activado correctamente", 2500, Notification.Position.MIDDLE);
+
+                renderizar();
             } catch (Exception ex) {
                 Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
             }
         });
 
-        dialog.add(campo);
+        dialog.add(info, campo);
         dialog.getFooter().add(cancelar, activar);
         dialog.open();
     }
+
+    // Sobrecarga: abre el dialogo con el código ya sugerido
+    private void mostrarDialogCodigo(Feature feature, String codigoSugerido) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Introducir código de desbloqueo");
+
+        com.vaadin.flow.component.textfield.TextField campo =
+                new com.vaadin.flow.component.textfield.TextField("Código");
+        campo.setWidthFull();
+
+        if (codigoSugerido != null && !codigoSugerido.isBlank()) {
+            campo.setValue(codigoSugerido);
+        }
+
+        Paragraph info = new Paragraph("Introduce el código para activar el módulo.");
+
+        Button cancelar = new Button("Cancelar", e -> dialog.close());
+
+        Button activar = new Button("Activar", e -> {
+            try {
+                featureUnlockService.validarCodigoYActivar(feature, campo.getValue());
+                dialog.close();
+
+                Notification.show("Módulo activado correctamente", 2500, Notification.Position.MIDDLE);
+
+                renderizar();
+
+            } catch (Exception ex) {
+                Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+            }
+        });
+
+        dialog.add(info, campo);
+        dialog.getFooter().add(cancelar, activar);
+        dialog.open();
+    }
+
 
     /* ===================== TEXTOS ===================== */
 

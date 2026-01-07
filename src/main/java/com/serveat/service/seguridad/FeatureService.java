@@ -16,4 +16,6 @@ public interface FeatureService {
     Set<Feature> listarFeaturesActivos();
 
     List<Feature> listarTodas();
+
+    boolean fueActivadaAlgunaVez(Feature feature);
 }
