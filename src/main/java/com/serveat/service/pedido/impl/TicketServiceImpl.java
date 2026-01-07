@@ -272,6 +272,7 @@ public class TicketServiceImpl implements TicketService {
     // ====== INGREDIENTES ======
 
     private List<String> construirDetalleIngredientes(Collection<LineaPedidoIngrediente> ings) {
+        if (!featureService.tieneFeature(Feature.INGREDIENTES)) return List.of();
         if (ings == null || ings.isEmpty()) return List.of();
 
         List<LineaPedidoIngrediente> lista = new ArrayList<>(ings);

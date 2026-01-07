@@ -219,11 +219,11 @@ class TicketServiceImplTest {
     @Test
     void generarTicketCamarero_ticketDemasiadoLargo_lanzaIllegalState() {
         when(featureService.tieneFeature(Feature.FACTURACION_TICKET)).thenReturn(true);
+        when(featureService.tieneFeature(Feature.INGREDIENTES)).thenReturn(true);
 
         Pedido pedido = pedidoLargoParaForzarOverflow("PED-LARGO");
         when(pedidoRepo.findWithDetalleByCodigo("PED-LARGO")).thenReturn(Optional.of(pedido));
 
-        // No importa el subtotal para el overflow, pero debe devolver algo
         when(calculoService.calcularPrecioLinea(any(LineaPedido.class)))
                 .thenReturn(new BigDecimal("1.00"));
 
