@@ -6,7 +6,6 @@ public enum Feature {
     MENUS_OFERTAS,
 
     // Pagos y documentos
-    PAGO_TARJETA,
     PAGO_ONLINE,
     FACTURACION_TICKET,
 
