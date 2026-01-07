@@ -21,7 +21,15 @@ public interface ProductoRepository extends JpaRepository<Producto, UUID> {
     List<Producto> findByNombreLike(String nombre);
 
     Optional<Producto> findByNombre(String nombre);
+
+    @EntityGraph(attributePaths = "categoria")
+    List<Producto> findByNombreContainingIgnoreCase(String nombre);
+
     List<Producto> findByDescripcion(String descripcion);
+
+    @EntityGraph(attributePaths = "categoria")
+    List<Producto> findByDescripcionContainingIgnoreCase(String descripcion);
+
     List<Producto> findByDescripcionLike(String descripcion);
     List<Producto> findByPrecio(BigDecimal precio);
     Optional<Producto> findByCodigo(String codigo);
