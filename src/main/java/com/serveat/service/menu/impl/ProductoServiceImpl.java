@@ -209,13 +209,13 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     public List<Producto> buscarPorNombreParcial(String nombre) {
         log.debug("Buscando productos por nombre parcial='{}'", nombre);
-        return productoRepo.findByNombreLike("%" + nombre + "%");
+        return productoRepo.findByNombreContainingIgnoreCase(nombre);
     }
 
     @Override
     public List<Producto> buscarPorDescripcionParcial(String descripcion) {
         log.debug("Buscando productos por descripción parcial='{}'", descripcion);
-        return productoRepo.findByDescripcionLike("%" + descripcion + "%");
+        return productoRepo.findByDescripcionContainingIgnoreCase(descripcion);
     }
 
     @Override
