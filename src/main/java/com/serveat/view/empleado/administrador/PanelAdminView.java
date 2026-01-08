@@ -73,6 +73,15 @@ public class PanelAdminView extends PanelBaseView {
         ));
 
         cardsOrdenadas.add(Cards.cardAccionProConIcono(
+                VaadinIcon.TAGS.create(),
+                "Categorías",
+                "Crear y gestionar las categorías del catálogo.",
+                com.serveat.view.empleado.administrador.productos.CategoriaAdminView.class,
+                true,
+                "Abrir"
+        ));
+
+        cardsOrdenadas.add(Cards.cardAccionProConIcono(
                 VaadinIcon.CUBE.create(),
                 "Productos",
                 "Gestión de productos del catálogo.",
