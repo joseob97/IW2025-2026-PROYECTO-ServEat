@@ -11,9 +11,11 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.springframework.security.access.annotation.Secured;
 
 @PageTitle("Categorías | Admin")
-@Route(value = "admin/categorias", layout = MainLayout.class)
+@Route(value = "empleado/admin/categorias", layout = MainLayout.class)
+@Secured("ROLE_ADMIN")
 public class CategoriaAdminView extends VerticalLayout {
 
     private final CategoriaService categoriaService;
